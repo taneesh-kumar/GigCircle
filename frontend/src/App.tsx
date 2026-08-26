@@ -1,12 +1,16 @@
 import { type ReactNode } from 'react';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { AuthProvider } from '@/context/AuthContext';
+import { ProtectedRoute } from '@/components/protected-route';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import AccessBoundary from '@/pages/access-boundary';
+import Login from '@/pages/login';
+import Register from '@/pages/register';
 import NotFound from '@/pages/not-found';
 import RoleDashboard from '@/pages/role-dashboard';
 import Welcome from '@/pages/welcome';
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 
 function CustomerDashboard() {
   return <RoleDashboard role="customer" />;
@@ -25,9 +29,32 @@ function Router() {
     <RoutedErrorBoundary>
       <Routes>
         <Route path="/" element={<Welcome />} />
-        <Route path="/customer/dashboard" element={<CustomerDashboard />} />
-        <Route path="/worker/dashboard" element={<WorkerDashboard />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/customer/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['CUSTOMER']}>
+              <CustomerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/worker/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['WORKER']}>
+              <WorkerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/unauthorized" element={<AccessBoundary />} />
         <Route path="/404" element={<NotFound />} />
         <Route path="*" element={<NotFound />} />
@@ -44,9 +71,11 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 function App() {
   return (
     <TooltipProvider>
-      <BrowserRouter>
-        <Router />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Router />
+        </BrowserRouter>
+      </AuthProvider>
       <Toaster />
     </TooltipProvider>
   );
