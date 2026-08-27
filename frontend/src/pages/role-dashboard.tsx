@@ -20,16 +20,30 @@ import {
   Calendar,
   AlertCircle,
   Loader2,
+  Briefcase,
+  Edit,
+  Tag,
+  DollarSign,
+  Power,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApi } from '@/hooks/use-api';
-import { getPlatformInfo, getServiceRequestsApi, pingRoleApi } from '@/services/api';
+import {
+  getPlatformInfo,
+  getServiceRequestsApi,
+  getWorkerProfileApi,
+  pingRoleApi,
+  toggleAvailabilityApi,
+} from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { PlatformShell } from '@/components/platform-shell';
 import { FoundationStatus } from '@/components/status-panel';
 import { CreateRequestModal } from '@/components/create-request-modal';
 import { RequestDetailModal } from '@/components/request-detail-modal';
+import { WorkerProfileModal } from '@/components/worker-profile-modal';
 import { CATEGORY_LABELS, type ServiceRequest, type ServiceRequestStatus } from '@/types/service-request';
+import type { WorkerProfile } from '@/types/worker-profile';
+import { useToast } from '@/hooks/use-toast';
 
 type RoleKey = 'customer' | 'worker' | 'admin';
 
@@ -63,18 +77,18 @@ const roleContent: Record<
     ],
   },
   worker: {
-    eyebrow: 'Worker Dashboard · Segment 1 Active',
+    eyebrow: 'Worker Dashboard · Profile System Active',
     title: 'Good work should find good people.',
-    intro: 'A worker view built around dignity: clear jobs, fair context, and a cooperative record of the work you do.',
+    intro: 'Set up your skills, service rate, and availability to prepare for local household matching.',
     accent: 'bg-accent',
     textColor: 'text-accent-foreground',
     icon: HandHeart,
     stat: '02',
     statLabel: 'authenticated worker',
     steps: [
-      { title: 'See nearby opportunities', copy: 'Work that respects your time and your place.', icon: MapPin },
-      { title: 'Choose with context', copy: 'Know what a household needs before you say yes.', icon: ShieldCheck },
-      { title: 'Build your local record', copy: 'Your contribution is visible to the cooperative.', icon: Sparkles },
+      { title: 'Build worker profile', copy: 'Set your experience, skills, and service categories.', icon: Briefcase },
+      { title: 'Manage availability', copy: 'Toggle whether you are currently ready to receive work.', icon: Power },
+      { title: 'Prepare for matching', copy: 'Your verified profile lays the groundwork for Segment 4.', icon: Sparkles },
     ],
   },
   admin: {
@@ -95,22 +109,31 @@ const roleContent: Record<
 };
 
 export default function RoleDashboard({ role }: { role: RoleKey }) {
+  const { toast } = useToast();
   const content = roleContent[role];
   const platformQuery = useApi(getPlatformInfo);
   const rbacPingQuery = useApi(() => pingRoleApi(role));
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Customer Request State
+  // Customer State (Segment 2)
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState<boolean>(role === 'customer');
   const [requestError, setRequestError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'ALL' | ServiceRequestStatus>('ALL');
 
-  // Modal States
+  // Customer Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Worker Profile State (Segment 3)
+  const [workerProfile, setWorkerProfile] = useState<WorkerProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(role === 'worker');
+  const [profileNotFound, setProfileNotFound] = useState<boolean>(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
 
   const fetchCustomerRequests = async () => {
     if (role !== 'customer') return;
@@ -126,11 +149,57 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     }
   };
 
+  const fetchWorkerProfile = async () => {
+    if (role !== 'worker') return;
+    setIsLoadingProfile(true);
+    setProfileError(null);
+    setProfileNotFound(false);
+    try {
+      const profile = await getWorkerProfileApi();
+      setWorkerProfile(profile);
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        setProfileNotFound(true);
+        setWorkerProfile(null);
+      } else {
+        setProfileError(err?.response?.data?.message || 'Failed to load your worker profile.');
+      }
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
   useEffect(() => {
     if (role === 'customer') {
       fetchCustomerRequests();
+    } else if (role === 'worker') {
+      fetchWorkerProfile();
     }
   }, [role]);
+
+  const handleToggleAvailability = async () => {
+    if (!workerProfile || isTogglingAvailability) return;
+    setIsTogglingAvailability(true);
+    const newStatus = !workerProfile.available;
+    try {
+      const updated = await toggleAvailabilityApi(newStatus);
+      setWorkerProfile(updated);
+      toast({
+        title: newStatus ? 'Status: Available' : 'Status: Unavailable',
+        description: newStatus
+          ? 'You are now marked as available for service requests.'
+          : 'You are now marked as unavailable.',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Failed to update availability',
+        description: err?.response?.data?.message || 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsTogglingAvailability(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -216,10 +285,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           </div>
         </div>
 
-        {/* Customer Functional Workflow (Segment 2) vs Worker/Admin Future View */}
-        {role === 'customer' ? (
+        {/* Customer Functional Workflow (Segment 2) */}
+        {role === 'customer' && (
           <div className="mt-14 space-y-8">
-            {/* Customer Requests Section Header & Controls */}
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 md:p-8">
               <div>
                 <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
@@ -232,7 +300,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                {/* Filter buttons */}
                 <div className="flex items-center rounded-2xl border border-border bg-background p-1 text-xs">
                   {(['ALL', 'OPEN', 'CANCELLED'] as const).map((st) => (
                     <button
@@ -267,7 +334,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               </div>
             </div>
 
-            {/* Request List / States */}
             {isLoadingRequests ? (
               <div className="grid gap-5 md:grid-cols-2">
                 {[1, 2].map((i) => (
@@ -318,7 +384,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       className="group relative flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-6 transition-all hover:border-accent/60 hover:shadow-lg"
                     >
                       <div>
-                        {/* Header: Category & Status */}
                         <div className="flex items-center justify-between gap-3">
                           <span className="rounded-xl bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
                             {categoryInfo.label}
@@ -334,13 +399,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           </span>
                         </div>
 
-                        {/* Description */}
                         <p className="mt-4 text-sm font-medium text-primary line-clamp-2 leading-relaxed">
                           {req.description}
                         </p>
                       </div>
 
-                      {/* Details & Actions */}
                       <div className="mt-6 border-t border-border/60 pt-4">
                         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1.5 truncate">
@@ -381,7 +444,194 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               </div>
             )}
           </div>
-        ) : (
+        )}
+
+        {/* Worker Functional Workflow (Segment 3) */}
+        {role === 'worker' && (
+          <div className="mt-14 space-y-8">
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 md:p-8">
+              <div>
+                <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
+                  PostgreSQL Persisted
+                </span>
+                <h2 className="mt-1 font-display text-3xl font-semibold text-primary">Worker Profile & Skills</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Manage your expertise, hourly rate, location, and availability status.
+                </p>
+              </div>
+
+              {workerProfile && (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleToggleAvailability}
+                    disabled={isTogglingAvailability}
+                    className={`focus-ring inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-bold transition-all shadow-xs ${
+                      workerProfile.available
+                        ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+                        : 'border border-slate-500/40 bg-slate-500/10 text-slate-500 dark:text-slate-400 hover:bg-slate-500/20'
+                    }`}
+                  >
+                    <Power className="h-4 w-4" />
+                    <span>{workerProfile.available ? 'Status: Available' : 'Status: Unavailable'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className="focus-ring inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-2.5 text-xs font-bold text-accent-foreground shadow-md transition-opacity hover:opacity-90"
+                  >
+                    <Edit className="h-4 w-4" /> Edit Profile
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {isLoadingProfile ? (
+              <div className="animate-pulse rounded-3xl border border-border bg-card p-8 space-y-6">
+                <div className="h-6 w-1/3 bg-muted rounded" />
+                <div className="h-4 w-2/3 bg-muted rounded" />
+                <div className="h-20 w-full bg-muted rounded" />
+              </div>
+            ) : profileError ? (
+              <div className="rounded-3xl border border-destructive/30 bg-destructive/10 p-8 text-center">
+                <AlertCircle className="mx-auto h-8 w-8 text-destructive" />
+                <h3 className="mt-3 font-display text-lg font-semibold text-destructive">Failed to Load Profile</h3>
+                <p className="mt-1 text-sm text-destructive/80">{profileError}</p>
+                <button
+                  onClick={fetchWorkerProfile}
+                  className="mt-4 focus-ring inline-flex items-center gap-2 rounded-xl bg-destructive px-4 py-2 text-xs font-bold text-destructive-foreground"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Retry
+                </button>
+              </div>
+            ) : profileNotFound ? (
+              <div className="rounded-3xl border border-dashed border-border bg-card/60 p-10 text-center md:p-14">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                  <Briefcase className="h-7 w-7" />
+                </div>
+                <h3 className="mt-4 font-display text-2xl font-semibold text-primary">Set up your worker profile</h3>
+                <p className="mt-2 mx-auto max-w-md text-sm text-muted-foreground">
+                  Tell customers what services you provide, your experience, skills, and when you are available for work.
+                </p>
+                <button
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="mt-6 focus-ring inline-flex items-center gap-2 rounded-2xl bg-accent px-6 py-3 text-xs font-bold text-accent-foreground shadow-md transition-opacity hover:opacity-90"
+                >
+                  <Plus className="h-4 w-4" /> Create Worker Profile
+                </button>
+              </div>
+            ) : workerProfile ? (
+              <div className="grid gap-6 md:grid-cols-3">
+                {/* Profile Overview Card */}
+                <div className="md:col-span-2 space-y-6 rounded-3xl border border-border/80 bg-card p-6 md:p-8 shadow-xs">
+                  {/* Header info */}
+                  <div className="flex items-start justify-between gap-4 border-b border-border/60 pb-6">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-2xl font-bold text-primary">{workerProfile.workerName}</span>
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
+                            workerProfile.available
+                              ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                              : 'border border-slate-500/30 bg-slate-500/10 text-slate-500 dark:text-slate-400'
+                          }`}
+                        >
+                          {workerProfile.available ? 'AVAILABLE FOR WORK' : 'UNAVAILABLE'}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {workerProfile.workerEmail} • {workerProfile.workerPhone}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Bio */}
+                  {workerProfile.bio && (
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Worker Bio</span>
+                      <p className="mt-2 text-sm leading-relaxed text-primary bg-background/50 p-4 rounded-2xl border border-border/60">
+                        "{workerProfile.bio}"
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Service Categories */}
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Service Categories</span>
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                      {workerProfile.serviceCategories?.map((cat) => {
+                        const info = CATEGORY_LABELS[cat] || { label: cat, description: '' };
+                        return (
+                          <span
+                            key={cat}
+                            className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-bold text-accent"
+                          >
+                            {info.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Skills Tag Cloud */}
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Skills & Expertise</span>
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                      {workerProfile.skills?.map((skill) => (
+                        <span
+                          key={skill}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-background px-3 py-1 text-xs font-semibold text-primary"
+                        >
+                          <Tag className="h-3 w-3 text-accent" /> {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profile Stats Sidebar */}
+                <div className="space-y-5">
+                  <div className="rounded-3xl border border-border bg-card p-6 space-y-4">
+                    <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                      <span className="text-xs font-semibold text-muted-foreground">Hourly Rate</span>
+                      <span className="font-mono text-xl font-bold text-accent">₹{workerProfile.hourlyRate}/hr</span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                      <span className="text-xs font-semibold text-muted-foreground">Experience</span>
+                      <span className="font-mono text-sm font-bold text-primary">{workerProfile.experienceYears} Years</span>
+                    </div>
+
+                    {workerProfile.serviceLocation && (
+                      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                        <span className="text-xs font-semibold text-muted-foreground">Primary Location</span>
+                        <span className="text-xs font-medium text-primary truncate max-w-[140px]">{workerProfile.serviceLocation}</span>
+                      </div>
+                    )}
+
+                    {workerProfile.serviceRadiusKm && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-muted-foreground">Service Radius</span>
+                        <span className="font-mono text-xs font-bold text-primary">{workerProfile.serviceRadiusKm} km</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-3xl border border-accent/30 bg-accent/10 p-6 text-xs text-accent-foreground">
+                    <div className="flex items-center gap-2 font-bold text-accent">
+                      <Sparkles className="h-4 w-4" /> Ready for Matching
+                    </div>
+                    <p className="mt-2 text-muted-foreground leading-relaxed">
+                      Your profile and skills are active and persisted. When Segment 4 matching launches, households will match against your categories and location.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {/* Admin Dashboard view (Segment 1 intact) */}
+        {role === 'admin' && (
           <div className="mt-14 grid gap-5 md:grid-cols-[1.4fr_.6fr]">
             <section className="rounded-3xl border border-border bg-card p-6 md:p-8">
               <div className="flex items-start justify-between gap-4">
@@ -420,7 +670,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             </section>
 
             <aside className="space-y-5">
-              {/* Live Backend RBAC Authorization Status */}
               <div className="rounded-3xl bg-primary p-6 text-primary-foreground">
                 <div className="flex items-center gap-2 text-accent">
                   <ShieldCheck className="h-4 w-4" />
@@ -464,7 +713,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
           <p className="text-sm text-muted-foreground">
-            Segment 2 Customer Service Request System active. Worker matching & job lifecycles unlock in later segments.
+            Segment 3 Worker Profile System active. Matching and job lifecycles unlock in Segment 4+.
           </p>
           <Link
             to="/"
@@ -476,7 +725,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Customer Modals */}
       {role === 'customer' && (
         <>
           <CreateRequestModal
@@ -494,6 +743,19 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             onStatusChange={fetchCustomerRequests}
           />
         </>
+      )}
+
+      {/* Worker Modals */}
+      {role === 'worker' && (
+        <WorkerProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          onSuccess={(profile) => {
+            setWorkerProfile(profile);
+            setProfileNotFound(false);
+          }}
+          existingProfile={workerProfile}
+        />
       )}
     </PlatformShell>
   );

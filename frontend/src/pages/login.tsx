@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { ArrowRight, KeyRound, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowRight, KeyRound, Mail, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { BrandMark } from '@/components/platform-shell';
@@ -11,6 +11,7 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -83,7 +84,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-4 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
+                  className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-10 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
                 />
               </div>
             </div>
@@ -95,13 +96,21 @@ export default function Login() {
               <div className="relative">
                 <KeyRound className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-4 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
+                  className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-10 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3.5 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
@@ -112,7 +121,7 @@ export default function Login() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loggin in...
+                  <Loader2 className="h-4 w-4 animate-spin" /> Logging in...
                 </>
               ) : (
                 <>

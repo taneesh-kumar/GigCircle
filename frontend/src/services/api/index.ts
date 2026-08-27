@@ -3,4 +3,6 @@ export { getHealthCheck } from './health';
 export { getPlatformInfo } from './platform';
 export * from './auth';
 export * from './serviceRequest';
+export * from './workerProfile';
+
 

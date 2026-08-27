@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { ArrowRight, KeyRound, Mail, Phone, User as UserIcon, AlertCircle, Loader2, House, HandHeart } from 'lucide-react';
+import { ArrowRight, KeyRound, Mail, Phone, User as UserIcon, AlertCircle, Loader2, House, HandHeart, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { BrandMark } from '@/components/platform-shell';
@@ -13,6 +13,8 @@ export default function Register() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [role, setRole] = useState<'CUSTOMER' | 'WORKER'>('CUSTOMER');
 
   const [error, setError] = useState<string | null>(null);
@@ -174,7 +176,7 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Password */}
+            {/* Password Fields */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="block font-mono text-xs font-semibold uppercase tracking-wider text-primary mb-2">
@@ -183,14 +185,22 @@ export default function Register() {
                 <div className="relative">
                   <KeyRound className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-4 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
+                    className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-10 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3.5 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -201,13 +211,21 @@ export default function Register() {
                 <div className="relative">
                   <KeyRound className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
                   <input
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-4 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
+                    className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-10 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-3.5 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
             </div>
