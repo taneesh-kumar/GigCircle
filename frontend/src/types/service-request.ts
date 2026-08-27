@@ -1,3 +1,5 @@
+import type { JobStatus } from './worker-job';
+
 export type ServiceCategory =
   | 'PLUMBING'
   | 'ELECTRICAL'
@@ -26,6 +28,9 @@ export interface ServiceRequest {
   assignmentStatus?: AssignmentStatus;
   workerId?: number;
   workerName?: string;
+  jobStatus?: JobStatus;
+  startedAt?: string;
+  completedAt?: string;
 }
 
 export interface CreateServiceRequestInput {

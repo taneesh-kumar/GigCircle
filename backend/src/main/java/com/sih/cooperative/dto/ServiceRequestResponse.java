@@ -1,6 +1,7 @@
 package com.sih.cooperative.dto;
 
 import com.sih.cooperative.entity.Job;
+import com.sih.cooperative.entity.JobStatus;
 import com.sih.cooperative.entity.ServiceCategory;
 import com.sih.cooperative.entity.ServiceRequest;
 import com.sih.cooperative.entity.ServiceRequestStatus;
@@ -22,15 +23,18 @@ public class ServiceRequestResponse {
     private Long customerId;
     private String customerName;
 
-    // Segment 4 Assignment Details
+    // Segment 4 & 5 Assignment & Job Lifecycle Details
     private String assignmentStatus;
     private Long workerId;
     private String workerName;
+    private JobStatus jobStatus;
+    private LocalDateTime startedAt;
+    private LocalDateTime completedAt;
 
     public ServiceRequestResponse() {
     }
 
-    public ServiceRequestResponse(Long id, ServiceCategory category, String description, String location, BigDecimal budget, LocalDateTime preferredTime, ServiceRequestStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Long customerId, String customerName, String assignmentStatus, Long workerId, String workerName) {
+    public ServiceRequestResponse(Long id, ServiceCategory category, String description, String location, BigDecimal budget, LocalDateTime preferredTime, ServiceRequestStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Long customerId, String customerName, String assignmentStatus, Long workerId, String workerName, JobStatus jobStatus, LocalDateTime startedAt, LocalDateTime completedAt) {
         this.id = id;
         this.category = category;
         this.description = description;
@@ -45,6 +49,9 @@ public class ServiceRequestResponse {
         this.assignmentStatus = assignmentStatus != null ? assignmentStatus : "UNASSIGNED";
         this.workerId = workerId;
         this.workerName = workerName;
+        this.jobStatus = jobStatus;
+        this.startedAt = startedAt;
+        this.completedAt = completedAt;
     }
 
     public static ServiceRequestResponse fromEntity(ServiceRequest request) {
@@ -67,7 +74,10 @@ public class ServiceRequestResponse {
                 request.getCustomer() != null ? request.getCustomer().getName() : null,
                 isAssigned ? "ASSIGNED" : "UNASSIGNED",
                 isAssigned && assignedJob.getWorker() != null ? assignedJob.getWorker().getId() : null,
-                isAssigned && assignedJob.getWorker() != null ? assignedJob.getWorker().getName() : null
+                isAssigned && assignedJob.getWorker() != null ? assignedJob.getWorker().getName() : null,
+                isAssigned ? assignedJob.getStatus() : null,
+                isAssigned ? assignedJob.getStartedAt() : null,
+                isAssigned ? assignedJob.getCompletedAt() : null
         );
     }
 
@@ -181,5 +191,29 @@ public class ServiceRequestResponse {
 
     public void setWorkerName(String workerName) {
         this.workerName = workerName;
+    }
+
+    public JobStatus getJobStatus() {
+        return jobStatus;
+    }
+
+    public void setJobStatus(JobStatus jobStatus) {
+        this.jobStatus = jobStatus;
+    }
+
+    public LocalDateTime getStartedAt() {
+        return startedAt;
+    }
+
+    public void setStartedAt(LocalDateTime startedAt) {
+        this.startedAt = startedAt;
+    }
+
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(LocalDateTime completedAt) {
+        this.completedAt = completedAt;
     }
 }

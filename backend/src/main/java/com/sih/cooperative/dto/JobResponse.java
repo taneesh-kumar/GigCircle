@@ -25,11 +25,13 @@ public class JobResponse {
     private ServiceRequestStatus requestStatus;
     private LocalDateTime createdAt;
     private LocalDateTime acceptedAt;
+    private LocalDateTime startedAt;
+    private LocalDateTime completedAt;
 
     public JobResponse() {
     }
 
-    public JobResponse(Long id, Long serviceRequestId, Long workerId, String workerName, Long customerId, String customerName, ServiceCategory category, String description, String location, BigDecimal budget, LocalDateTime preferredTime, JobStatus jobStatus, ServiceRequestStatus requestStatus, LocalDateTime createdAt, LocalDateTime acceptedAt) {
+    public JobResponse(Long id, Long serviceRequestId, Long workerId, String workerName, Long customerId, String customerName, ServiceCategory category, String description, String location, BigDecimal budget, LocalDateTime preferredTime, JobStatus jobStatus, ServiceRequestStatus requestStatus, LocalDateTime createdAt, LocalDateTime acceptedAt, LocalDateTime startedAt, LocalDateTime completedAt) {
         this.id = id;
         this.serviceRequestId = serviceRequestId;
         this.workerId = workerId;
@@ -45,6 +47,8 @@ public class JobResponse {
         this.requestStatus = requestStatus;
         this.createdAt = createdAt;
         this.acceptedAt = acceptedAt;
+        this.startedAt = startedAt;
+        this.completedAt = completedAt;
     }
 
     public static JobResponse fromEntity(Job job) {
@@ -63,7 +67,9 @@ public class JobResponse {
                 job.getStatus(),
                 job.getServiceRequest() != null ? job.getServiceRequest().getStatus() : null,
                 job.getCreatedAt(),
-                job.getAcceptedAt()
+                job.getAcceptedAt(),
+                job.getStartedAt(),
+                job.getCompletedAt()
         );
     }
 
@@ -185,5 +191,21 @@ public class JobResponse {
 
     public void setAcceptedAt(LocalDateTime acceptedAt) {
         this.acceptedAt = acceptedAt;
+    }
+
+    public LocalDateTime getStartedAt() {
+        return startedAt;
+    }
+
+    public void setStartedAt(LocalDateTime startedAt) {
+        this.startedAt = startedAt;
+    }
+
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(LocalDateTime completedAt) {
+        this.completedAt = completedAt;
     }
 }

@@ -28,9 +28,27 @@ public class WorkerJobController {
         return ResponseEntity.ok(jobs);
     }
 
+    @GetMapping("/assigned")
+    public ResponseEntity<List<JobResponse>> getAssignedJobs(Principal principal) {
+        List<JobResponse> jobs = jobService.getAssignedJobsForWorker(principal.getName());
+        return ResponseEntity.ok(jobs);
+    }
+
     @PostMapping("/{requestId}/accept")
     public ResponseEntity<JobResponse> acceptJob(@PathVariable Long requestId, Principal principal) {
         JobResponse response = jobService.acceptJob(requestId, principal.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/{jobId}/start")
+    public ResponseEntity<JobResponse> startJob(@PathVariable Long jobId, Principal principal) {
+        JobResponse response = jobService.startJob(jobId, principal.getName());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{jobId}/complete")
+    public ResponseEntity<JobResponse> completeJob(@PathVariable Long jobId, Principal principal) {
+        JobResponse response = jobService.completeJob(jobId, principal.getName());
+        return ResponseEntity.ok(response);
     }
 }

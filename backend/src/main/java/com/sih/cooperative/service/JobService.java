@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -70,6 +71,15 @@ public class JobService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<JobResponse> getAssignedJobsForWorker(String workerEmail) {
+        User worker = getAuthenticatedWorker(workerEmail);
+        return jobRepository.findByWorkerIdOrderByCreatedAtDesc(worker.getId())
+                .stream()
+                .map(JobResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public JobResponse acceptJob(Long requestId, String workerEmail) {
         User worker = getAuthenticatedWorker(workerEmail);
@@ -107,5 +117,53 @@ public class JobService {
         } catch (DataIntegrityViolationException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Service request has already been assigned.");
         }
+    }
+
+    @Transactional
+    public JobResponse startJob(Long jobId, String workerEmail) {
+        User worker = getAuthenticatedWorker(workerEmail);
+
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found"));
+
+        if (!job.getWorker().getId().equals(worker.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: job assigned to another worker");
+        }
+
+        if (job.getStatus() != JobStatus.ACCEPTED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Job must be ACCEPTED before it can be started");
+        }
+
+        job.setStatus(JobStatus.IN_PROGRESS);
+        if (job.getStartedAt() == null) {
+            job.setStartedAt(LocalDateTime.now());
+        }
+
+        Job savedJob = jobRepository.save(job);
+        return JobResponse.fromEntity(savedJob);
+    }
+
+    @Transactional
+    public JobResponse completeJob(Long jobId, String workerEmail) {
+        User worker = getAuthenticatedWorker(workerEmail);
+
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found"));
+
+        if (!job.getWorker().getId().equals(worker.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: job assigned to another worker");
+        }
+
+        if (job.getStatus() != JobStatus.IN_PROGRESS) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only IN_PROGRESS jobs can be completed");
+        }
+
+        job.setStatus(JobStatus.COMPLETED);
+        if (job.getCompletedAt() == null) {
+            job.setCompletedAt(LocalDateTime.now());
+        }
+
+        Job savedJob = jobRepository.save(job);
+        return JobResponse.fromEntity(savedJob);
     }
 }

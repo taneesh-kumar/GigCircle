@@ -26,16 +26,21 @@ import {
   Check,
   User,
   Lock,
+  Play,
+  CheckCheck,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApi } from '@/hooks/use-api';
 import {
   acceptWorkerJobApi,
+  completeWorkerJobApi,
   getPlatformInfo,
   getServiceRequestsApi,
+  getWorkerAssignedJobsApi,
   getWorkerJobsApi,
   getWorkerProfileApi,
   pingRoleApi,
+  startWorkerJobApi,
   toggleAvailabilityApi,
 } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
@@ -46,6 +51,7 @@ import { RequestDetailModal } from '@/components/request-detail-modal';
 import { WorkerProfileModal } from '@/components/worker-profile-modal';
 import { CATEGORY_LABELS, type ServiceRequest, type ServiceRequestStatus } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
+import type { JobResponse } from '@/types/worker-job';
 import { useToast } from '@/hooks/use-toast';
 
 type RoleKey = 'customer' | 'worker' | 'admin';
@@ -65,9 +71,9 @@ const roleContent: Record<
   }
 > = {
   customer: {
-    eyebrow: 'Customer Dashboard · Service Request & Assignment Active',
+    eyebrow: 'Customer Dashboard · Job Lifecycle Tracking Active',
     title: 'A clearer way to ask for help.',
-    intro: 'Describe what your household needs, set your budget and schedule, and track assigned workers in real-time.',
+    intro: 'Describe what your household needs, set your budget, and track worker job progress (ACCEPTED → IN_PROGRESS → COMPLETED) in real-time.',
     accent: 'bg-secondary',
     textColor: 'text-secondary-foreground',
     icon: House,
@@ -75,14 +81,14 @@ const roleContent: Record<
     statLabel: 'authenticated customer',
     steps: [
       { title: 'Create service request', copy: 'Submit plumbing, electrical, cleaning, and home repair needs.', icon: Wrench },
-      { title: 'Persisted & verified', copy: 'Your requests are stored securely with ownership tracking.', icon: ShieldCheck },
-      { title: 'Manage & track', copy: 'Inspect details, track assigned workers, or cancel unassigned requests.', icon: BellRing },
+      { title: 'Worker assignment', copy: 'Eligible local workers view and accept your request.', icon: UserCheck },
+      { title: 'Track job lifecycle', copy: 'Follow real-time status as the worker starts and completes the service.', icon: BellRing },
     ],
   },
   worker: {
-    eyebrow: 'Worker Dashboard · Profile & Job Feed Active',
+    eyebrow: 'Worker Dashboard · Job Lifecycle Management Active',
     title: 'Good work should find good people.',
-    intro: 'Manage your skills and availability, view eligible local household requests, and accept jobs in real-time.',
+    intro: 'Manage your skills and availability, accept matching household requests, and control job execution (Start → Complete).',
     accent: 'bg-accent',
     textColor: 'text-accent-foreground',
     icon: HandHeart,
@@ -90,8 +96,8 @@ const roleContent: Record<
     statLabel: 'authenticated worker',
     steps: [
       { title: 'Build worker profile', copy: 'Set your experience, skills, and service categories.', icon: Briefcase },
-      { title: 'Matching job feed', copy: 'View eligible service requests matching your categories and location.', icon: MapPin },
-      { title: 'Accept & work', copy: 'Accept open jobs with one click and get assigned.', icon: CheckCircle2 },
+      { title: 'Accept matching jobs', copy: 'View eligible service requests matching your categories and location.', icon: MapPin },
+      { title: 'Manage job lifecycle', copy: 'Start the service when arriving and mark complete when finished.', icon: CheckCircle2 },
     ],
   },
   admin: {
@@ -119,7 +125,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Customer State (Segment 2 & 4)
+  // Customer State (Segment 2, 4, 5)
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState<boolean>(role === 'customer');
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -138,11 +144,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
 
-  // Worker Job Feed State (Segment 4)
+  // Worker Job Feed & Lifecycle State (Segment 4 & 5)
   const [availableJobs, setAvailableJobs] = useState<ServiceRequest[]>([]);
+  const [assignedJobs, setAssignedJobs] = useState<JobResponse[]>([]);
   const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(role === 'worker');
   const [jobsError, setJobsError] = useState<string | null>(null);
   const [acceptingRequestId, setAcceptingRequestId] = useState<number | null>(null);
+  const [operatingJobId, setOperatingJobId] = useState<number | null>(null);
 
   const fetchCustomerRequests = async () => {
     if (role !== 'customer') return;
@@ -183,10 +191,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     setIsLoadingJobs(true);
     setJobsError(null);
     try {
-      const jobs = await getWorkerJobsApi();
-      setAvailableJobs(jobs);
+      const [avail, assigned] = await Promise.all([getWorkerJobsApi(), getWorkerAssignedJobsApi()]);
+      setAvailableJobs(avail);
+      setAssignedJobs(assigned);
     } catch (err: any) {
-      setJobsError(err?.response?.data?.message || 'Failed to load eligible service requests.');
+      setJobsError(err?.response?.data?.message || 'Failed to load worker jobs.');
     } finally {
       setIsLoadingJobs(false);
     }
@@ -233,7 +242,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       const response = await acceptWorkerJobApi(requestId);
       toast({
         title: 'Job Accepted!',
-        description: `You have successfully accepted the ${response.category} job.`,
+        description: `You have accepted the ${response.category} job. Ready to start!`,
       });
       fetchWorkerJobs();
     } catch (err: any) {
@@ -258,6 +267,52 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     }
   };
 
+  const handleStartJob = async (jobId: number) => {
+    if (operatingJobId !== null) return;
+    setOperatingJobId(jobId);
+    try {
+      const updated = await startWorkerJobApi(jobId);
+      toast({
+        title: 'Job Started!',
+        description: `Job status is now IN_PROGRESS.`,
+      });
+      setAssignedJobs((prev) => prev.map((j) => (j.id === jobId ? updated : j)));
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to start job.';
+      toast({
+        title: 'Action Failed',
+        description: msg,
+        variant: 'destructive',
+      });
+      fetchWorkerJobs();
+    } finally {
+      setOperatingJobId(null);
+    }
+  };
+
+  const handleCompleteJob = async (jobId: number) => {
+    if (operatingJobId !== null) return;
+    setOperatingJobId(jobId);
+    try {
+      const updated = await completeWorkerJobApi(jobId);
+      toast({
+        title: 'Job Completed!',
+        description: `Congratulations! The service has been marked as COMPLETED.`,
+      });
+      setAssignedJobs((prev) => prev.map((j) => (j.id === jobId ? updated : j)));
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to complete job.';
+      toast({
+        title: 'Action Failed',
+        description: msg,
+        variant: 'destructive',
+      });
+      fetchWorkerJobs();
+    } finally {
+      setOperatingJobId(null);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
@@ -275,7 +330,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
   const Icon = content.icon;
 
-  const formatDate = (isoStr: string) => {
+  const formatDate = (isoStr?: string) => {
+    if (!isoStr) return '';
     try {
       return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(isoStr));
     } catch {
@@ -342,7 +398,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           </div>
         </div>
 
-        {/* Customer Functional Workflow (Segment 2 & 4) */}
+        {/* Customer Functional Workflow (Segment 2, 4, 5) */}
         {role === 'customer' && (
           <div className="mt-14 space-y-8">
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 md:p-8">
@@ -352,7 +408,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </span>
                 <h2 className="mt-1 font-display text-3xl font-semibold text-primary">My Service Requests</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Track request assignments, inspect details, or cancel unassigned requests.
+                  Track request assignments and real-time worker job lifecycle progress (ACCEPTED → IN_PROGRESS → COMPLETED).
                 </p>
               </div>
 
@@ -435,6 +491,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   const categoryInfo = CATEGORY_LABELS[req.category] || { label: req.category, description: '' };
                   const isOpenStatus = req.status === 'OPEN';
                   const isAssigned = req.assignmentStatus === 'ASSIGNED';
+                  const jobStatus = req.jobStatus;
 
                   return (
                     <div
@@ -448,8 +505,28 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           </span>
                           <div className="flex items-center gap-2">
                             {isAssigned && (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                                <User className="h-3 w-3" /> Assigned
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
+                                  jobStatus === 'COMPLETED'
+                                    ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    : jobStatus === 'IN_PROGRESS'
+                                    ? 'border border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                    : 'border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                }`}
+                              >
+                                {jobStatus === 'COMPLETED' ? (
+                                  <>
+                                    <CheckCheck className="h-3 w-3" /> COMPLETED
+                                  </>
+                                ) : jobStatus === 'IN_PROGRESS' ? (
+                                  <>
+                                    <Play className="h-3 w-3" /> IN_PROGRESS
+                                  </>
+                                ) : (
+                                  <>
+                                    <User className="h-3 w-3" /> ASSIGNED
+                                  </>
+                                )}
                               </span>
                             )}
                             <span
@@ -468,11 +545,27 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           {req.description}
                         </p>
 
-                        {/* Assigned Worker Badge */}
+                        {/* Assigned Worker & Lifecycle Timestamps */}
                         {isAssigned && req.workerName && (
-                          <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2.5 text-xs">
-                            <span className="font-semibold text-emerald-700 dark:text-emerald-400">Worker:</span>
-                            <span className="font-bold text-primary">{req.workerName}</span>
+                          <div className="mt-4 space-y-1 rounded-2xl border border-border/80 bg-background/60 p-3 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-muted-foreground">Assigned Worker:</span>
+                              <span className="font-bold text-primary">{req.workerName}</span>
+                            </div>
+
+                            {req.startedAt && (
+                              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                <span>Started:</span>
+                                <span className="font-mono">{formatDate(req.startedAt)}</span>
+                              </div>
+                            )}
+
+                            {req.completedAt && (
+                              <div className="flex items-center justify-between text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                                <span>Completed:</span>
+                                <span className="font-mono">{formatDate(req.completedAt)}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -528,7 +621,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           </div>
         )}
 
-        {/* Worker Functional Workflow (Segment 3 & 4) */}
+        {/* Worker Functional Workflow (Segment 3, 4, 5) */}
         {role === 'worker' && (
           <div className="mt-14 space-y-10">
             {/* Worker Profile Overview Header */}
@@ -537,9 +630,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
                   Worker Operations
                 </span>
-                <h2 className="mt-1 font-display text-3xl font-semibold text-primary">Profile & Job Matching</h2>
+                <h2 className="mt-1 font-display text-3xl font-semibold text-primary">Profile & Job Execution</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Manage your skills, toggle availability, and accept matching household requests.
+                  Manage your skills, toggle availability, accept matching requests, and control job lifecycle (ACCEPTED → IN_PROGRESS → COMPLETED).
                 </p>
               </div>
 
@@ -635,8 +728,158 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   </div>
                 </div>
 
-                {/* Available Service Requests Section (Segment 4 Matching Feed) */}
+                {/* Section 1: My Active & Assigned Jobs (Segment 5 Lifecycle Operations) */}
                 <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
+                        Segment 5 Job Execution
+                      </span>
+                      <h3 className="font-display text-2xl font-semibold text-primary">My Active & Assigned Jobs</h3>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Jobs you have accepted. Start the job when arriving and mark complete when finished.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={fetchWorkerJobs}
+                      disabled={isLoadingJobs}
+                      className="focus-ring p-2.5 rounded-2xl border border-border bg-background text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                      title="Refresh jobs"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoadingJobs ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+
+                  {assignedJobs.length === 0 ? (
+                    <div className="rounded-3xl border border-dashed border-border bg-card/60 p-8 text-center">
+                      <p className="text-xs text-muted-foreground">
+                        You have no active or accepted jobs yet. Accept an available service request below to start work!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-5 md:grid-cols-2">
+                      {assignedJobs.map((job) => {
+                        const categoryInfo = CATEGORY_LABELS[job.category] || { label: job.category, description: '' };
+                        const isOperating = operatingJobId === job.id;
+
+                        return (
+                          <div
+                            key={job.id}
+                            className="group relative flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-6 transition-all hover:border-accent/60 hover:shadow-lg"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="rounded-xl bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
+                                  {categoryInfo.label}
+                                </span>
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
+                                    job.jobStatus === 'COMPLETED'
+                                      ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                      : job.jobStatus === 'IN_PROGRESS'
+                                      ? 'border border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                      : 'border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                  }`}
+                                >
+                                  {job.jobStatus === 'COMPLETED' ? (
+                                    <>
+                                      <CheckCheck className="h-3 w-3" /> COMPLETED ✓
+                                    </>
+                                  ) : job.jobStatus === 'IN_PROGRESS' ? (
+                                    <>
+                                      <Play className="h-3 w-3" /> IN_PROGRESS
+                                    </>
+                                  ) : (
+                                    <>
+                                      <User className="h-3 w-3" /> ACCEPTED
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+
+                              <p className="mt-4 text-sm font-medium text-primary line-clamp-2 leading-relaxed">
+                                {job.description}
+                              </p>
+
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                Customer: <span className="font-semibold text-primary">{job.customerName}</span>
+                              </p>
+
+                              {/* Timestamps */}
+                              <div className="mt-3 space-y-1 rounded-xl bg-background/50 p-2.5 text-[11px] text-muted-foreground">
+                                {job.acceptedAt && <div>Accepted: {formatDate(job.acceptedAt)}</div>}
+                                {job.startedAt && <div className="text-blue-600 dark:text-blue-400">Started: {formatDate(job.startedAt)}</div>}
+                                {job.completedAt && <div className="text-emerald-600 dark:text-emerald-400 font-semibold">Completed: {formatDate(job.completedAt)}</div>}
+                              </div>
+                            </div>
+
+                            <div className="mt-6 border-t border-border/60 pt-4">
+                              <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <MapPin className="h-3.5 w-3.5 shrink-0 text-accent" />
+                                  <span className="truncate">{job.location}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 font-mono font-bold text-primary">
+                                  <span className="text-accent">₹</span>
+                                  <span>₹{job.budget.toLocaleString()}</span>
+                                </div>
+                              </div>
+
+                              {/* Lifecycle Action Buttons */}
+                              <div className="mt-5 flex items-center justify-end gap-3 pt-2">
+                                {job.jobStatus === 'ACCEPTED' && (
+                                  <button
+                                    onClick={() => handleStartJob(job.id)}
+                                    disabled={isOperating || operatingJobId !== null}
+                                    className="focus-ring inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md transition-all hover:bg-blue-700 disabled:opacity-50"
+                                  >
+                                    {isOperating ? (
+                                      <>
+                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Starting...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Play className="h-3.5 w-3.5" /> Start Job
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+
+                                {job.jobStatus === 'IN_PROGRESS' && (
+                                  <button
+                                    onClick={() => handleCompleteJob(job.id)}
+                                    disabled={isOperating || operatingJobId !== null}
+                                    className="focus-ring inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-md transition-all hover:bg-emerald-700 disabled:opacity-50"
+                                  >
+                                    {isOperating ? (
+                                      <>
+                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Completing...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCheck className="h-3.5 w-3.5" /> Complete Job
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+
+                                {job.jobStatus === 'COMPLETED' && (
+                                  <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                    <CheckCheck className="h-4 w-4" /> Service Completed
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 2: Available Service Requests Section (Segment 4 Matching Feed) */}
+                <div className="space-y-6 border-t border-border pt-10">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
@@ -866,7 +1109,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
           <p className="text-sm text-muted-foreground">
-            Segment 4 Worker Matching & Job Acceptance System active.
+            Segment 5 Job Lifecycle Management active (ACCEPTED → IN_PROGRESS → COMPLETED).
           </p>
           <Link
             to="/"

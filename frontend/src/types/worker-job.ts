@@ -1,6 +1,6 @@
 import { ServiceCategory, ServiceRequestStatus } from './service-request';
 
-export type JobStatus = 'OPEN' | 'ACCEPTED';
+export type JobStatus = 'OPEN' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED';
 export type AssignmentStatus = 'UNASSIGNED' | 'ASSIGNED';
 
 export interface JobResponse {
@@ -19,4 +19,6 @@ export interface JobResponse {
   requestStatus: ServiceRequestStatus;
   createdAt: string;
   acceptedAt?: string;
+  startedAt?: string;
+  completedAt?: string;
 }

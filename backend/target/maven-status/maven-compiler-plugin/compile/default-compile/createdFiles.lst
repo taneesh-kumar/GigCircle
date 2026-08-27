@@ -15,6 +15,7 @@ com\sih\cooperative\dto\ServiceRequestResponse.class
 com\sih\cooperative\controller\AdminTestController.class
 com\sih\cooperative\controller\CustomerServiceRequestController.class
 com\sih\cooperative\dto\UserResponse.class
+com\sih\cooperative\config\DatabaseMigrationRunner.class
 com\sih\cooperative\dto\JobResponse.class
 com\sih\cooperative\security\package-info.class
 com\sih\cooperative\entity\WorkerProfile.class
