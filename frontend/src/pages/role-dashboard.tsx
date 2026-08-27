@@ -21,13 +21,13 @@ import {
   AlertCircle,
   Briefcase,
   Edit,
-  Tag,
   Power,
   Check,
   User,
   Lock,
   Play,
   CheckCheck,
+  Star,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApi } from '@/hooks/use-api';
@@ -39,6 +39,8 @@ import {
   getWorkerAssignedJobsApi,
   getWorkerJobsApi,
   getWorkerProfileApi,
+  getWorkerRatingsApi,
+  getWorkerRatingSummaryApi,
   pingRoleApi,
   startWorkerJobApi,
   toggleAvailabilityApi,
@@ -49,9 +51,11 @@ import { FoundationStatus } from '@/components/status-panel';
 import { CreateRequestModal } from '@/components/create-request-modal';
 import { RequestDetailModal } from '@/components/request-detail-modal';
 import { WorkerProfileModal } from '@/components/worker-profile-modal';
+import { RatingModal } from '@/components/rating-modal';
 import { CATEGORY_LABELS, type ServiceRequest, type ServiceRequestStatus } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
 import type { JobResponse } from '@/types/worker-job';
+import type { Rating, WorkerRatingSummary } from '@/types/rating';
 import { useToast } from '@/hooks/use-toast';
 
 type RoleKey = 'customer' | 'worker' | 'admin';
@@ -71,9 +75,9 @@ const roleContent: Record<
   }
 > = {
   customer: {
-    eyebrow: 'Customer Dashboard · Job Lifecycle Tracking Active',
+    eyebrow: 'Customer Dashboard · Ratings & Reviews Active',
     title: 'A clearer way to ask for help.',
-    intro: 'Describe what your household needs, set your budget, and track worker job progress (ACCEPTED → IN_PROGRESS → COMPLETED) in real-time.',
+    intro: 'Describe what your household needs, set your budget, track worker job progress, and rate completed services.',
     accent: 'bg-secondary',
     textColor: 'text-secondary-foreground',
     icon: House,
@@ -82,13 +86,13 @@ const roleContent: Record<
     steps: [
       { title: 'Create service request', copy: 'Submit plumbing, electrical, cleaning, and home repair needs.', icon: Wrench },
       { title: 'Worker assignment', copy: 'Eligible local workers view and accept your request.', icon: UserCheck },
-      { title: 'Track job lifecycle', copy: 'Follow real-time status as the worker starts and completes the service.', icon: BellRing },
+      { title: 'Rate completed work', copy: 'Follow status to completion and leave honest ratings for workers.', icon: Star },
     ],
   },
   worker: {
-    eyebrow: 'Worker Dashboard · Job Lifecycle Management Active',
+    eyebrow: 'Worker Dashboard · Ratings & Reviews Active',
     title: 'Good work should find good people.',
-    intro: 'Manage your skills and availability, accept matching household requests, and control job execution (Start → Complete).',
+    intro: 'Manage your skills, accept matching requests, control job execution, and build a trusted reputation score.',
     accent: 'bg-accent',
     textColor: 'text-accent-foreground',
     icon: HandHeart,
@@ -97,7 +101,7 @@ const roleContent: Record<
     steps: [
       { title: 'Build worker profile', copy: 'Set your experience, skills, and service categories.', icon: Briefcase },
       { title: 'Accept matching jobs', copy: 'View eligible service requests matching your categories and location.', icon: MapPin },
-      { title: 'Manage job lifecycle', copy: 'Start the service when arriving and mark complete when finished.', icon: CheckCircle2 },
+      { title: 'Earn customer ratings', copy: 'Complete quality service and build your cooperative rating score.', icon: Star },
     ],
   },
   admin: {
@@ -125,7 +129,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Customer State (Segment 2, 4, 5)
+  // Customer State (Segment 2, 4, 5, 6)
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState<boolean>(role === 'customer');
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -135,6 +139,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Segment 6 Rating Modal State
+  const [ratingJobId, setRatingJobId] = useState<number | null>(null);
+  const [ratingWorkerName, setRatingWorkerName] = useState<string | null>(null);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
 
   // Worker Profile State (Segment 3)
   const [workerProfile, setWorkerProfile] = useState<WorkerProfile | null>(null);
@@ -151,6 +160,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [jobsError, setJobsError] = useState<string | null>(null);
   const [acceptingRequestId, setAcceptingRequestId] = useState<number | null>(null);
   const [operatingJobId, setOperatingJobId] = useState<number | null>(null);
+
+  // Segment 6 Worker Ratings State
+  const [workerRatings, setWorkerRatings] = useState<Rating[]>([]);
+  const [workerRatingSummary, setWorkerRatingSummary] = useState<WorkerRatingSummary | null>(null);
+  const [isLoadingWorkerRatings, setIsLoadingWorkerRatings] = useState<boolean>(role === 'worker');
 
   const fetchCustomerRequests = async () => {
     if (role !== 'customer') return;
@@ -201,12 +215,30 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     }
   };
 
+  const fetchWorkerRatings = async () => {
+    if (role !== 'worker') return;
+    setIsLoadingWorkerRatings(true);
+    try {
+      const [ratingsList, summary] = await Promise.all([
+        getWorkerRatingsApi(),
+        getWorkerRatingSummaryApi(),
+      ]);
+      setWorkerRatings(ratingsList);
+      setWorkerRatingSummary(summary);
+    } catch (err: any) {
+      // Non-critical rating load fail fallback
+    } finally {
+      setIsLoadingWorkerRatings(false);
+    }
+  };
+
   useEffect(() => {
     if (role === 'customer') {
       fetchCustomerRequests();
     } else if (role === 'worker') {
       fetchWorkerProfile();
       fetchWorkerJobs();
+      fetchWorkerRatings();
     }
   }, [role]);
 
@@ -323,6 +355,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     setIsDetailModalOpen(true);
   };
 
+  const handleOpenRatingModal = (jobId?: number, workerName?: string) => {
+    if (!jobId) return;
+    setRatingJobId(jobId);
+    setRatingWorkerName(workerName || 'Worker');
+    setIsRatingModalOpen(true);
+  };
+
   const filteredRequests = requests.filter((r) => {
     if (filterStatus === 'ALL') return true;
     return r.status === filterStatus;
@@ -398,7 +437,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           </div>
         </div>
 
-        {/* Customer Functional Workflow (Segment 2, 4, 5) */}
+        {/* Customer Functional Workflow (Segment 2, 4, 5, 6) */}
         {role === 'customer' && (
           <div className="mt-14 space-y-8">
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 md:p-8">
@@ -408,7 +447,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </span>
                 <h2 className="mt-1 font-display text-3xl font-semibold text-primary">My Service Requests</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Track request assignments and real-time worker job lifecycle progress (ACCEPTED → IN_PROGRESS → COMPLETED).
+                  Track request assignments, real-time worker job lifecycle progress, and rate completed services.
                 </p>
               </div>
 
@@ -492,6 +531,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   const isOpenStatus = req.status === 'OPEN';
                   const isAssigned = req.assignmentStatus === 'ASSIGNED';
                   const jobStatus = req.jobStatus;
+                  const isCompleted = jobStatus === 'COMPLETED';
 
                   return (
                     <div
@@ -545,12 +585,23 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           {req.description}
                         </p>
 
-                        {/* Assigned Worker & Lifecycle Timestamps */}
+                        {/* Assigned Worker & Rating Summary strip */}
                         {isAssigned && req.workerName && (
-                          <div className="mt-4 space-y-1 rounded-2xl border border-border/80 bg-background/60 p-3 text-xs">
+                          <div className="mt-4 space-y-1.5 rounded-2xl border border-border/80 bg-background/60 p-3 text-xs">
                             <div className="flex items-center justify-between">
                               <span className="font-semibold text-muted-foreground">Assigned Worker:</span>
-                              <span className="font-bold text-primary">{req.workerName}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-primary">{req.workerName}</span>
+                                {req.workerAverageRating && req.workerAverageRating > 0 ? (
+                                  <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                                    <span>{req.workerAverageRating.toFixed(1)}</span>
+                                    <span className="text-muted-foreground font-normal">({req.workerTotalRatings})</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground">(No ratings yet)</span>
+                                )}
+                              </div>
                             </div>
 
                             {req.startedAt && (
@@ -594,6 +645,22 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             <Eye className="h-3.5 w-3.5 text-accent" /> View Details
                           </button>
 
+                          {/* Rating Action or Status */}
+                          {isCompleted && (
+                            req.isRated ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-xs font-bold text-amber-600 dark:text-amber-400">
+                                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> Rated ✓
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => handleOpenRatingModal(req.jobId, req.workerName)}
+                                className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-white shadow-md hover:bg-amber-600 transition-all"
+                              >
+                                <Star className="h-3.5 w-3.5 fill-white" /> Rate Worker
+                              </button>
+                            )
+                          )}
+
                           {isOpenStatus && !isAssigned && (
                             <button
                               onClick={() => handleOpenDetail(req)}
@@ -603,7 +670,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             </button>
                           )}
 
-                          {isOpenStatus && isAssigned && (
+                          {isOpenStatus && isAssigned && !isCompleted && (
                             <span
                               className="inline-flex items-center gap-1 rounded-xl border border-border bg-muted px-3 py-1.5 text-[11px] font-semibold text-muted-foreground"
                               title="Assigned service requests cannot be cancelled"
@@ -621,7 +688,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           </div>
         )}
 
-        {/* Worker Functional Workflow (Segment 3, 4, 5) */}
+        {/* Worker Functional Workflow (Segment 3, 4, 5, 6) */}
         {role === 'worker' && (
           <div className="mt-14 space-y-10">
             {/* Worker Profile Overview Header */}
@@ -878,7 +945,104 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   )}
                 </div>
 
-                {/* Section 2: Available Service Requests Section (Segment 4 Matching Feed) */}
+                {/* Section 2: Segment 6 Worker Ratings & Customer Reviews */}
+                <div className="space-y-6 border-t border-border pt-10">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
+                        Segment 6 Feedback Engine
+                      </span>
+                      <h3 className="font-display text-2xl font-semibold text-primary">Ratings & Customer Reviews</h3>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Transparent feedback submitted by customers after completed services.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={fetchWorkerRatings}
+                      disabled={isLoadingWorkerRatings}
+                      className="focus-ring p-2.5 rounded-2xl border border-border bg-background text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                      title="Refresh ratings"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoadingWorkerRatings ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+
+                  {/* Summary Metric Strip */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="flex items-center gap-4 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500 text-white font-bold shadow-xs">
+                        <Star className="h-6 w-6 fill-white" />
+                      </div>
+                      <div>
+                        <div className="font-display text-3xl font-bold text-primary">
+                          {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '0.0'}
+                          <span className="text-sm font-normal text-muted-foreground"> / 5.0</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Average Rating Score</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-6">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/20 text-accent font-bold shadow-xs">
+                        <UserCheck className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <div className="font-display text-3xl font-bold text-primary">
+                          {workerRatingSummary?.totalRatings || 0}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Total Customer Reviews</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Reviews Feed */}
+                  {isLoadingWorkerRatings ? (
+                    <div className="space-y-4">
+                      {[1, 2].map((i) => (
+                        <div key={i} className="animate-pulse rounded-3xl border border-border bg-card p-6 space-y-3">
+                          <div className="h-4 w-32 bg-muted rounded" />
+                          <div className="h-6 w-1/2 bg-muted rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : workerRatings.length === 0 ? (
+                    <div className="rounded-3xl border border-dashed border-border bg-card/60 p-10 text-center">
+                      <Star className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                      <h4 className="mt-3 font-display text-lg font-semibold text-primary">No reviews yet</h4>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Customer ratings and reviews will appear here as soon as customers rate your completed services.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {workerRatings.map((rating) => (
+                        <div key={rating.id} className="rounded-3xl border border-border/80 bg-card p-6 transition-all hover:border-accent/40">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1 rounded-xl bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+                                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                <span>{rating.score}.0</span>
+                              </div>
+                              <span className="text-xs font-semibold text-primary">{rating.customerName}</span>
+                            </div>
+                            <span className="font-mono text-[11px] text-muted-foreground">{formatDate(rating.createdAt)}</span>
+                          </div>
+
+                          {rating.review ? (
+                            <p className="mt-3 text-xs text-primary leading-relaxed bg-background/50 p-3 rounded-2xl border border-border/50">
+                              "{rating.review}"
+                            </p>
+                          ) : (
+                            <p className="mt-2 text-[11px] italic text-muted-foreground">No written review provided.</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 3: Available Service Requests Section (Segment 4 Matching Feed) */}
                 <div className="space-y-6 border-t border-border pt-10">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1109,7 +1273,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
           <p className="text-sm text-muted-foreground">
-            Segment 5 Job Lifecycle Management active (ACCEPTED → IN_PROGRESS → COMPLETED).
+            Segment 6 Ratings & Reviews System active.
           </p>
           <Link
             to="/"
@@ -1137,6 +1301,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               setSelectedRequest(null);
             }}
             onStatusChange={fetchCustomerRequests}
+          />
+          <RatingModal
+            isOpen={isRatingModalOpen}
+            onClose={() => setIsRatingModalOpen(false)}
+            jobId={ratingJobId}
+            workerName={ratingWorkerName}
+            onSuccess={fetchCustomerRequests}
           />
         </>
       )}

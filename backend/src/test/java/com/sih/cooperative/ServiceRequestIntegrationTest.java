@@ -6,8 +6,7 @@ import com.sih.cooperative.dto.RegisterRequest;
 import com.sih.cooperative.entity.Role;
 import com.sih.cooperative.entity.ServiceCategory;
 import com.sih.cooperative.entity.ServiceRequestStatus;
-import com.sih.cooperative.repository.ServiceRequestRepository;
-import com.sih.cooperative.repository.UserRepository;
+import com.sih.cooperative.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,13 +42,25 @@ public class ServiceRequestIntegrationTest {
     @Autowired
     private ServiceRequestRepository serviceRequestRepository;
 
+    @Autowired
+    private WorkerProfileRepository workerProfileRepository;
+
+    @Autowired
+    private JobRepository jobRepository;
+
+    @Autowired
+    private RatingRepository ratingRepository;
+
     private String customerAToken;
     private String customerBToken;
     private String workerToken;
 
     @BeforeEach
     void setUp() throws Exception {
+        ratingRepository.deleteAll();
+        jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();
+        workerProfileRepository.deleteAll();
         userRepository.deleteAll();
 
         // Register Customer A

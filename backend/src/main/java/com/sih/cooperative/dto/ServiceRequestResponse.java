@@ -25,16 +25,22 @@ public class ServiceRequestResponse {
 
     // Segment 4 & 5 Assignment & Job Lifecycle Details
     private String assignmentStatus;
+    private Long jobId;
     private Long workerId;
     private String workerName;
     private JobStatus jobStatus;
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
 
+    // Segment 6 Rating Summary & Status Details
+    private Double workerAverageRating;
+    private Long workerTotalRatings;
+    private Boolean isRated;
+
     public ServiceRequestResponse() {
     }
 
-    public ServiceRequestResponse(Long id, ServiceCategory category, String description, String location, BigDecimal budget, LocalDateTime preferredTime, ServiceRequestStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Long customerId, String customerName, String assignmentStatus, Long workerId, String workerName, JobStatus jobStatus, LocalDateTime startedAt, LocalDateTime completedAt) {
+    public ServiceRequestResponse(Long id, ServiceCategory category, String description, String location, BigDecimal budget, LocalDateTime preferredTime, ServiceRequestStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Long customerId, String customerName, String assignmentStatus, Long jobId, Long workerId, String workerName, JobStatus jobStatus, LocalDateTime startedAt, LocalDateTime completedAt, Double workerAverageRating, Long workerTotalRatings, Boolean isRated) {
         this.id = id;
         this.category = category;
         this.description = description;
@@ -47,18 +53,26 @@ public class ServiceRequestResponse {
         this.customerId = customerId;
         this.customerName = customerName;
         this.assignmentStatus = assignmentStatus != null ? assignmentStatus : "UNASSIGNED";
+        this.jobId = jobId;
         this.workerId = workerId;
         this.workerName = workerName;
         this.jobStatus = jobStatus;
         this.startedAt = startedAt;
         this.completedAt = completedAt;
+        this.workerAverageRating = workerAverageRating != null ? workerAverageRating : 0.0;
+        this.workerTotalRatings = workerTotalRatings != null ? workerTotalRatings : 0L;
+        this.isRated = isRated != null ? isRated : false;
     }
 
     public static ServiceRequestResponse fromEntity(ServiceRequest request) {
-        return fromEntity(request, null);
+        return fromEntity(request, null, null, false);
     }
 
     public static ServiceRequestResponse fromEntity(ServiceRequest request, Job assignedJob) {
+        return fromEntity(request, assignedJob, null, false);
+    }
+
+    public static ServiceRequestResponse fromEntity(ServiceRequest request, Job assignedJob, WorkerRatingSummary ratingSummary, boolean isRated) {
         boolean isAssigned = assignedJob != null;
         return new ServiceRequestResponse(
                 request.getId(),
@@ -73,11 +87,15 @@ public class ServiceRequestResponse {
                 request.getCustomer() != null ? request.getCustomer().getId() : null,
                 request.getCustomer() != null ? request.getCustomer().getName() : null,
                 isAssigned ? "ASSIGNED" : "UNASSIGNED",
+                isAssigned ? assignedJob.getId() : null,
                 isAssigned && assignedJob.getWorker() != null ? assignedJob.getWorker().getId() : null,
                 isAssigned && assignedJob.getWorker() != null ? assignedJob.getWorker().getName() : null,
                 isAssigned ? assignedJob.getStatus() : null,
                 isAssigned ? assignedJob.getStartedAt() : null,
-                isAssigned ? assignedJob.getCompletedAt() : null
+                isAssigned ? assignedJob.getCompletedAt() : null,
+                ratingSummary != null ? ratingSummary.getAverageRating() : 0.0,
+                ratingSummary != null ? ratingSummary.getTotalRatings() : 0L,
+                isRated
         );
     }
 
@@ -177,6 +195,14 @@ public class ServiceRequestResponse {
         this.assignmentStatus = assignmentStatus;
     }
 
+    public Long getJobId() {
+        return jobId;
+    }
+
+    public void setJobId(Long jobId) {
+        this.jobId = jobId;
+    }
+
     public Long getWorkerId() {
         return workerId;
     }
@@ -215,5 +241,29 @@ public class ServiceRequestResponse {
 
     public void setCompletedAt(LocalDateTime completedAt) {
         this.completedAt = completedAt;
+    }
+
+    public Double getWorkerAverageRating() {
+        return workerAverageRating;
+    }
+
+    public void setWorkerAverageRating(Double workerAverageRating) {
+        this.workerAverageRating = workerAverageRating;
+    }
+
+    public Long getWorkerTotalRatings() {
+        return workerTotalRatings;
+    }
+
+    public void setWorkerTotalRatings(Long workerTotalRatings) {
+        this.workerTotalRatings = workerTotalRatings;
+    }
+
+    public Boolean getIsRated() {
+        return isRated;
+    }
+
+    public void setIsRated(Boolean isRated) {
+        this.isRated = isRated;
     }
 }

@@ -26,11 +26,15 @@ export interface ServiceRequest {
   customerId: number;
   customerName: string;
   assignmentStatus?: AssignmentStatus;
+  jobId?: number;
   workerId?: number;
   workerName?: string;
   jobStatus?: JobStatus;
   startedAt?: string;
   completedAt?: string;
+  workerAverageRating?: number;
+  workerTotalRatings?: number;
+  isRated?: boolean;
 }
 
 export interface CreateServiceRequestInput {

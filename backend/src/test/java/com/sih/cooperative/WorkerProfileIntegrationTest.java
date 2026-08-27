@@ -7,6 +7,7 @@ import com.sih.cooperative.dto.UpdateWorkerProfileRequest;
 import com.sih.cooperative.entity.Role;
 import com.sih.cooperative.entity.ServiceCategory;
 import com.sih.cooperative.repository.JobRepository;
+import com.sih.cooperative.repository.RatingRepository;
 import com.sih.cooperative.repository.ServiceRequestRepository;
 import com.sih.cooperative.repository.UserRepository;
 import com.sih.cooperative.repository.WorkerProfileRepository;
@@ -52,12 +53,16 @@ public class WorkerProfileIntegrationTest {
     @Autowired
     private JobRepository jobRepository;
 
+    @Autowired
+    private RatingRepository ratingRepository;
+
     private String workerAToken;
     private String workerBToken;
     private String customerToken;
 
     @BeforeEach
     void setUp() throws Exception {
+        ratingRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();
         workerProfileRepository.deleteAll();

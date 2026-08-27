@@ -2,12 +2,14 @@ package com.sih.cooperative.service;
 
 import com.sih.cooperative.dto.CreateServiceRequestRequest;
 import com.sih.cooperative.dto.ServiceRequestResponse;
+import com.sih.cooperative.dto.WorkerRatingSummary;
 import com.sih.cooperative.entity.Job;
 import com.sih.cooperative.entity.Role;
 import com.sih.cooperative.entity.ServiceRequest;
 import com.sih.cooperative.entity.ServiceRequestStatus;
 import com.sih.cooperative.entity.User;
 import com.sih.cooperative.repository.JobRepository;
+import com.sih.cooperative.repository.RatingRepository;
 import com.sih.cooperative.repository.ServiceRequestRepository;
 import com.sih.cooperative.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -26,13 +28,16 @@ public class ServiceRequestService {
     private final ServiceRequestRepository serviceRequestRepository;
     private final UserRepository userRepository;
     private final JobRepository jobRepository;
+    private final RatingRepository ratingRepository;
 
     public ServiceRequestService(ServiceRequestRepository serviceRequestRepository,
                                  UserRepository userRepository,
-                                 JobRepository jobRepository) {
+                                 JobRepository jobRepository,
+                                 RatingRepository ratingRepository) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
+        this.ratingRepository = ratingRepository;
     }
 
     private User getAuthenticatedCustomer(String email) {
@@ -44,6 +49,23 @@ public class ServiceRequestService {
         }
 
         return user;
+    }
+
+    private ServiceRequestResponse mapToResponse(ServiceRequest req) {
+        Optional<Job> assignedJobOpt = jobRepository.findByServiceRequestId(req.getId());
+        if (assignedJobOpt.isPresent()) {
+            Job job = assignedJobOpt.get();
+            WorkerRatingSummary summary = null;
+            if (job.getWorker() != null) {
+                Long workerId = job.getWorker().getId();
+                Double avg = ratingRepository.findAverageScoreByWorkerId(workerId);
+                Long count = ratingRepository.countByWorkerId(workerId);
+                summary = new WorkerRatingSummary(workerId, avg, count);
+            }
+            boolean isRated = ratingRepository.existsByJobId(job.getId());
+            return ServiceRequestResponse.fromEntity(req, job, summary, isRated);
+        }
+        return ServiceRequestResponse.fromEntity(req, null, null, false);
     }
 
     @Transactional
@@ -72,10 +94,7 @@ public class ServiceRequestService {
         User customer = getAuthenticatedCustomer(customerEmail);
         return serviceRequestRepository.findByCustomerIdOrderByCreatedAtDesc(customer.getId())
                 .stream()
-                .map(req -> {
-                    Optional<Job> assignedJob = jobRepository.findByServiceRequestId(req.getId());
-                    return ServiceRequestResponse.fromEntity(req, assignedJob.orElse(null));
-                })
+                .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
@@ -90,8 +109,7 @@ public class ServiceRequestService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to requested service request");
         }
 
-        Optional<Job> assignedJob = jobRepository.findByServiceRequestId(request.getId());
-        return ServiceRequestResponse.fromEntity(request, assignedJob.orElse(null));
+        return mapToResponse(request);
     }
 
     @Transactional
