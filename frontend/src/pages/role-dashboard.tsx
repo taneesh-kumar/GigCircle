@@ -19,18 +19,21 @@ import {
   Eye,
   Calendar,
   AlertCircle,
-  Loader2,
   Briefcase,
   Edit,
   Tag,
-  DollarSign,
   Power,
+  Check,
+  User,
+  Lock,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApi } from '@/hooks/use-api';
 import {
+  acceptWorkerJobApi,
   getPlatformInfo,
   getServiceRequestsApi,
+  getWorkerJobsApi,
   getWorkerProfileApi,
   pingRoleApi,
   toggleAvailabilityApi,
@@ -62,9 +65,9 @@ const roleContent: Record<
   }
 > = {
   customer: {
-    eyebrow: 'Customer Dashboard · Service Request System Active',
+    eyebrow: 'Customer Dashboard · Service Request & Assignment Active',
     title: 'A clearer way to ask for help.',
-    intro: 'Describe what your household needs, set your budget and schedule, and manage your requests in real-time.',
+    intro: 'Describe what your household needs, set your budget and schedule, and track assigned workers in real-time.',
     accent: 'bg-secondary',
     textColor: 'text-secondary-foreground',
     icon: House,
@@ -73,13 +76,13 @@ const roleContent: Record<
     steps: [
       { title: 'Create service request', copy: 'Submit plumbing, electrical, cleaning, and home repair needs.', icon: Wrench },
       { title: 'Persisted & verified', copy: 'Your requests are stored securely with ownership tracking.', icon: ShieldCheck },
-      { title: 'Manage & track', copy: 'Inspect details or cancel requests anytime before assignment.', icon: BellRing },
+      { title: 'Manage & track', copy: 'Inspect details, track assigned workers, or cancel unassigned requests.', icon: BellRing },
     ],
   },
   worker: {
-    eyebrow: 'Worker Dashboard · Profile System Active',
+    eyebrow: 'Worker Dashboard · Profile & Job Feed Active',
     title: 'Good work should find good people.',
-    intro: 'Set up your skills, service rate, and availability to prepare for local household matching.',
+    intro: 'Manage your skills and availability, view eligible local household requests, and accept jobs in real-time.',
     accent: 'bg-accent',
     textColor: 'text-accent-foreground',
     icon: HandHeart,
@@ -87,8 +90,8 @@ const roleContent: Record<
     statLabel: 'authenticated worker',
     steps: [
       { title: 'Build worker profile', copy: 'Set your experience, skills, and service categories.', icon: Briefcase },
-      { title: 'Manage availability', copy: 'Toggle whether you are currently ready to receive work.', icon: Power },
-      { title: 'Prepare for matching', copy: 'Your verified profile lays the groundwork for Segment 4.', icon: Sparkles },
+      { title: 'Matching job feed', copy: 'View eligible service requests matching your categories and location.', icon: MapPin },
+      { title: 'Accept & work', copy: 'Accept open jobs with one click and get assigned.', icon: CheckCircle2 },
     ],
   },
   admin: {
@@ -116,7 +119,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Customer State (Segment 2)
+  // Customer State (Segment 2 & 4)
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState<boolean>(role === 'customer');
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -134,6 +137,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
+
+  // Worker Job Feed State (Segment 4)
+  const [availableJobs, setAvailableJobs] = useState<ServiceRequest[]>([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(role === 'worker');
+  const [jobsError, setJobsError] = useState<string | null>(null);
+  const [acceptingRequestId, setAcceptingRequestId] = useState<number | null>(null);
 
   const fetchCustomerRequests = async () => {
     if (role !== 'customer') return;
@@ -169,11 +178,26 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     }
   };
 
+  const fetchWorkerJobs = async () => {
+    if (role !== 'worker') return;
+    setIsLoadingJobs(true);
+    setJobsError(null);
+    try {
+      const jobs = await getWorkerJobsApi();
+      setAvailableJobs(jobs);
+    } catch (err: any) {
+      setJobsError(err?.response?.data?.message || 'Failed to load eligible service requests.');
+    } finally {
+      setIsLoadingJobs(false);
+    }
+  };
+
   useEffect(() => {
     if (role === 'customer') {
       fetchCustomerRequests();
     } else if (role === 'worker') {
       fetchWorkerProfile();
+      fetchWorkerJobs();
     }
   }, [role]);
 
@@ -190,6 +214,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           ? 'You are now marked as available for service requests.'
           : 'You are now marked as unavailable.',
       });
+      fetchWorkerJobs();
     } catch (err: any) {
       toast({
         title: 'Failed to update availability',
@@ -198,6 +223,38 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       });
     } finally {
       setIsTogglingAvailability(false);
+    }
+  };
+
+  const handleAcceptJob = async (requestId: number) => {
+    if (acceptingRequestId !== null) return;
+    setAcceptingRequestId(requestId);
+    try {
+      const response = await acceptWorkerJobApi(requestId);
+      toast({
+        title: 'Job Accepted!',
+        description: `You have successfully accepted the ${response.category} job.`,
+      });
+      fetchWorkerJobs();
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message || 'Failed to accept job.';
+      if (status === 409) {
+        toast({
+          title: 'Request Already Assigned',
+          description: 'This service request was already accepted by another worker.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Acceptance Failed',
+          description: msg,
+          variant: 'destructive',
+        });
+      }
+      fetchWorkerJobs();
+    } finally {
+      setAcceptingRequestId(null);
     }
   };
 
@@ -285,7 +342,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           </div>
         </div>
 
-        {/* Customer Functional Workflow (Segment 2) */}
+        {/* Customer Functional Workflow (Segment 2 & 4) */}
         {role === 'customer' && (
           <div className="mt-14 space-y-8">
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 md:p-8">
@@ -295,7 +352,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </span>
                 <h2 className="mt-1 font-display text-3xl font-semibold text-primary">My Service Requests</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Track, inspect, or cancel your household service requests.
+                  Track request assignments, inspect details, or cancel unassigned requests.
                 </p>
               </div>
 
@@ -377,6 +434,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 {filteredRequests.map((req) => {
                   const categoryInfo = CATEGORY_LABELS[req.category] || { label: req.category, description: '' };
                   const isOpenStatus = req.status === 'OPEN';
+                  const isAssigned = req.assignmentStatus === 'ASSIGNED';
 
                   return (
                     <div
@@ -388,20 +446,35 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           <span className="rounded-xl bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
                             {categoryInfo.label}
                           </span>
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
-                              isOpenStatus
-                                ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                                : 'border border-slate-500/30 bg-slate-500/10 text-slate-500 dark:text-slate-400'
-                            }`}
-                          >
-                            {req.status}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {isAssigned && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                <User className="h-3 w-3" /> Assigned
+                              </span>
+                            )}
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
+                                isOpenStatus
+                                  ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                  : 'border border-slate-500/30 bg-slate-500/10 text-slate-500 dark:text-slate-400'
+                              }`}
+                            >
+                              {req.status}
+                            </span>
+                          </div>
                         </div>
 
                         <p className="mt-4 text-sm font-medium text-primary line-clamp-2 leading-relaxed">
                           {req.description}
                         </p>
+
+                        {/* Assigned Worker Badge */}
+                        {isAssigned && req.workerName && (
+                          <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2.5 text-xs">
+                            <span className="font-semibold text-emerald-700 dark:text-emerald-400">Worker:</span>
+                            <span className="font-bold text-primary">{req.workerName}</span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="mt-6 border-t border-border/60 pt-4">
@@ -428,13 +501,22 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             <Eye className="h-3.5 w-3.5 text-accent" /> View Details
                           </button>
 
-                          {isOpenStatus && (
+                          {isOpenStatus && !isAssigned && (
                             <button
                               onClick={() => handleOpenDetail(req)}
                               className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2 text-xs font-bold text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all"
                             >
                               <Ban className="h-3.5 w-3.5" /> Cancel
                             </button>
+                          )}
+
+                          {isOpenStatus && isAssigned && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-xl border border-border bg-muted px-3 py-1.5 text-[11px] font-semibold text-muted-foreground"
+                              title="Assigned service requests cannot be cancelled"
+                            >
+                              <Lock className="h-3 w-3" /> Cancellation Locked
+                            </span>
                           )}
                         </div>
                       </div>
@@ -446,17 +528,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           </div>
         )}
 
-        {/* Worker Functional Workflow (Segment 3) */}
+        {/* Worker Functional Workflow (Segment 3 & 4) */}
         {role === 'worker' && (
-          <div className="mt-14 space-y-8">
+          <div className="mt-14 space-y-10">
+            {/* Worker Profile Overview Header */}
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 md:p-8">
               <div>
                 <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
-                  PostgreSQL Persisted
+                  Worker Operations
                 </span>
-                <h2 className="mt-1 font-display text-3xl font-semibold text-primary">Worker Profile & Skills</h2>
+                <h2 className="mt-1 font-display text-3xl font-semibold text-primary">Profile & Job Matching</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Manage your expertise, hourly rate, location, and availability status.
+                  Manage your skills, toggle availability, and accept matching household requests.
                 </p>
               </div>
 
@@ -520,14 +603,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </button>
               </div>
             ) : workerProfile ? (
-              <div className="grid gap-6 md:grid-cols-3">
-                {/* Profile Overview Card */}
-                <div className="md:col-span-2 space-y-6 rounded-3xl border border-border/80 bg-card p-6 md:p-8 shadow-xs">
-                  {/* Header info */}
-                  <div className="flex items-start justify-between gap-4 border-b border-border/60 pb-6">
+              <div className="space-y-10">
+                {/* Profile Summary Strip */}
+                <div className="rounded-3xl border border-border/80 bg-card p-6 md:p-8 shadow-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-display text-2xl font-bold text-primary">{workerProfile.workerName}</span>
+                        <span className="font-display text-xl font-bold text-primary">{workerProfile.workerName}</span>
                         <span
                           className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
                             workerProfile.available
@@ -539,91 +621,162 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {workerProfile.workerEmail} • {workerProfile.workerPhone}
+                        {workerProfile.workerEmail} • ₹{workerProfile.hourlyRate}/hr • {workerProfile.experienceYears} Years Exp • {workerProfile.serviceLocation || 'Any Location'} ({workerProfile.serviceRadiusKm} km)
                       </p>
                     </div>
-                  </div>
 
-                  {/* Bio */}
-                  {workerProfile.bio && (
-                    <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Worker Bio</span>
-                      <p className="mt-2 text-sm leading-relaxed text-primary bg-background/50 p-4 rounded-2xl border border-border/60">
-                        "{workerProfile.bio}"
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Service Categories */}
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Service Categories</span>
-                    <div className="mt-2.5 flex flex-wrap gap-2">
-                      {workerProfile.serviceCategories?.map((cat) => {
-                        const info = CATEGORY_LABELS[cat] || { label: cat, description: '' };
-                        return (
-                          <span
-                            key={cat}
-                            className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-bold text-accent"
-                          >
-                            {info.label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Skills Tag Cloud */}
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Skills & Expertise</span>
-                    <div className="mt-2.5 flex flex-wrap gap-2">
-                      {workerProfile.skills?.map((skill) => (
-                        <span
-                          key={skill}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-background px-3 py-1 text-xs font-semibold text-primary"
-                        >
-                          <Tag className="h-3 w-3 text-accent" /> {skill}
+                    <div className="flex flex-wrap gap-2">
+                      {workerProfile.serviceCategories?.map((cat) => (
+                        <span key={cat} className="rounded-xl border border-accent/30 bg-accent/10 px-2.5 py-1 text-xs font-bold text-accent">
+                          {CATEGORY_LABELS[cat]?.label || cat}
                         </span>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                {/* Profile Stats Sidebar */}
-                <div className="space-y-5">
-                  <div className="rounded-3xl border border-border bg-card p-6 space-y-4">
-                    <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                      <span className="text-xs font-semibold text-muted-foreground">Hourly Rate</span>
-                      <span className="font-mono text-xl font-bold text-accent">₹{workerProfile.hourlyRate}/hr</span>
+                {/* Available Service Requests Section (Segment 4 Matching Feed) */}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
+                        Segment 4 Matching Feed
+                      </span>
+                      <h3 className="font-display text-2xl font-semibold text-primary">Available Service Requests</h3>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Service requests matching your categories and location.
+                      </p>
                     </div>
 
-                    <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                      <span className="text-xs font-semibold text-muted-foreground">Experience</span>
-                      <span className="font-mono text-sm font-bold text-primary">{workerProfile.experienceYears} Years</span>
-                    </div>
-
-                    {workerProfile.serviceLocation && (
-                      <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                        <span className="text-xs font-semibold text-muted-foreground">Primary Location</span>
-                        <span className="text-xs font-medium text-primary truncate max-w-[140px]">{workerProfile.serviceLocation}</span>
-                      </div>
-                    )}
-
-                    {workerProfile.serviceRadiusKm && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-muted-foreground">Service Radius</span>
-                        <span className="font-mono text-xs font-bold text-primary">{workerProfile.serviceRadiusKm} km</span>
-                      </div>
-                    )}
+                    <button
+                      onClick={fetchWorkerJobs}
+                      disabled={isLoadingJobs}
+                      className="focus-ring p-2.5 rounded-2xl border border-border bg-background text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                      title="Refresh job feed"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoadingJobs ? 'animate-spin' : ''}`} />
+                    </button>
                   </div>
 
-                  <div className="rounded-3xl border border-accent/30 bg-accent/10 p-6 text-xs text-accent-foreground">
-                    <div className="flex items-center gap-2 font-bold text-accent">
-                      <Sparkles className="h-4 w-4" /> Ready for Matching
+                  {!workerProfile.available ? (
+                    <div className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-8 text-center">
+                      <Power className="mx-auto h-8 w-8 text-amber-600 dark:text-amber-400" />
+                      <h4 className="mt-3 font-display text-lg font-semibold text-amber-900 dark:text-amber-200">
+                        You are currently marked as Unavailable
+                      </h4>
+                      <p className="mt-1 text-xs text-amber-800/80 dark:text-amber-300/80">
+                        Toggle your status to Available above to view and accept matching service requests.
+                      </p>
+                      <button
+                        onClick={handleToggleAvailability}
+                        className="mt-4 focus-ring inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-xs"
+                      >
+                        <Power className="h-3.5 w-3.5" /> Set Available
+                      </button>
                     </div>
-                    <p className="mt-2 text-muted-foreground leading-relaxed">
-                      Your profile and skills are active and persisted. When Segment 4 matching launches, households will match against your categories and location.
-                    </p>
-                  </div>
+                  ) : isLoadingJobs ? (
+                    <div className="grid gap-5 md:grid-cols-2">
+                      {[1, 2].map((i) => (
+                        <div key={i} className="animate-pulse rounded-3xl border border-border bg-card p-6 space-y-4">
+                          <div className="h-4 w-28 bg-muted rounded" />
+                          <div className="h-6 w-3/4 bg-muted rounded" />
+                          <div className="h-4 w-1/2 bg-muted rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : jobsError ? (
+                    <div className="rounded-3xl border border-destructive/30 bg-destructive/10 p-8 text-center">
+                      <AlertCircle className="mx-auto h-8 w-8 text-destructive" />
+                      <h4 className="mt-3 font-display text-lg font-semibold text-destructive">Failed to Load Job Feed</h4>
+                      <p className="mt-1 text-xs text-destructive/80">{jobsError}</p>
+                      <button
+                        onClick={fetchWorkerJobs}
+                        className="mt-4 focus-ring inline-flex items-center gap-2 rounded-xl bg-destructive px-4 py-2 text-xs font-bold text-destructive-foreground"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" /> Try Again
+                      </button>
+                    </div>
+                  ) : availableJobs.length === 0 ? (
+                    <div className="rounded-3xl border border-dashed border-border bg-card/60 p-10 text-center md:p-12">
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                        <CheckCircle2 className="h-6 w-6" />
+                      </div>
+                      <h4 className="mt-3 font-display text-xl font-semibold text-primary">
+                        No matching service requests available right now
+                      </h4>
+                      <p className="mt-1.5 mx-auto max-w-md text-xs text-muted-foreground">
+                        We'll show requests here as soon as households submit jobs matching your categories ({workerProfile.serviceCategories?.map(c => CATEGORY_LABELS[c]?.label || c).join(', ')}) and location ({workerProfile.serviceLocation || 'Any'}).
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-5 md:grid-cols-2">
+                      {availableJobs.map((req) => {
+                        const categoryInfo = CATEGORY_LABELS[req.category] || { label: req.category, description: '' };
+                        const isAccepting = acceptingRequestId === req.id;
+
+                        return (
+                          <div
+                            key={req.id}
+                            className="group relative flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-6 transition-all hover:border-accent/60 hover:shadow-lg"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="rounded-xl bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
+                                  {categoryInfo.label}
+                                </span>
+                                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                  MATCHED
+                                </span>
+                              </div>
+
+                              <p className="mt-4 text-sm font-medium text-primary line-clamp-2 leading-relaxed">
+                                {req.description}
+                              </p>
+
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                Customer: <span className="font-semibold text-primary">{req.customerName}</span>
+                              </p>
+                            </div>
+
+                            <div className="mt-6 border-t border-border/60 pt-4">
+                              <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <MapPin className="h-3.5 w-3.5 shrink-0 text-accent" />
+                                  <span className="truncate">{req.location}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 font-mono font-bold text-primary">
+                                  <span className="text-accent">₹</span>
+                                  <span>₹{req.budget.toLocaleString()}</span>
+                                </div>
+                                <div className="col-span-2 flex items-center gap-1.5 text-[11px]">
+                                  <Calendar className="h-3.5 w-3.5 shrink-0 text-accent" />
+                                  <span>Preferred: {formatDate(req.preferredTime)}</span>
+                                </div>
+                              </div>
+
+                              <div className="mt-5 flex items-center justify-end gap-3 pt-2">
+                                <button
+                                  onClick={() => handleAcceptJob(req.id)}
+                                  disabled={isAccepting || acceptingRequestId !== null}
+                                  className="focus-ring inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-2.5 text-xs font-bold text-accent-foreground shadow-md transition-all hover:opacity-90 disabled:opacity-50"
+                                >
+                                  {isAccepting ? (
+                                    <>
+                                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Accepting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Check className="h-4 w-4" /> Accept Job
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : null}
@@ -713,7 +866,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
           <p className="text-sm text-muted-foreground">
-            Segment 3 Worker Profile System active. Matching and job lifecycles unlock in Segment 4+.
+            Segment 4 Worker Matching & Job Acceptance System active.
           </p>
           <Link
             to="/"
@@ -753,6 +906,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           onSuccess={(profile) => {
             setWorkerProfile(profile);
             setProfileNotFound(false);
+            fetchWorkerJobs();
           }}
           existingProfile={workerProfile}
         />

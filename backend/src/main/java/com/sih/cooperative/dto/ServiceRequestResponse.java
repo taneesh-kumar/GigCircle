@@ -1,5 +1,6 @@
 package com.sih.cooperative.dto;
 
+import com.sih.cooperative.entity.Job;
 import com.sih.cooperative.entity.ServiceCategory;
 import com.sih.cooperative.entity.ServiceRequest;
 import com.sih.cooperative.entity.ServiceRequestStatus;
@@ -21,10 +22,15 @@ public class ServiceRequestResponse {
     private Long customerId;
     private String customerName;
 
+    // Segment 4 Assignment Details
+    private String assignmentStatus;
+    private Long workerId;
+    private String workerName;
+
     public ServiceRequestResponse() {
     }
 
-    public ServiceRequestResponse(Long id, ServiceCategory category, String description, String location, BigDecimal budget, LocalDateTime preferredTime, ServiceRequestStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Long customerId, String customerName) {
+    public ServiceRequestResponse(Long id, ServiceCategory category, String description, String location, BigDecimal budget, LocalDateTime preferredTime, ServiceRequestStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Long customerId, String customerName, String assignmentStatus, Long workerId, String workerName) {
         this.id = id;
         this.category = category;
         this.description = description;
@@ -36,9 +42,17 @@ public class ServiceRequestResponse {
         this.updatedAt = updatedAt;
         this.customerId = customerId;
         this.customerName = customerName;
+        this.assignmentStatus = assignmentStatus != null ? assignmentStatus : "UNASSIGNED";
+        this.workerId = workerId;
+        this.workerName = workerName;
     }
 
     public static ServiceRequestResponse fromEntity(ServiceRequest request) {
+        return fromEntity(request, null);
+    }
+
+    public static ServiceRequestResponse fromEntity(ServiceRequest request, Job assignedJob) {
+        boolean isAssigned = assignedJob != null;
         return new ServiceRequestResponse(
                 request.getId(),
                 request.getCategory(),
@@ -50,7 +64,10 @@ public class ServiceRequestResponse {
                 request.getCreatedAt(),
                 request.getUpdatedAt(),
                 request.getCustomer() != null ? request.getCustomer().getId() : null,
-                request.getCustomer() != null ? request.getCustomer().getName() : null
+                request.getCustomer() != null ? request.getCustomer().getName() : null,
+                isAssigned ? "ASSIGNED" : "UNASSIGNED",
+                isAssigned && assignedJob.getWorker() != null ? assignedJob.getWorker().getId() : null,
+                isAssigned && assignedJob.getWorker() != null ? assignedJob.getWorker().getName() : null
         );
     }
 
@@ -140,5 +157,29 @@ public class ServiceRequestResponse {
 
     public void setCustomerName(String customerName) {
         this.customerName = customerName;
+    }
+
+    public String getAssignmentStatus() {
+        return assignmentStatus;
+    }
+
+    public void setAssignmentStatus(String assignmentStatus) {
+        this.assignmentStatus = assignmentStatus;
+    }
+
+    public Long getWorkerId() {
+        return workerId;
+    }
+
+    public void setWorkerId(Long workerId) {
+        this.workerId = workerId;
+    }
+
+    public String getWorkerName() {
+        return workerName;
+    }
+
+    public void setWorkerName(String workerName) {
+        this.workerName = workerName;
     }
 }

@@ -9,6 +9,7 @@ export type ServiceCategory =
   | 'OTHER';
 
 export type ServiceRequestStatus = 'OPEN' | 'CANCELLED';
+export type AssignmentStatus = 'UNASSIGNED' | 'ASSIGNED';
 
 export interface ServiceRequest {
   id: number;
@@ -22,6 +23,9 @@ export interface ServiceRequest {
   updatedAt: string;
   customerId: number;
   customerName: string;
+  assignmentStatus?: AssignmentStatus;
+  workerId?: number;
+  workerName?: string;
 }
 
 export interface CreateServiceRequestInput {
