@@ -26,3 +26,6 @@ app:
   jwt-secret: ${JWT_SECRET:phase-one-development-secret-change-before-authentication}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+gigcircle:
+  platform-fee-percentage: ${PLATFORM_FEE_PERCENTAGE:10.00}

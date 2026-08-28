@@ -121,6 +121,9 @@ Cooperative-Gig-Services-Platform/
 │   │           └── application.properties # Spring configuration
 │   └── pom.xml              # Maven dependencies & build setup
 │
+├── scripts/                  # Utility & operational scripts
+│   └── verify-db-connection.ps1 # PostgreSQL connection verification script
+│
 └── docs/                    # Architectural documents & design specs
 ```
 
@@ -181,6 +184,15 @@ Start your local PostgreSQL service and create the database:
 ```sql
 CREATE DATABASE cooperative_gig;
 ```
+
+#### Verifying Database Connection
+
+To quickly verify your PostgreSQL network connection, credentials, health endpoint, and table status, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "scripts/verify-db-connection.ps1"
+```
+
 
 ---
 

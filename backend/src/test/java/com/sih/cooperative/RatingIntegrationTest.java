@@ -51,6 +51,9 @@ public class RatingIntegrationTest {
     private RatingRepository ratingRepository;
 
     @Autowired
+    private EarningRepository earningRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String customerToken1;
@@ -62,6 +65,7 @@ public class RatingIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         ratingRepository.deleteAll();
+        earningRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();
         workerProfileRepository.deleteAll();

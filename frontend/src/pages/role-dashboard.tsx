@@ -28,15 +28,24 @@ import {
   Play,
   CheckCheck,
   Star,
+  Wallet,
+  TrendingUp,
+  Receipt,
+  IndianRupee,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApi } from '@/hooks/use-api';
 import {
   acceptWorkerJobApi,
   completeWorkerJobApi,
+  getAdminEarningsApi,
+  getAdminRevenueSummaryApi,
+  getCustomerJobEarningApi,
   getPlatformInfo,
   getServiceRequestsApi,
   getWorkerAssignedJobsApi,
+  getWorkerEarningsApi,
+  getWorkerEarningsSummaryApi,
   getWorkerJobsApi,
   getWorkerProfileApi,
   getWorkerRatingsApi,
@@ -56,6 +65,7 @@ import { CATEGORY_LABELS, type ServiceRequest, type ServiceRequestStatus } from 
 import type { WorkerProfile } from '@/types/worker-profile';
 import type { JobResponse } from '@/types/worker-job';
 import type { Rating, WorkerRatingSummary } from '@/types/rating';
+import type { Earning, PlatformRevenueSummary, WorkerEarningsSummary } from '@/types/earning';
 import { useToast } from '@/hooks/use-toast';
 
 type RoleKey = 'customer' | 'worker' | 'admin';
@@ -75,9 +85,9 @@ const roleContent: Record<
   }
 > = {
   customer: {
-    eyebrow: 'Customer Dashboard · Ratings & Reviews Active',
+    eyebrow: 'Customer Dashboard · Earnings Ledger Active',
     title: 'A clearer way to ask for help.',
-    intro: 'Describe what your household needs, set your budget, track worker job progress, and rate completed services.',
+    intro: 'Describe what your household needs, set your budget, track job progress, rate services, and view transparent job financials.',
     accent: 'bg-secondary',
     textColor: 'text-secondary-foreground',
     icon: House,
@@ -86,13 +96,13 @@ const roleContent: Record<
     steps: [
       { title: 'Create service request', copy: 'Submit plumbing, electrical, cleaning, and home repair needs.', icon: Wrench },
       { title: 'Worker assignment', copy: 'Eligible local workers view and accept your request.', icon: UserCheck },
-      { title: 'Rate completed work', copy: 'Follow status to completion and leave honest ratings for workers.', icon: Star },
+      { title: 'Rate completed work', copy: 'Follow status to completion, review financials, and leave honest ratings.', icon: Star },
     ],
   },
   worker: {
-    eyebrow: 'Worker Dashboard · Ratings & Reviews Active',
+    eyebrow: 'Worker Dashboard · Earnings Ledger Active',
     title: 'Good work should find good people.',
-    intro: 'Manage your skills, accept matching requests, control job execution, and build a trusted reputation score.',
+    intro: 'Manage your skills, accept matching requests, control job execution, build ratings, and track transparent earnings.',
     accent: 'bg-accent',
     textColor: 'text-accent-foreground',
     icon: HandHeart,
@@ -101,13 +111,13 @@ const roleContent: Record<
     steps: [
       { title: 'Build worker profile', copy: 'Set your experience, skills, and service categories.', icon: Briefcase },
       { title: 'Accept matching jobs', copy: 'View eligible service requests matching your categories and location.', icon: MapPin },
-      { title: 'Earn customer ratings', copy: 'Complete quality service and build your cooperative rating score.', icon: Star },
+      { title: 'Track V1 earnings', copy: 'Earn 90% net payout on completed services with 10% cooperative fee transparency.', icon: Wallet },
     ],
   },
   admin: {
-    eyebrow: 'Cooperative Dashboard · Segment 1 Active',
+    eyebrow: 'Cooperative Dashboard · Revenue Ledger Active',
     title: 'Make the work visible.',
-    intro: 'An oversight view for platform stewards — grounded in participation, transparency, and cooperative trust.',
+    intro: 'An oversight view for platform stewards — grounded in participation, transparency, cooperative revenue, and trust.',
     accent: 'bg-primary',
     textColor: 'text-primary-foreground',
     icon: ShieldCheck,
@@ -115,7 +125,7 @@ const roleContent: Record<
     statLabel: 'authenticated admin',
     steps: [
       { title: 'See the network breathe', copy: 'A living view of local activity and participation.', icon: UsersRound },
-      { title: 'Keep standards clear', copy: 'Shared signals for trust, quality, and care.', icon: ShieldCheck },
+      { title: 'Cooperative revenue ledger', copy: 'Inspect platform fees (10%), gross volume, and net worker payouts.', icon: Receipt },
       { title: 'Strengthen the cooperative', copy: 'Turn community insight into better systems.', icon: Sparkles },
     ],
   },
@@ -129,11 +139,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Customer State (Segment 2, 4, 5, 6)
+  // Customer State (Segment 2, 4, 5, 6, 7)
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState<boolean>(role === 'customer');
   const [requestError, setRequestError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'ALL' | ServiceRequestStatus>('ALL');
+  const [customerJobEarnings, setCustomerJobEarnings] = useState<Record<number, Earning>>({});
 
   // Customer Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -166,6 +177,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [workerRatingSummary, setWorkerRatingSummary] = useState<WorkerRatingSummary | null>(null);
   const [isLoadingWorkerRatings, setIsLoadingWorkerRatings] = useState<boolean>(role === 'worker');
 
+  // Segment 7 Worker Earnings State
+  const [workerEarnings, setWorkerEarnings] = useState<Earning[]>([]);
+  const [workerEarningsSummary, setWorkerEarningsSummary] = useState<WorkerEarningsSummary | null>(null);
+  const [isLoadingWorkerEarnings, setIsLoadingWorkerEarnings] = useState<boolean>(role === 'worker');
+
+  // Segment 7 Admin Revenue State
+  const [adminRevenueSummary, setAdminRevenueSummary] = useState<PlatformRevenueSummary | null>(null);
+  const [adminEarningsLedger, setAdminEarningsLedger] = useState<Earning[]>([]);
+  const [isLoadingAdminRevenue, setIsLoadingAdminRevenue] = useState<boolean>(role === 'admin');
+
   const fetchCustomerRequests = async () => {
     if (role !== 'customer') return;
     setIsLoadingRequests(true);
@@ -173,6 +194,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     try {
       const data = await getServiceRequestsApi();
       setRequests(data);
+
+      // Fetch financial details for completed assigned jobs
+      for (const req of data) {
+        if (req.jobId && req.jobStatus === 'COMPLETED' && !customerJobEarnings[req.jobId]) {
+          try {
+            const earning = await getCustomerJobEarningApi(req.jobId);
+            setCustomerJobEarnings((prev) => ({ ...prev, [req.jobId!]: earning }));
+          } catch {
+            // Non-critical fallback
+          }
+        }
+      }
     } catch (err: any) {
       setRequestError(err?.response?.data?.message || 'Failed to load your service requests.');
     } finally {
@@ -225,10 +258,44 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       ]);
       setWorkerRatings(ratingsList);
       setWorkerRatingSummary(summary);
-    } catch (err: any) {
-      // Non-critical rating load fail fallback
+    } catch {
+      // Non-critical fallback
     } finally {
       setIsLoadingWorkerRatings(false);
+    }
+  };
+
+  const fetchWorkerEarnings = async () => {
+    if (role !== 'worker') return;
+    setIsLoadingWorkerEarnings(true);
+    try {
+      const [earningsList, summary] = await Promise.all([
+        getWorkerEarningsApi(),
+        getWorkerEarningsSummaryApi(),
+      ]);
+      setWorkerEarnings(earningsList);
+      setWorkerEarningsSummary(summary);
+    } catch {
+      // Non-critical fallback
+    } finally {
+      setIsLoadingWorkerEarnings(false);
+    }
+  };
+
+  const fetchAdminRevenue = async () => {
+    if (role !== 'admin') return;
+    setIsLoadingAdminRevenue(true);
+    try {
+      const [summary, ledger] = await Promise.all([
+        getAdminRevenueSummaryApi(),
+        getAdminEarningsApi(),
+      ]);
+      setAdminRevenueSummary(summary);
+      setAdminEarningsLedger(ledger);
+    } catch {
+      // Non-critical fallback
+    } finally {
+      setIsLoadingAdminRevenue(false);
     }
   };
 
@@ -239,6 +306,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       fetchWorkerProfile();
       fetchWorkerJobs();
       fetchWorkerRatings();
+      fetchWorkerEarnings();
+    } else if (role === 'admin') {
+      fetchAdminRevenue();
     }
   }, [role]);
 
@@ -329,9 +399,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       const updated = await completeWorkerJobApi(jobId);
       toast({
         title: 'Job Completed!',
-        description: `Congratulations! The service has been marked as COMPLETED.`,
+        description: `Service COMPLETED! Earnings record generated in GigCircle ledger.`,
       });
       setAssignedJobs((prev) => prev.map((j) => (j.id === jobId ? updated : j)));
+      fetchWorkerEarnings();
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Failed to complete job.';
       toast({
@@ -353,13 +424,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const handleOpenDetail = (req: ServiceRequest) => {
     setSelectedRequest(req);
     setIsDetailModalOpen(true);
-  };
-
-  const handleOpenRatingModal = (jobId?: number, workerName?: string) => {
-    if (!jobId) return;
-    setRatingJobId(jobId);
-    setRatingWorkerName(workerName || 'Worker');
-    setIsRatingModalOpen(true);
   };
 
   const filteredRequests = requests.filter((r) => {
@@ -437,7 +501,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           </div>
         </div>
 
-        {/* Customer Functional Workflow (Segment 2, 4, 5, 6) */}
+        {/* Customer Functional Workflow (Segment 2, 4, 5, 6, 7) */}
         {role === 'customer' && (
           <div className="mt-14 space-y-8">
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 md:p-8">
@@ -447,7 +511,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </span>
                 <h2 className="mt-1 font-display text-3xl font-semibold text-primary">My Service Requests</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Track request assignments, real-time worker job lifecycle progress, and rate completed services.
+                  Track request assignments, worker job progress, financial breakdowns, and rate completed services.
                 </p>
               </div>
 
@@ -532,6 +596,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   const isAssigned = req.assignmentStatus === 'ASSIGNED';
                   const jobStatus = req.jobStatus;
                   const isCompleted = jobStatus === 'COMPLETED';
+                  const earningInfo = req.jobId ? customerJobEarnings[req.jobId] : undefined;
 
                   return (
                     <div
@@ -585,9 +650,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           {req.description}
                         </p>
 
-                        {/* Assigned Worker & Rating Summary strip */}
+                        {/* Assigned Worker & Financial Breakdown strip */}
                         {isAssigned && req.workerName && (
-                          <div className="mt-4 space-y-1.5 rounded-2xl border border-border/80 bg-background/60 p-3 text-xs">
+                          <div className="mt-4 space-y-2 rounded-2xl border border-border/80 bg-background/60 p-3.5 text-xs">
                             <div className="flex items-center justify-between">
                               <span className="font-semibold text-muted-foreground">Assigned Worker:</span>
                               <div className="flex items-center gap-1.5">
@@ -604,17 +669,21 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               </div>
                             </div>
 
-                            {req.startedAt && (
-                              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                                <span>Started:</span>
-                                <span className="font-mono">{formatDate(req.startedAt)}</span>
-                              </div>
-                            )}
-
-                            {req.completedAt && (
-                              <div className="flex items-center justify-between text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                                <span>Completed:</span>
-                                <span className="font-mono">{formatDate(req.completedAt)}</span>
+                            {/* Segment 7 Financial Summary */}
+                            {isCompleted && earningInfo && (
+                              <div className="mt-2 border-t border-border/60 pt-2 space-y-1 text-[11px]">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-muted-foreground">Service Agreed Budget:</span>
+                                  <span className="font-mono font-bold text-primary">₹{earningInfo.grossAmount.toFixed(2)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
+                                  <span>Worker Net Earning (90%):</span>
+                                  <span className="font-mono font-bold">₹{earningInfo.workerEarning.toFixed(2)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-muted-foreground">
+                                  <span>Cooperative Platform Fee ({earningInfo.feePercentage}%):</span>
+                                  <span className="font-mono">₹{earningInfo.platformFee.toFixed(2)}</span>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -653,7 +722,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               </span>
                             ) : (
                               <button
-                                onClick={() => handleOpenRatingModal(req.jobId, req.workerName)}
+                                onClick={() => {
+                                  if (req.jobId) {
+                                    setRatingJobId(req.jobId);
+                                    setRatingWorkerName(req.workerName || 'Worker');
+                                    setIsRatingModalOpen(true);
+                                  }
+                                }}
                                 className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-white shadow-md hover:bg-amber-600 transition-all"
                               >
                                 <Star className="h-3.5 w-3.5 fill-white" /> Rate Worker
@@ -669,15 +744,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               <Ban className="h-3.5 w-3.5" /> Cancel
                             </button>
                           )}
-
-                          {isOpenStatus && isAssigned && !isCompleted && (
-                            <span
-                              className="inline-flex items-center gap-1 rounded-xl border border-border bg-muted px-3 py-1.5 text-[11px] font-semibold text-muted-foreground"
-                              title="Assigned service requests cannot be cancelled"
-                            >
-                              <Lock className="h-3 w-3" /> Cancellation Locked
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -688,7 +754,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           </div>
         )}
 
-        {/* Worker Functional Workflow (Segment 3, 4, 5, 6) */}
+        {/* Worker Functional Workflow (Segment 3, 4, 5, 6, 7) */}
         {role === 'worker' && (
           <div className="mt-14 space-y-10">
             {/* Worker Profile Overview Header */}
@@ -697,9 +763,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
                   Worker Operations
                 </span>
-                <h2 className="mt-1 font-display text-3xl font-semibold text-primary">Profile & Job Execution</h2>
+                <h2 className="mt-1 font-display text-3xl font-semibold text-primary">Profile, Execution & Ledger</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Manage your skills, toggle availability, accept matching requests, and control job lifecycle (ACCEPTED → IN_PROGRESS → COMPLETED).
+                  Manage your skills, toggle availability, accept matching requests, control job execution, build ratings, and inspect earnings.
                 </p>
               </div>
 
@@ -795,8 +861,139 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   </div>
                 </div>
 
-                {/* Section 1: My Active & Assigned Jobs (Segment 5 Lifecycle Operations) */}
+                {/* Section 1: Segment 7 Worker Earnings Ledger */}
                 <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
+                        Segment 7 Financial Ledger
+                      </span>
+                      <h3 className="font-display text-2xl font-semibold text-primary">💰 Earnings Ledger</h3>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Transparent record of completed job earnings with 10% cooperative fee deduction.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={fetchWorkerEarnings}
+                      disabled={isLoadingWorkerEarnings}
+                      className="focus-ring p-2.5 rounded-2xl border border-border bg-background text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                      title="Refresh earnings"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoadingWorkerEarnings ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+
+                  {/* Summary Metric Cards */}
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="flex items-center gap-4 rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-5">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-white font-bold shadow-xs">
+                        <Wallet className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-display text-2xl font-bold text-primary">
+                          ₹{workerEarningsSummary?.totalWorkerEarnings ? workerEarningsSummary.totalWorkerEarnings.toFixed(2) : '0.00'}
+                        </div>
+                        <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Available in GigCircle Ledger</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-5">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/20 text-accent font-bold shadow-xs">
+                        <TrendingUp className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-display text-2xl font-bold text-primary">
+                          ₹{workerEarningsSummary?.totalGross ? workerEarningsSummary.totalGross.toFixed(2) : '0.00'}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">Total Gross Job Value</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-5">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-500/20 text-slate-600 dark:text-slate-300 font-bold shadow-xs">
+                        <Receipt className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-display text-2xl font-bold text-primary">
+                          ₹{workerEarningsSummary?.totalPlatformFees ? workerEarningsSummary.totalPlatformFees.toFixed(2) : '0.00'}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">Cooperative Fees (10%)</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-5">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold shadow-xs">
+                        <CheckCheck className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-display text-2xl font-bold text-primary">
+                          {workerEarningsSummary?.totalJobs || 0}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">Completed Jobs</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Earnings List */}
+                  {isLoadingWorkerEarnings ? (
+                    <div className="space-y-3">
+                      {[1, 2].map((i) => (
+                        <div key={i} className="animate-pulse rounded-2xl border border-border bg-card p-4 space-y-2">
+                          <div className="h-4 w-40 bg-muted rounded" />
+                          <div className="h-5 w-1/3 bg-muted rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : workerEarnings.length === 0 ? (
+                    <div className="rounded-3xl border border-dashed border-border bg-card/60 p-8 text-center">
+                      <Wallet className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                      <h4 className="mt-3 font-display text-lg font-semibold text-primary">No earnings yet</h4>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Your earnings ledger will automatically update as soon as you complete assigned jobs!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {workerEarnings.map((earning) => (
+                        <div key={earning.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/80 bg-card p-4 transition-all hover:border-accent/40">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs font-bold text-accent">Job #{earning.jobId}</span>
+                              <span className="rounded-lg bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
+                                {earning.serviceCategory || 'SERVICE'}
+                              </span>
+                              <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                {earning.status}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Customer: <span className="font-semibold text-primary">{earning.customerName}</span> • Date: <span className="font-mono">{formatDate(earning.createdAt)}</span>
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-6 text-xs text-right">
+                            <div>
+                              <div className="text-[10px] text-muted-foreground">Gross Value</div>
+                              <div className="font-mono font-semibold text-primary">₹{earning.grossAmount.toFixed(2)}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] text-muted-foreground">Fee ({earning.feePercentage}%)</div>
+                              <div className="font-mono text-muted-foreground">-₹{earning.platformFee.toFixed(2)}</div>
+                            </div>
+                            <div className="rounded-xl bg-emerald-500/10 px-3 py-1.5 border border-emerald-500/30">
+                              <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">Your Earnings</div>
+                              <div className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400">₹{earning.workerEarning.toFixed(2)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 2: Active & Assigned Jobs (Segment 5 Lifecycle Operations) */}
+                <div className="space-y-6 border-t border-border pt-10">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
@@ -945,7 +1142,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   )}
                 </div>
 
-                {/* Section 2: Segment 6 Worker Ratings & Customer Reviews */}
+                {/* Section 3: Segment 6 Worker Ratings & Customer Reviews */}
                 <div className="space-y-6 border-t border-border pt-10">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1042,7 +1239,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   )}
                 </div>
 
-                {/* Section 3: Available Service Requests Section (Segment 4 Matching Feed) */}
+                {/* Section 4: Available Service Requests Section (Segment 4 Matching Feed) */}
                 <div className="space-y-6 border-t border-border pt-10">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1190,90 +1387,220 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           </div>
         )}
 
-        {/* Admin Dashboard view (Segment 1 intact) */}
+        {/* Admin Dashboard view (Segment 1 & 7 Revenue Ledger) */}
         {role === 'admin' && (
-          <div className="mt-14 grid gap-5 md:grid-cols-[1.4fr_.6fr]">
-            <section className="rounded-3xl border border-border bg-card p-6 md:p-8">
-              <div className="flex items-start justify-between gap-4">
+          <div className="mt-14 space-y-10">
+            {/* Platform Revenue Metric Strip */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">Journey map</p>
-                  <h2 className="mt-2 font-display text-3xl font-semibold text-primary">Future feature workflow</h2>
-                </div>
-                <Clock3 className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="mt-8 space-y-3">
-                {content.steps.map((step, index) => {
-                  const StepIcon = step.icon;
-                  return (
-                    <div
-                      key={step.title}
-                      className="group flex items-center gap-4 rounded-2xl border border-border/80 bg-background p-4 transition-colors hover:border-accent/60"
-                    >
-                      <div
-                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-                          index === 1 ? 'bg-accent text-accent-foreground' : 'bg-secondary text-primary'
-                        }`}
-                      >
-                        <StepIcon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-primary">{step.title}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{step.copy}</p>
-                      </div>
-                      <span className="ml-auto hidden font-mono text-[10px] text-muted-foreground sm:block">
-                        0{index + 1}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            <aside className="space-y-5">
-              <div className="rounded-3xl bg-primary p-6 text-primary-foreground">
-                <div className="flex items-center gap-2 text-accent">
-                  <ShieldCheck className="h-4 w-4" />
-                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em]">Backend RBAC Ping</span>
-                </div>
-                {rbacPingQuery.isLoading ? (
-                  <div className="mt-4 h-4 w-32 animate-pulse rounded bg-primary-foreground/20" />
-                ) : rbacPingQuery.isError ? (
-                  <p className="mt-3 text-sm text-destructive font-semibold">RBAC ping failed: Access Denied.</p>
-                ) : (
-                  <>
-                    <p className="mt-4 font-display text-xl font-semibold leading-tight text-accent">
-                      {rbacPingQuery.data?.message}
-                    </p>
-                    <p className="mt-2 text-xs leading-5 text-primary-foreground/75">
-                      Authorized API endpoint <code className="font-mono text-accent">/api/{role}/ping</code> verified with Bearer token.
-                    </p>
-                  </>
-                )}
-              </div>
-
-              <FoundationStatus />
-
-              <div className="rounded-3xl border border-border bg-card p-6">
-                <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                  <CheckCircle2 className="h-4 w-4 text-accent" /> Platform metadata
-                </div>
-                {platformQuery.isLoading ? (
-                  <div className="mt-4 h-4 w-36 animate-pulse rounded bg-muted" />
-                ) : platformQuery.isError ? (
-                  <p className="mt-3 text-sm text-destructive">Metadata unavailable right now.</p>
-                ) : (
-                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                    {platformQuery.data?.tagline ?? 'A foundation for local cooperative services.'}
+                  <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
+                    Segment 7 Revenue Ledger
+                  </span>
+                  <h2 className="font-display text-3xl font-semibold text-primary">Platform Financial Ledger</h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Oversight of gross job volume, 10% cooperative fee revenues, and net worker earnings.
                   </p>
-                )}
+                </div>
+
+                <button
+                  onClick={fetchAdminRevenue}
+                  disabled={isLoadingAdminRevenue}
+                  className="focus-ring p-2.5 rounded-2xl border border-border bg-background text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                  title="Refresh revenue"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoadingAdminRevenue ? 'animate-spin' : ''}`} />
+                </button>
               </div>
-            </aside>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="flex items-center gap-4 rounded-3xl border border-accent/30 bg-accent/10 p-6">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground font-bold shadow-xs">
+                    <TrendingUp className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="font-display text-3xl font-bold text-primary">
+                      ₹{adminRevenueSummary?.totalGrossRevenue ? adminRevenueSummary.totalGrossRevenue.toFixed(2) : '0.00'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Total Gross Job Volume</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-6">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white font-bold shadow-xs">
+                    <Receipt className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="font-display text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                      ₹{adminRevenueSummary?.totalPlatformFees ? adminRevenueSummary.totalPlatformFees.toFixed(2) : '0.00'}
+                    </div>
+                    <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Cooperative Fees (10%)</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-6">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold shadow-xs">
+                    <Wallet className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="font-display text-3xl font-bold text-primary">
+                      ₹{adminRevenueSummary?.totalWorkerEarnings ? adminRevenueSummary.totalWorkerEarnings.toFixed(2) : '0.00'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Total Net Worker Earnings</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-6">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-primary font-bold shadow-xs">
+                    <CheckCheck className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="font-display text-3xl font-bold text-primary">
+                      {adminRevenueSummary?.totalCompletedJobsWithEarnings || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Completed Jobs with Earnings</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Admin Earnings Ledger */}
+              {isLoadingAdminRevenue ? (
+                <div className="space-y-3">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="animate-pulse rounded-2xl border border-border bg-card p-4 space-y-2">
+                      <div className="h-4 w-40 bg-muted rounded" />
+                      <div className="h-5 w-1/3 bg-muted rounded" />
+                    </div>
+                  ))}
+                </div>
+              ) : adminEarningsLedger.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-border bg-card/60 p-10 text-center">
+                  <Receipt className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                  <h4 className="mt-3 font-display text-lg font-semibold text-primary">No revenue ledger entries yet</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Financial records will automatically appear here as workers complete jobs on the platform.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {adminEarningsLedger.map((earning) => (
+                    <div key={earning.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/80 bg-card p-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-accent">Job #{earning.jobId}</span>
+                          <span className="rounded-lg bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
+                            {earning.serviceCategory || 'SERVICE'}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Customer: <span className="font-semibold text-primary">{earning.customerName}</span> • Worker: <span className="font-semibold text-primary">{earning.workerName}</span> • Date: <span className="font-mono">{formatDate(earning.createdAt)}</span>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-6 text-xs text-right">
+                        <div>
+                          <div className="text-[10px] text-muted-foreground">Gross Value</div>
+                          <div className="font-mono font-semibold text-primary">₹{earning.grossAmount.toFixed(2)}</div>
+                        </div>
+                        <div className="rounded-xl bg-emerald-500/10 px-3 py-1.5 border border-emerald-500/30">
+                          <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">Coop Fee (10%)</div>
+                          <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">₹{earning.platformFee.toFixed(2)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-muted-foreground">Worker Net</div>
+                          <div className="font-mono font-semibold text-primary">₹{earning.workerEarning.toFixed(2)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Admin RBAC and Platform Metadata Footer */}
+            <div className="grid gap-5 md:grid-cols-[1.4fr_.6fr] border-t border-border pt-10">
+              <section className="rounded-3xl border border-border bg-card p-6 md:p-8">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">Journey map</p>
+                    <h2 className="mt-2 font-display text-3xl font-semibold text-primary">Cooperative Stewardship</h2>
+                  </div>
+                  <Clock3 className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div className="mt-8 space-y-3">
+                  {content.steps.map((step, index) => {
+                    const StepIcon = step.icon;
+                    return (
+                      <div
+                        key={step.title}
+                        className="group flex items-center gap-4 rounded-2xl border border-border/80 bg-background p-4 transition-colors hover:border-accent/60"
+                      >
+                        <div
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                            index === 1 ? 'bg-accent text-accent-foreground' : 'bg-secondary text-primary'
+                          }`}
+                        >
+                          <StepIcon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-primary">{step.title}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{step.copy}</p>
+                        </div>
+                        <span className="ml-auto hidden font-mono text-[10px] text-muted-foreground sm:block">
+                          0{index + 1}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <aside className="space-y-5">
+                <div className="rounded-3xl bg-primary p-6 text-primary-foreground">
+                  <div className="flex items-center gap-2 text-accent">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em]">Backend RBAC Ping</span>
+                  </div>
+                  {rbacPingQuery.isLoading ? (
+                    <div className="mt-4 h-4 w-32 animate-pulse rounded bg-primary-foreground/20" />
+                  ) : rbacPingQuery.isError ? (
+                    <p className="mt-3 text-sm text-destructive font-semibold">RBAC ping failed: Access Denied.</p>
+                  ) : (
+                    <>
+                      <p className="mt-4 font-display text-xl font-semibold leading-tight text-accent">
+                        {rbacPingQuery.data?.message}
+                      </p>
+                      <p className="mt-2 text-xs leading-5 text-primary-foreground/75">
+                        Authorized API endpoint <code className="font-mono text-accent">/api/{role}/ping</code> verified with Bearer token.
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                <FoundationStatus />
+
+                <div className="rounded-3xl border border-border bg-card p-6">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                    <CheckCircle2 className="h-4 w-4 text-accent" /> Platform metadata
+                  </div>
+                  {platformQuery.isLoading ? (
+                    <div className="mt-4 h-4 w-36 animate-pulse rounded bg-muted" />
+                  ) : platformQuery.isError ? (
+                    <p className="mt-3 text-sm text-destructive">Metadata unavailable right now.</p>
+                  ) : (
+                    <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                      {platformQuery.data?.tagline ?? 'A foundation for local cooperative services.'}
+                    </p>
+                  )}
+                </div>
+              </aside>
+            </div>
           </div>
         )}
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
           <p className="text-sm text-muted-foreground">
-            Segment 6 Ratings & Reviews System active.
+            Segment 7 Earnings & Cooperative Revenue Ledger active.
           </p>
           <Link
             to="/"

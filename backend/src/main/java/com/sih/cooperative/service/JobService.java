@@ -25,17 +25,20 @@ public class JobService {
     private final WorkerProfileRepository workerProfileRepository;
     private final UserRepository userRepository;
     private final WorkerMatchingService workerMatchingService;
+    private final EarningService earningService;
 
     public JobService(JobRepository jobRepository,
                       ServiceRequestRepository serviceRequestRepository,
                       WorkerProfileRepository workerProfileRepository,
                       UserRepository userRepository,
-                      WorkerMatchingService workerMatchingService) {
+                      WorkerMatchingService workerMatchingService,
+                      EarningService earningService) {
         this.jobRepository = jobRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.workerProfileRepository = workerProfileRepository;
         this.userRepository = userRepository;
         this.workerMatchingService = workerMatchingService;
+        this.earningService = earningService;
     }
 
     private User getAuthenticatedWorker(String email) {
@@ -164,6 +167,10 @@ public class JobService {
         }
 
         Job savedJob = jobRepository.save(job);
+
+        // Segment 7 Integration: Generate earning ledger record transactionally upon completion
+        earningService.generateEarningForCompletedJob(savedJob);
+
         return JobResponse.fromEntity(savedJob);
     }
 }
