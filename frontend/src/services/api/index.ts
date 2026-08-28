@@ -7,3 +7,4 @@ export * from './workerProfile';
 export * from './workerJob';
 export * from './rating';
 export * from './earning';
+export * from './notification';

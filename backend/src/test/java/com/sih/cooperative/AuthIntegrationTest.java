@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sih.cooperative.dto.LoginRequest;
 import com.sih.cooperative.dto.RegisterRequest;
 import com.sih.cooperative.entity.Role;
-import com.sih.cooperative.repository.UserRepository;
+import com.sih.cooperative.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,8 +36,32 @@ public class AuthIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private WorkerProfileRepository workerProfileRepository;
+
+    @Autowired
+    private ServiceRequestRepository serviceRequestRepository;
+
+    @Autowired
+    private JobRepository jobRepository;
+
+    @Autowired
+    private RatingRepository ratingRepository;
+
+    @Autowired
+    private EarningRepository earningRepository;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     @BeforeEach
     void setUp() {
+        notificationRepository.deleteAll();
+        ratingRepository.deleteAll();
+        earningRepository.deleteAll();
+        jobRepository.deleteAll();
+        serviceRequestRepository.deleteAll();
+        workerProfileRepository.deleteAll();
         userRepository.deleteAll();
     }
 

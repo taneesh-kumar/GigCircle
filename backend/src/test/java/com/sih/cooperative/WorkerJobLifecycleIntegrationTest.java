@@ -58,12 +58,16 @@ public class WorkerJobLifecycleIntegrationTest {
     @Autowired
     private EarningRepository earningRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     private String customerToken;
     private String workerToken1;
     private String workerToken2;
 
     @BeforeEach
     void setUp() throws Exception {
+        notificationRepository.deleteAll();
         ratingRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();

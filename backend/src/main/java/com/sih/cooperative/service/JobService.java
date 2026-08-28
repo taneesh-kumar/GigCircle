@@ -26,19 +26,22 @@ public class JobService {
     private final UserRepository userRepository;
     private final WorkerMatchingService workerMatchingService;
     private final EarningService earningService;
+    private final NotificationService notificationService;
 
     public JobService(JobRepository jobRepository,
                       ServiceRequestRepository serviceRequestRepository,
                       WorkerProfileRepository workerProfileRepository,
                       UserRepository userRepository,
                       WorkerMatchingService workerMatchingService,
-                      EarningService earningService) {
+                      EarningService earningService,
+                      NotificationService notificationService) {
         this.jobRepository = jobRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.workerProfileRepository = workerProfileRepository;
         this.userRepository = userRepository;
         this.workerMatchingService = workerMatchingService;
         this.earningService = earningService;
+        this.notificationService = notificationService;
     }
 
     private User getAuthenticatedWorker(String email) {
@@ -116,6 +119,26 @@ public class JobService {
         try {
             Job job = new Job(request, worker, JobStatus.ACCEPTED);
             Job savedJob = jobRepository.save(job);
+
+            // Segment 8 Notifications
+            notificationService.createNotification(
+                    request.getCustomer(),
+                    NotificationType.WORKER_ASSIGNED,
+                    "Worker assigned",
+                    "A worker has been assigned to your service request.",
+                    "SERVICE_REQUEST",
+                    request.getId()
+            );
+
+            notificationService.createNotification(
+                    worker,
+                    NotificationType.WORKER_ASSIGNED,
+                    "New job assigned",
+                    "You have been assigned a new service job.",
+                    "JOB",
+                    savedJob.getId()
+            );
+
             return JobResponse.fromEntity(savedJob);
         } catch (DataIntegrityViolationException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Service request has already been assigned.");
@@ -143,6 +166,17 @@ public class JobService {
         }
 
         Job savedJob = jobRepository.save(job);
+
+        // Segment 8 Notification
+        notificationService.createNotification(
+                job.getServiceRequest().getCustomer(),
+                NotificationType.JOB_STARTED,
+                "Job started",
+                "Your assigned worker has started the job.",
+                "JOB",
+                savedJob.getId()
+        );
+
         return JobResponse.fromEntity(savedJob);
     }
 
@@ -168,8 +202,27 @@ public class JobService {
 
         Job savedJob = jobRepository.save(job);
 
-        // Segment 7 Integration: Generate earning ledger record transactionally upon completion
+        // Segment 7 Integration: Generate earning ledger record
         earningService.generateEarningForCompletedJob(savedJob);
+
+        // Segment 8 Notifications
+        notificationService.createNotification(
+                job.getServiceRequest().getCustomer(),
+                NotificationType.JOB_COMPLETED,
+                "Job completed",
+                "Your service job has been marked as completed.",
+                "JOB",
+                savedJob.getId()
+        );
+
+        notificationService.createNotification(
+                worker,
+                NotificationType.JOB_COMPLETED,
+                "Job completed",
+                "Your job has been completed successfully.",
+                "JOB",
+                savedJob.getId()
+        );
 
         return JobResponse.fromEntity(savedJob);
     }

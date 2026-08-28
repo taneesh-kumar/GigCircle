@@ -22,13 +22,16 @@ public class RatingService {
     private final RatingRepository ratingRepository;
     private final JobRepository jobRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public RatingService(RatingRepository ratingRepository,
-                         JobRepository jobRepository,
-                         UserRepository userRepository) {
+                          JobRepository jobRepository,
+                          UserRepository userRepository,
+                          NotificationService notificationService) {
         this.ratingRepository = ratingRepository;
         this.jobRepository = jobRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     private User getAuthenticatedCustomer(String email) {
@@ -85,6 +88,17 @@ public class RatingService {
         try {
             Rating rating = new Rating(job, customer, worker, request.getScore(), reviewText);
             Rating savedRating = ratingRepository.save(rating);
+
+            // Segment 8 Notification
+            notificationService.createNotification(
+                    worker,
+                    NotificationType.RATING_RECEIVED,
+                    "New rating received",
+                    "You received a new rating for a completed job.",
+                    "RATING",
+                    savedRating.getId()
+            );
+
             return RatingResponse.fromEntity(savedRating);
         } catch (DataIntegrityViolationException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This job has already been rated.");

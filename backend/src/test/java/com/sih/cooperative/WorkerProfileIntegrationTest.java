@@ -6,11 +6,7 @@ import com.sih.cooperative.dto.RegisterRequest;
 import com.sih.cooperative.dto.UpdateWorkerProfileRequest;
 import com.sih.cooperative.entity.Role;
 import com.sih.cooperative.entity.ServiceCategory;
-import com.sih.cooperative.repository.JobRepository;
-import com.sih.cooperative.repository.RatingRepository;
-import com.sih.cooperative.repository.ServiceRequestRepository;
-import com.sih.cooperative.repository.UserRepository;
-import com.sih.cooperative.repository.WorkerProfileRepository;
+import com.sih.cooperative.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,13 +52,21 @@ public class WorkerProfileIntegrationTest {
     @Autowired
     private RatingRepository ratingRepository;
 
+    @Autowired
+    private EarningRepository earningRepository;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     private String workerAToken;
     private String workerBToken;
     private String customerToken;
 
     @BeforeEach
     void setUp() throws Exception {
+        notificationRepository.deleteAll();
         ratingRepository.deleteAll();
+        earningRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();
         workerProfileRepository.deleteAll();

@@ -61,6 +61,7 @@ import { CreateRequestModal } from '@/components/create-request-modal';
 import { RequestDetailModal } from '@/components/request-detail-modal';
 import { WorkerProfileModal } from '@/components/worker-profile-modal';
 import { RatingModal } from '@/components/rating-modal';
+import { NotificationPanel } from '@/components/notification-panel';
 import { CATEGORY_LABELS, type ServiceRequest, type ServiceRequestStatus } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
 import type { JobResponse } from '@/types/worker-job';
@@ -466,12 +467,15 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               </p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="focus-ring inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-xs font-bold text-destructive transition-colors hover:border-destructive/40 hover:bg-destructive/10"
-          >
-            <LogOut className="h-4 w-4" /> Log out
-          </button>
+          <div className="flex items-center gap-3">
+            {user?.role && <NotificationPanel role={user.role as any} />}
+            <button
+              onClick={handleLogout}
+              className="focus-ring inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-xs font-bold text-destructive transition-colors hover:border-destructive/40 hover:bg-destructive/10"
+            >
+              <LogOut className="h-4 w-4" /> Log out
+            </button>
+          </div>
         </div>
 
         {/* Dashboard Header */}

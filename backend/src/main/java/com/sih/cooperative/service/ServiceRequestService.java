@@ -3,11 +3,7 @@ package com.sih.cooperative.service;
 import com.sih.cooperative.dto.CreateServiceRequestRequest;
 import com.sih.cooperative.dto.ServiceRequestResponse;
 import com.sih.cooperative.dto.WorkerRatingSummary;
-import com.sih.cooperative.entity.Job;
-import com.sih.cooperative.entity.Role;
-import com.sih.cooperative.entity.ServiceRequest;
-import com.sih.cooperative.entity.ServiceRequestStatus;
-import com.sih.cooperative.entity.User;
+import com.sih.cooperative.entity.*;
 import com.sih.cooperative.repository.JobRepository;
 import com.sih.cooperative.repository.RatingRepository;
 import com.sih.cooperative.repository.ServiceRequestRepository;
@@ -29,15 +25,18 @@ public class ServiceRequestService {
     private final UserRepository userRepository;
     private final JobRepository jobRepository;
     private final RatingRepository ratingRepository;
+    private final NotificationService notificationService;
 
     public ServiceRequestService(ServiceRequestRepository serviceRequestRepository,
                                  UserRepository userRepository,
                                  JobRepository jobRepository,
-                                 RatingRepository ratingRepository) {
+                                 RatingRepository ratingRepository,
+                                 NotificationService notificationService) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.ratingRepository = ratingRepository;
+        this.notificationService = notificationService;
     }
 
     private User getAuthenticatedCustomer(String email) {
@@ -86,6 +85,17 @@ public class ServiceRequestService {
         );
 
         ServiceRequest savedRequest = serviceRequestRepository.save(serviceRequest);
+
+        // Segment 8: Trigger Notification
+        notificationService.createNotification(
+                customer,
+                NotificationType.SERVICE_REQUEST_CREATED,
+                "Service request created",
+                "Your service request for " + savedRequest.getCategory() + " has been created successfully.",
+                "SERVICE_REQUEST",
+                savedRequest.getId()
+        );
+
         return ServiceRequestResponse.fromEntity(savedRequest);
     }
 
@@ -133,6 +143,17 @@ public class ServiceRequestService {
 
         request.setStatus(ServiceRequestStatus.CANCELLED);
         ServiceRequest updatedRequest = serviceRequestRepository.save(request);
+
+        // Segment 8: Trigger Notification
+        notificationService.createNotification(
+                customer,
+                NotificationType.SERVICE_REQUEST_CANCELLED,
+                "Request cancelled",
+                "Your service request has been cancelled.",
+                "SERVICE_REQUEST",
+                updatedRequest.getId()
+        );
+
         return ServiceRequestResponse.fromEntity(updatedRequest);
     }
 }

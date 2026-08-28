@@ -30,15 +30,18 @@ public class EarningService {
     private final JobRepository jobRepository;
     private final UserRepository userRepository;
     private final EarningsConfig earningsConfig;
+    private final NotificationService notificationService;
 
     public EarningService(EarningRepository earningRepository,
                           JobRepository jobRepository,
                           UserRepository userRepository,
-                          EarningsConfig earningsConfig) {
+                          EarningsConfig earningsConfig,
+                          NotificationService notificationService) {
         this.earningRepository = earningRepository;
         this.jobRepository = jobRepository;
         this.userRepository = userRepository;
         this.earningsConfig = earningsConfig;
+        this.notificationService = notificationService;
     }
 
     private User getAuthenticatedUser(String email, Role requiredRole) {
@@ -100,7 +103,19 @@ public class EarningService {
         );
 
         try {
-            return earningRepository.save(earning);
+            Earning savedEarning = earningRepository.save(earning);
+
+            // Segment 8 Notification
+            notificationService.createNotification(
+                    worker,
+                    NotificationType.EARNING_GENERATED,
+                    "Earning generated",
+                    "Your earning of ₹" + workerEarning.toPlainString() + " has been added to your earnings ledger.",
+                    "EARNING",
+                    savedEarning.getId()
+            );
+
+            return savedEarning;
         } catch (DataIntegrityViolationException e) {
             log.warn("Concurrent duplicate earning creation prevented for job ID {}", job.getId());
             return earningRepository.findByJobId(job.getId())
@@ -123,13 +138,9 @@ public class EarningService {
         Long workerId = worker.getId();
 
         BigDecimal gross = earningRepository.sumGrossAmountByWorkerId(workerId);
-        if (gross == null) gross = BigDecimal.ZERO;
         BigDecimal fee = earningRepository.sumPlatformFeeByWorkerId(workerId);
-        if (fee == null) fee = BigDecimal.ZERO;
         BigDecimal workerTotal = earningRepository.sumWorkerEarningByWorkerId(workerId);
-        if (workerTotal == null) workerTotal = BigDecimal.ZERO;
         BigDecimal available = earningRepository.sumAvailableWorkerEarningByWorkerId(workerId);
-        if (available == null) available = BigDecimal.ZERO;
         long count = earningRepository.countByWorkerId(workerId);
 
         return new WorkerEarningsSummary(
@@ -176,13 +187,9 @@ public class EarningService {
         getAuthenticatedUser(adminEmail, Role.ADMIN);
 
         BigDecimal gross = earningRepository.sumAllGrossAmount();
-        if (gross == null) gross = BigDecimal.ZERO;
         BigDecimal fees = earningRepository.sumAllPlatformFee();
-        if (fees == null) fees = BigDecimal.ZERO;
         BigDecimal workerTotal = earningRepository.sumAllWorkerEarning();
-        if (workerTotal == null) workerTotal = BigDecimal.ZERO;
         BigDecimal availableTotal = earningRepository.sumAllAvailableWorkerEarning();
-        if (availableTotal == null) availableTotal = BigDecimal.ZERO;
         long count = earningRepository.count();
 
         return new PlatformRevenueSummary(
