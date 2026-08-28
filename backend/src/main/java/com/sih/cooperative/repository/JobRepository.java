@@ -28,4 +28,9 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     List<Job> findByWorkerIdOrderByCreatedAtDesc(Long workerId);
 
     boolean existsByServiceRequestId(Long serviceRequestId);
+
+    @EntityGraph(attributePaths = {"serviceRequest", "serviceRequest.customer", "worker"})
+    List<Job> findAllByOrderByCreatedAtDesc();
+
+    long countByStatus(com.sih.cooperative.entity.JobStatus status);
 }

@@ -2,6 +2,7 @@ com\sih\cooperative\controller\HealthController.class
 com\sih\cooperative\entity\ServiceRequestStatus.class
 com\sih\cooperative\repository\WorkerProfileRepository.class
 com\sih\cooperative\repository\UserRepository.class
+com\sih\cooperative\controller\AdminOperationsController.class
 com\sih\cooperative\dto\PlatformInfoResponse.class
 com\sih\cooperative\dto\RoleRouteResponse.class
 com\sih\cooperative\dto\HealthResponse.class
@@ -13,6 +14,8 @@ com\sih\cooperative\service\ServiceRequestService.class
 com\sih\cooperative\dto\PlatformRevenueSummary.class
 com\sih\cooperative\security\CustomUserDetailsService.class
 com\sih\cooperative\repository\EarningRepository.class
+com\sih\cooperative\dto\AdminActivityResponse.class
+com\sih\cooperative\dto\AdminJobResponse.class
 com\sih\cooperative\dto\NotificationResponse.class
 com\sih\cooperative\dto\WorkerProfileResponse.class
 com\sih\cooperative\dto\ServiceRequestResponse.class
@@ -30,7 +33,9 @@ com\sih\cooperative\entity\WorkerProfile.class
 com\sih\cooperative\dto\CreateRatingRequest.class
 com\sih\cooperative\service\WorkerMatchingService.class
 com\sih\cooperative\controller\AdminNotificationController.class
+com\sih\cooperative\dto\AdminRatingResponse.class
 com\sih\cooperative\dto\CreateWorkerProfileRequest.class
+com\sih\cooperative\dto\AdminUserResponse.class
 com\sih\cooperative\config\SecurityConfig.class
 com\sih\cooperative\controller\CustomerRatingController.class
 com\sih\cooperative\entity\Job.class
@@ -40,6 +45,8 @@ com\sih\cooperative\entity\NotificationType.class
 com\sih\cooperative\controller\WorkerProfileController.class
 com\sih\cooperative\config\AdminBootstrapRunner.class
 com\sih\cooperative\entity\Role.class
+com\sih\cooperative\dto\PlatformOverviewSummary.class
+com\sih\cooperative\dto\AdminWorkerResponse.class
 com\sih\cooperative\exception\GlobalExceptionHandler.class
 com\sih\cooperative\controller\CustomerTestController.class
 com\sih\cooperative\entity\EarningStatus.class
@@ -59,6 +66,7 @@ com\sih\cooperative\dto\RegisterRequest.class
 com\sih\cooperative\controller\WorkerEarningsController.class
 com\sih\cooperative\controller\WorkerTestController.class
 com\sih\cooperative\entity\Earning.class
+com\sih\cooperative\service\AdminOperationsService.class
 com\sih\cooperative\repository\RatingRepository.class
 com\sih\cooperative\repository\JobRepository.class
 com\sih\cooperative\dto\AuthResponse.class
@@ -68,10 +76,13 @@ com\sih\cooperative\entity\JobStatus.class
 com\sih\cooperative\service\AuthService.class
 com\sih\cooperative\controller\CustomerEarningsController.class
 com\sih\cooperative\controller\PlatformController.class
+com\sih\cooperative\repository\AdminActivityRepository.class
 com\sih\cooperative\controller\WorkerNotificationController.class
+com\sih\cooperative\dto\AdminServiceRequestResponse.class
 com\sih\cooperative\config\CorsConfig.class
 com\sih\cooperative\service\RatingService.class
 com\sih\cooperative\dto\NotificationSummary.class
+com\sih\cooperative\entity\AdminActivity.class
 com\sih\cooperative\entity\ServiceCategory.class
 com\sih\cooperative\dto\ApiErrorResponse.class
 com\sih\cooperative\dto\WorkerEarningsSummary.class

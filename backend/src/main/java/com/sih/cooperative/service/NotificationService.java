@@ -40,7 +40,7 @@ public class NotificationService {
         return user;
     }
 
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public Notification createNotification(User recipient, NotificationType type, String title, String message, String relatedEntityType, Long relatedEntityId) {
         if (recipient == null) {
             log.warn("Cannot create notification for null recipient");

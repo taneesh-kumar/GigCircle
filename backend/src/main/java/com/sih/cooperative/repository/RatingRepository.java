@@ -26,4 +26,10 @@ public interface RatingRepository extends JpaRepository<Rating, Long> {
 
     @Query("SELECT COUNT(r) FROM Rating r WHERE r.worker.id = :workerId")
     Long countByWorkerId(@Param("workerId") Long workerId);
+
+    @EntityGraph(attributePaths = {"job", "customer", "worker"})
+    List<Rating> findAllByOrderByCreatedAtDesc();
+
+    @Query("SELECT AVG(r.score) FROM Rating r")
+    Double findPlatformAverageScore();
 }

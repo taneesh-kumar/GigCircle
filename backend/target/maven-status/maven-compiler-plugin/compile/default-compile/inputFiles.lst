@@ -4,6 +4,7 @@ T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\config\EarningsConfig.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\config\SecurityConfig.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\controller\AdminNotificationController.java
+T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\controller\AdminOperationsController.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\controller\AdminRevenueController.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\controller\AdminTestController.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\controller\AuthController.java
@@ -21,6 +22,12 @@ T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\controller\WorkerRatingController.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\controller\WorkerTestController.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\CooperativeGigPlatformApplication.java
+T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\AdminActivityResponse.java
+T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\AdminJobResponse.java
+T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\AdminRatingResponse.java
+T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\AdminServiceRequestResponse.java
+T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\AdminUserResponse.java
+T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\AdminWorkerResponse.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\ApiErrorResponse.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\AuthResponse.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\CreateRatingRequest.java
@@ -33,6 +40,7 @@ T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\NotificationResponse.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\NotificationSummary.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\PlatformInfoResponse.java
+T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\PlatformOverviewSummary.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\PlatformRevenueSummary.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\RatingResponse.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\RegisterRequest.java
@@ -43,6 +51,7 @@ T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\WorkerEarningsSummary.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\WorkerProfileResponse.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\dto\WorkerRatingSummary.java
+T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\entity\AdminActivity.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\entity\Earning.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\entity\EarningStatus.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\entity\Job.java
@@ -57,6 +66,7 @@ T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\entity\User.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\entity\WorkerProfile.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\exception\GlobalExceptionHandler.java
+T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\repository\AdminActivityRepository.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\repository\EarningRepository.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\repository\JobRepository.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\repository\NotificationRepository.java
@@ -68,6 +78,7 @@ T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\security\JwtAuthenticationFilter.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\security\JwtTokenProvider.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\security\package-info.java
+T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\service\AdminOperationsService.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\service\AuthService.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\service\EarningService.java
 T:\Taneesh\Documents\Git Repos\Smart India Hackathon\GigCircle\backend\src\main\java\com\sih\cooperative\service\HealthService.java

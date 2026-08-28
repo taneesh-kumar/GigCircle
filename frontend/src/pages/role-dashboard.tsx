@@ -32,14 +32,29 @@ import {
   TrendingUp,
   Receipt,
   IndianRupee,
+  ShieldAlert,
+  Activity,
+  UserX,
+  Search,
+  FileText,
+  Layers,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApi } from '@/hooks/use-api';
 import {
   acceptWorkerJobApi,
+  activateWorkerApi,
   completeWorkerJobApi,
+  deactivateWorkerApi,
+  getAdminActivityApi,
   getAdminEarningsApi,
+  getAdminJobsApi,
+  getAdminOverviewApi,
+  getAdminRatingsApi,
   getAdminRevenueSummaryApi,
+  getAdminServiceRequestsApi,
+  getAdminUsersApi,
+  getAdminWorkersApi,
   getCustomerJobEarningApi,
   getPlatformInfo,
   getServiceRequestsApi,
@@ -67,6 +82,15 @@ import type { WorkerProfile } from '@/types/worker-profile';
 import type { JobResponse } from '@/types/worker-job';
 import type { Rating, WorkerRatingSummary } from '@/types/rating';
 import type { Earning, PlatformRevenueSummary, WorkerEarningsSummary } from '@/types/earning';
+import type {
+  AdminActivity,
+  AdminJob,
+  AdminRating,
+  AdminServiceRequest,
+  AdminUser,
+  AdminWorker,
+  PlatformOverviewSummary,
+} from '@/types/admin';
 import { useToast } from '@/hooks/use-toast';
 
 type RoleKey = 'customer' | 'worker' | 'admin';
@@ -183,10 +207,20 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [workerEarningsSummary, setWorkerEarningsSummary] = useState<WorkerEarningsSummary | null>(null);
   const [isLoadingWorkerEarnings, setIsLoadingWorkerEarnings] = useState<boolean>(role === 'worker');
 
-  // Segment 7 Admin Revenue State
+  // Segment 7 & Segment 9 Admin State
   const [adminRevenueSummary, setAdminRevenueSummary] = useState<PlatformRevenueSummary | null>(null);
   const [adminEarningsLedger, setAdminEarningsLedger] = useState<Earning[]>([]);
-  const [isLoadingAdminRevenue, setIsLoadingAdminRevenue] = useState<boolean>(role === 'admin');
+  const [adminOverview, setAdminOverview] = useState<PlatformOverviewSummary | null>(null);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [adminWorkers, setAdminWorkers] = useState<AdminWorker[]>([]);
+  const [adminRequests, setAdminRequests] = useState<AdminServiceRequest[]>([]);
+  const [adminJobs, setAdminJobs] = useState<AdminJob[]>([]);
+  const [adminRatings, setAdminRatings] = useState<AdminRating[]>([]);
+  const [adminActivity, setAdminActivity] = useState<AdminActivity[]>([]);
+  const [isLoadingAdminData, setIsLoadingAdminData] = useState<boolean>(role === 'admin');
+  const [adminTab, setAdminTab] = useState<'overview' | 'workers' | 'users' | 'requests' | 'jobs' | 'ratings' | 'activity'>('overview');
+  const [confirmToggleWorker, setConfirmToggleWorker] = useState<AdminWorker | null>(null);
+  const [operatingWorkerId, setOperatingWorkerId] = useState<number | null>(null);
 
   const fetchCustomerRequests = async () => {
     if (role !== 'customer') return;
@@ -283,20 +317,38 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     }
   };
 
-  const fetchAdminRevenue = async () => {
+  const fetchAdminData = async () => {
     if (role !== 'admin') return;
-    setIsLoadingAdminRevenue(true);
+    setIsLoadingAdminData(true);
     try {
-      const [summary, ledger] = await Promise.all([
+      const [overview, users, workers, reqs, jobs, ratings, activity, revenueSummary, revenueLedger] = await Promise.all([
+        getAdminOverviewApi(),
+        getAdminUsersApi(),
+        getAdminWorkersApi(),
+        getAdminServiceRequestsApi(),
+        getAdminJobsApi(),
+        getAdminRatingsApi(),
+        getAdminActivityApi(),
         getAdminRevenueSummaryApi(),
         getAdminEarningsApi(),
       ]);
-      setAdminRevenueSummary(summary);
-      setAdminEarningsLedger(ledger);
-    } catch {
-      // Non-critical fallback
+      setAdminOverview(overview);
+      setAdminUsers(users);
+      setAdminWorkers(workers);
+      setAdminRequests(reqs);
+      setAdminJobs(jobs);
+      setAdminRatings(ratings);
+      setAdminActivity(activity);
+      setAdminRevenueSummary(revenueSummary);
+      setAdminEarningsLedger(revenueLedger);
+    } catch (err: any) {
+      toast({
+        title: 'Failed to load Admin Operations data',
+        description: err?.response?.data?.message || 'Please refresh page.',
+        variant: 'destructive',
+      });
     } finally {
-      setIsLoadingAdminRevenue(false);
+      setIsLoadingAdminData(false);
     }
   };
 
@@ -309,9 +361,39 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       fetchWorkerRatings();
       fetchWorkerEarnings();
     } else if (role === 'admin') {
-      fetchAdminRevenue();
+      fetchAdminData();
     }
   }, [role]);
+
+  const handleToggleWorkerStatus = async (worker: AdminWorker) => {
+    if (operatingWorkerId !== null) return;
+    setOperatingWorkerId(worker.workerId);
+    try {
+      if (worker.active) {
+        await deactivateWorkerApi(worker.workerId);
+        toast({
+          title: 'Worker Account Deactivated',
+          description: `${worker.name} has been deactivated. They will no longer be eligible for new job matching.`,
+        });
+      } else {
+        await activateWorkerApi(worker.workerId);
+        toast({
+          title: 'Worker Account Reactivated',
+          description: `${worker.name} has been reactivated. Profile availability will resume for matching.`,
+        });
+      }
+      setConfirmToggleWorker(null);
+      fetchAdminData();
+    } catch (err: any) {
+      toast({
+        title: 'Worker Status Change Failed',
+        description: err?.response?.data?.message || 'Failed to update worker status.',
+        variant: 'destructive',
+      });
+    } finally {
+      setOperatingWorkerId(null);
+    }
+  };
 
   const handleToggleAvailability = async () => {
     if (!workerProfile || isTogglingAvailability) return;
@@ -1391,135 +1473,516 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           </div>
         )}
 
-        {/* Admin Dashboard view (Segment 1 & 7 Revenue Ledger) */}
+        {/* Admin Dashboard view (Segment 9 Governance & Operations) */}
         {role === 'admin' && (
           <div className="mt-14 space-y-10">
-            {/* Platform Revenue Metric Strip */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
-                    Segment 7 Revenue Ledger
-                  </span>
-                  <h2 className="font-display text-3xl font-semibold text-primary">Platform Financial Ledger</h2>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Oversight of gross job volume, 10% cooperative fee revenues, and net worker earnings.
-                  </p>
-                </div>
+            {/* Header & Tab Navigation Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 md:p-8">
+              <div>
+                <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
+                  Segment 9 Governance Layer
+                </span>
+                <h2 className="mt-1 font-display text-3xl font-semibold text-primary">Admin Operations & Platform Audit</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Platform oversight, user & worker account governance, operational monitoring, and server-derived activity logs.
+                </p>
+              </div>
 
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={fetchAdminRevenue}
-                  disabled={isLoadingAdminRevenue}
+                  onClick={fetchAdminData}
+                  disabled={isLoadingAdminData}
                   className="focus-ring p-2.5 rounded-2xl border border-border bg-background text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
-                  title="Refresh revenue"
+                  title="Refresh admin data"
                 >
-                  <RefreshCw className={`h-4 w-4 ${isLoadingAdminRevenue ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 ${isLoadingAdminData ? 'animate-spin' : ''}`} />
                 </button>
               </div>
+            </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="flex items-center gap-4 rounded-3xl border border-accent/30 bg-accent/10 p-6">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground font-bold shadow-xs">
-                    <TrendingUp className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <div className="font-display text-3xl font-bold text-primary">
-                      ₹{adminRevenueSummary?.totalGrossRevenue ? adminRevenueSummary.totalGrossRevenue.toFixed(2) : '0.00'}
+            {/* Admin Operations Sub-Navigation Tabs */}
+            <div className="flex overflow-x-auto items-center rounded-2xl border border-border bg-card p-1.5 text-xs gap-1">
+              {(
+                [
+                  { key: 'overview', label: 'Overview & Stats', icon: TrendingUp },
+                  { key: 'workers', label: `Workers (${adminWorkers.length})`, icon: Briefcase },
+                  { key: 'users', label: `Users (${adminUsers.length})`, icon: UsersRound },
+                  { key: 'requests', label: `Service Requests (${adminRequests.length})`, icon: Wrench },
+                  { key: 'jobs', label: `Jobs (${adminJobs.length})`, icon: CheckCheck },
+                  { key: 'ratings', label: `Ratings (${adminRatings.length})`, icon: Star },
+                  { key: 'activity', label: `Audit Stream (${adminActivity.length})`, icon: Activity },
+                ] as const
+              ).map((tab) => {
+                const TabIcon = tab.icon;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setAdminTab(tab.key)}
+                    className={`flex items-center gap-2 shrink-0 rounded-xl px-4 py-2.5 font-bold transition-all ${
+                      adminTab === tab.key
+                        ? 'bg-accent text-accent-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-primary hover:bg-background/50'
+                    }`}
+                  >
+                    <TabIcon className="h-4 w-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* TAB 1: OVERVIEW & STATS */}
+            {adminTab === 'overview' && (
+              <div className="space-y-8 animate-rise-in">
+                {/* Platform Overview Metrics */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="flex items-center gap-4 rounded-3xl border border-accent/30 bg-accent/10 p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground font-bold shadow-xs">
+                      <UsersRound className="h-6 w-6" />
                     </div>
-                    <p className="text-xs text-muted-foreground">Total Gross Job Volume</p>
+                    <div>
+                      <div className="font-display text-3xl font-bold text-primary">
+                        {adminOverview?.totalUsers ?? adminUsers.length}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Total Registered Users</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-primary font-bold shadow-xs">
+                      <User className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-display text-3xl font-bold text-primary">
+                        {adminOverview?.totalCustomers ?? 0}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Active Customers</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/20 text-accent font-bold shadow-xs">
+                      <Briefcase className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-display text-3xl font-bold text-primary">
+                        {adminOverview?.totalWorkers ?? adminWorkers.length}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Registered Workers</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500 text-white font-bold shadow-xs">
+                      <Star className="h-6 w-6 fill-white" />
+                    </div>
+                    <div>
+                      <div className="font-display text-3xl font-bold text-amber-600 dark:text-amber-400">
+                        {adminOverview?.averageRating ? adminOverview.averageRating.toFixed(2) : '0.00'}
+                      </div>
+                      <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">Avg Platform Rating</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold shadow-xs">
+                      <Wrench className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-display text-3xl font-bold text-primary">
+                        {adminOverview?.totalServiceRequests ?? adminRequests.length}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Total Service Requests</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white font-bold shadow-xs">
+                      <CheckCheck className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-display text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                        {adminOverview?.completedJobs ?? 0}
+                      </div>
+                      <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Completed Jobs</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white font-bold shadow-xs">
+                      <Receipt className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-display text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                        ₹{adminRevenueSummary?.totalPlatformFees ? adminRevenueSummary.totalPlatformFees.toFixed(2) : '0.00'}
+                      </div>
+                      <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Cooperative Fees (10%)</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 rounded-3xl border border-accent/30 bg-accent/10 p-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground font-bold shadow-xs">
+                      <TrendingUp className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-display text-3xl font-bold text-primary">
+                        ₹{adminRevenueSummary?.totalGrossRevenue ? adminRevenueSummary.totalGrossRevenue.toFixed(2) : '0.00'}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Gross Transaction Volume</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-6">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white font-bold shadow-xs">
-                    <Receipt className="h-6 w-6" />
+                {/* Cooperative Revenue Ledger Strip */}
+                <div className="space-y-4 rounded-3xl border border-border bg-card p-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-display text-xl font-semibold text-primary">Platform Financial Ledger</h3>
+                    <span className="font-mono text-xs font-bold text-accent">Segment 7 Financial Integration</span>
                   </div>
-                  <div>
-                    <div className="font-display text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                      ₹{adminRevenueSummary?.totalPlatformFees ? adminRevenueSummary.totalPlatformFees.toFixed(2) : '0.00'}
+                  {adminEarningsLedger.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-4 text-center">No financial earnings recorded yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {adminEarningsLedger.slice(0, 5).map((earning) => (
+                        <div key={earning.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/60 p-3.5 text-xs">
+                          <div>
+                            <span className="font-mono font-bold text-accent">Job #{earning.jobId}</span> • <span className="font-semibold text-primary">{earning.customerName}</span> → <span className="font-semibold text-primary">{earning.workerName}</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div>Gross: <span className="font-mono font-bold">₹{earning.grossAmount.toFixed(2)}</span></div>
+                            <div className="text-emerald-600 dark:text-emerald-400 font-semibold">Coop Fee: <span className="font-mono font-bold">₹{earning.platformFee.toFixed(2)}</span></div>
+                            <div>Worker Net: <span className="font-mono font-bold">₹{earning.workerEarning.toFixed(2)}</span></div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Cooperative Fees (10%)</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: WORKER MANAGEMENT & ACTIVATION/DEACTIVATION */}
+            {adminTab === 'workers' && (
+              <div className="space-y-6 animate-rise-in">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-display text-2xl font-semibold text-primary">Worker Account Governance</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Inspect workers, verify skills/categories, and control platform eligibility via activation/deactivation.
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-6">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold shadow-xs">
-                    <Wallet className="h-6 w-6" />
+                {adminWorkers.length === 0 ? (
+                  <div className="rounded-3xl border border-dashed border-border bg-card/60 p-10 text-center">
+                    <Briefcase className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                    <h4 className="mt-3 font-display text-lg font-semibold text-primary">No worker profiles found</h4>
                   </div>
-                  <div>
-                    <div className="font-display text-3xl font-bold text-primary">
-                      ₹{adminRevenueSummary?.totalWorkerEarnings ? adminRevenueSummary.totalWorkerEarnings.toFixed(2) : '0.00'}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Total Net Worker Earnings</p>
-                  </div>
-                </div>
+                ) : (
+                  <div className="grid gap-5 md:grid-cols-2">
+                    {adminWorkers.map((worker) => {
+                      const isOperating = operatingWorkerId === worker.workerId;
+                      return (
+                        <div
+                          key={worker.profileId}
+                          className={`flex flex-col justify-between rounded-3xl border p-6 transition-all ${
+                            worker.active
+                              ? 'border-border/80 bg-card hover:border-accent/40'
+                              : 'border-destructive/30 bg-destructive/5'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-display text-lg font-semibold text-primary">{worker.name}</span>
+                                  <span
+                                    className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
+                                      worker.active
+                                        ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                        : 'border border-destructive/30 bg-destructive/10 text-destructive'
+                                    }`}
+                                  >
+                                    {worker.active ? 'ACTIVE' : 'DEACTIVATED'}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5">{worker.email} • {worker.phone}</p>
+                              </div>
 
-                <div className="flex items-center gap-4 rounded-3xl border border-border bg-card p-6">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-primary font-bold shadow-xs">
-                    <CheckCheck className="h-6 w-6" />
+                              {worker.averageRating > 0 ? (
+                                <div className="flex items-center gap-1 rounded-xl bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+                                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                  <span>{worker.averageRating.toFixed(1)}</span>
+                                  <span className="font-normal text-[10px] text-muted-foreground">({worker.totalRatings})</span>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground font-mono">No ratings</span>
+                              )}
+                            </div>
+
+                            {/* Skills & Categories */}
+                            <div className="mt-4 space-y-2 text-xs">
+                              <div>
+                                <span className="font-semibold text-muted-foreground">Categories: </span>
+                                <span className="font-medium text-primary">
+                                  {worker.serviceCategories?.map(c => CATEGORY_LABELS[c]?.label || c).join(', ') || 'None'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-muted-foreground">Skills: </span>
+                                <span className="font-medium text-primary">{worker.skills?.join(', ') || 'None'}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+                                <span>Rate: <strong className="text-primary font-mono">₹{worker.hourlyRate}/hr</strong></span>
+                                <span>Location: <strong className="text-primary">{worker.serviceLocation || 'Any'}</strong></span>
+                                <span>Availability: <strong className={worker.available ? 'text-emerald-600' : 'text-slate-500'}>{worker.available ? 'Available' : 'Unavailable'}</strong></span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Button */}
+                          <div className="mt-6 border-t border-border/60 pt-4 flex items-center justify-between">
+                            <span className="font-mono text-[10px] text-muted-foreground">Worker ID #{worker.workerId}</span>
+
+                            {confirmToggleWorker?.workerId === worker.workerId ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] font-bold text-destructive">Confirm?</span>
+                                <button
+                                  onClick={() => handleToggleWorkerStatus(worker)}
+                                  disabled={isOperating}
+                                  className="focus-ring rounded-xl bg-destructive px-3 py-1.5 text-xs font-bold text-destructive-foreground hover:opacity-90 disabled:opacity-50"
+                                >
+                                  {isOperating ? <RefreshCw className="h-3 w-3 animate-spin" /> : 'Yes, proceed'}
+                                </button>
+                                <button
+                                  onClick={() => setConfirmToggleWorker(null)}
+                                  className="focus-ring rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-primary"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : worker.active ? (
+                              <button
+                                onClick={() => setConfirmToggleWorker(worker)}
+                                className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-2 text-xs font-bold text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all"
+                              >
+                                <UserX className="h-3.5 w-3.5" /> Deactivate Worker
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleToggleWorkerStatus(worker)}
+                                disabled={isOperating}
+                                className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50"
+                              >
+                                {isOperating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5" />} Activate Worker
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div>
-                    <div className="font-display text-3xl font-bold text-primary">
-                      {adminRevenueSummary?.totalCompletedJobsWithEarnings || 0}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Completed Jobs with Earnings</p>
+                )}
+              </div>
+            )}
+
+            {/* TAB 3: USERS LISTING */}
+            {adminTab === 'users' && (
+              <div className="space-y-4 animate-rise-in">
+                <h3 className="font-display text-2xl font-semibold text-primary">Platform Registered Users</h3>
+                <div className="rounded-3xl border border-border bg-card overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-background/80 border-b border-border font-mono text-[11px] font-bold text-muted-foreground uppercase">
+                        <tr>
+                          <th className="p-4">ID</th>
+                          <th className="p-4">Name</th>
+                          <th className="p-4">Email</th>
+                          <th className="p-4">Role</th>
+                          <th className="p-4">Account Status</th>
+                          <th className="p-4">Registered Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/60">
+                        {adminUsers.map((u) => (
+                          <tr key={u.id} className="hover:bg-background/40 transition-colors">
+                            <td className="p-4 font-mono font-bold text-accent">#{u.id}</td>
+                            <td className="p-4 font-semibold text-primary">{u.name}</td>
+                            <td className="p-4 text-muted-foreground">{u.email}</td>
+                            <td className="p-4">
+                              <span className="rounded-full bg-accent/15 px-2.5 py-0.5 font-mono text-[10px] font-bold text-accent uppercase">
+                                {u.role}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase ${
+                                  u.active
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    : 'bg-destructive/10 text-destructive'
+                                }`}
+                              >
+                                {u.active ? 'ACTIVE' : 'INACTIVE'}
+                              </span>
+                            </td>
+                            <td className="p-4 font-mono text-muted-foreground">{formatDate(u.createdAt)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* Admin Earnings Ledger */}
-              {isLoadingAdminRevenue ? (
-                <div className="space-y-3">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="animate-pulse rounded-2xl border border-border bg-card p-4 space-y-2">
-                      <div className="h-4 w-40 bg-muted rounded" />
-                      <div className="h-5 w-1/3 bg-muted rounded" />
-                    </div>
-                  ))}
-                </div>
-              ) : adminEarningsLedger.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-border bg-card/60 p-10 text-center">
-                  <Receipt className="mx-auto h-8 w-8 text-muted-foreground/50" />
-                  <h4 className="mt-3 font-display text-lg font-semibold text-primary">No revenue ledger entries yet</h4>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Financial records will automatically appear here as workers complete jobs on the platform.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {adminEarningsLedger.map((earning) => (
-                    <div key={earning.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/80 bg-card p-4">
-                      <div>
+            {/* TAB 4: SERVICE REQUESTS MONITORING */}
+            {adminTab === 'requests' && (
+              <div className="space-y-4 animate-rise-in">
+                <h3 className="font-display text-2xl font-semibold text-primary">Service Requests Monitoring</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {adminRequests.map((req) => (
+                    <div key={req.id} className="rounded-3xl border border-border/80 bg-card p-6 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-bold text-accent">Req #{req.id}</span>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-accent">Job #{earning.jobId}</span>
-                          <span className="rounded-lg bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
-                            {earning.serviceCategory || 'SERVICE'}
+                          <span className="rounded-xl bg-accent/10 px-2.5 py-0.5 text-xs font-bold text-accent">
+                            {CATEGORY_LABELS[req.category]?.label || req.category}
+                          </span>
+                          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                            {req.status}
                           </span>
                         </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Customer: <span className="font-semibold text-primary">{earning.customerName}</span> • Worker: <span className="font-semibold text-primary">{earning.workerName}</span> • Date: <span className="font-mono">{formatDate(earning.createdAt)}</span>
-                        </p>
                       </div>
-
-                      <div className="flex items-center gap-6 text-xs text-right">
-                        <div>
-                          <div className="text-[10px] text-muted-foreground">Gross Value</div>
-                          <div className="font-mono font-semibold text-primary">₹{earning.grossAmount.toFixed(2)}</div>
-                        </div>
-                        <div className="rounded-xl bg-emerald-500/10 px-3 py-1.5 border border-emerald-500/30">
-                          <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">Coop Fee (10%)</div>
-                          <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">₹{earning.platformFee.toFixed(2)}</div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] text-muted-foreground">Worker Net</div>
-                          <div className="font-mono font-semibold text-primary">₹{earning.workerEarning.toFixed(2)}</div>
-                        </div>
+                      <p className="text-sm font-medium text-primary">{req.description}</p>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground border-t border-border/60 pt-3">
+                        <div>Customer: <strong className="text-primary">{req.customerName}</strong></div>
+                        <div>Budget: <strong className="text-primary font-mono">₹{req.budget.toLocaleString()}</strong></div>
+                        <div>Location: <strong className="text-primary">{req.location}</strong></div>
+                        <div>Assigned: <strong className={req.assignedWorkerName ? 'text-emerald-600' : 'text-slate-400'}>{req.assignedWorkerName || 'Unassigned'}</strong></div>
                       </div>
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* TAB 5: JOBS MONITORING */}
+            {adminTab === 'jobs' && (
+              <div className="space-y-4 animate-rise-in">
+                <h3 className="font-display text-2xl font-semibold text-primary">Jobs Monitoring</h3>
+                <div className="rounded-3xl border border-border bg-card overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-background/80 border-b border-border font-mono text-[11px] font-bold text-muted-foreground uppercase">
+                        <tr>
+                          <th className="p-4">Job ID</th>
+                          <th className="p-4">Req ID</th>
+                          <th className="p-4">Customer</th>
+                          <th className="p-4">Worker</th>
+                          <th className="p-4">Status</th>
+                          <th className="p-4">Accepted At</th>
+                          <th className="p-4">Completed At</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/60">
+                        {adminJobs.map((j) => (
+                          <tr key={j.id} className="hover:bg-background/40 transition-colors">
+                            <td className="p-4 font-mono font-bold text-accent">#{j.id}</td>
+                            <td className="p-4 font-mono text-muted-foreground">#{j.serviceRequestId}</td>
+                            <td className="p-4 font-semibold text-primary">{j.customerName}</td>
+                            <td className="p-4 font-semibold text-primary">{j.workerName}</td>
+                            <td className="p-4">
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase ${
+                                  j.status === 'COMPLETED'
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    : j.status === 'IN_PROGRESS'
+                                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                }`}
+                              >
+                                {j.status}
+                              </span>
+                            </td>
+                            <td className="p-4 font-mono text-muted-foreground">{formatDate(j.acceptedAt)}</td>
+                            <td className="p-4 font-mono text-muted-foreground">{formatDate(j.completedAt) || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 6: RATINGS MONITORING */}
+            {adminTab === 'ratings' && (
+              <div className="space-y-4 animate-rise-in">
+                <h3 className="font-display text-2xl font-semibold text-primary">Platform Ratings Monitoring</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {adminRatings.map((r) => (
+                    <div key={r.id} className="rounded-3xl border border-border/80 bg-card p-6 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 rounded-xl bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                            <span>{r.score}.0</span>
+                          </div>
+                          <span className="font-mono text-xs text-muted-foreground">Job #{r.jobId}</span>
+                        </div>
+                        <span className="font-mono text-[11px] text-muted-foreground">{formatDate(r.createdAt)}</span>
+                      </div>
+                      <p className="text-xs text-primary bg-background/50 p-3 rounded-2xl border border-border/50">
+                        "{r.review || 'No written review'}"
+                      </p>
+                      <div className="text-xs text-muted-foreground flex justify-between">
+                        <span>By: <strong className="text-primary">{r.customerName}</strong></span>
+                        <span>Worker: <strong className="text-primary">{r.workerName}</strong></span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 7: ADMIN AUDIT STREAM */}
+            {adminTab === 'activity' && (
+              <div className="space-y-4 animate-rise-in">
+                <h3 className="font-display text-2xl font-semibold text-primary">Administrative Activity Audit Log</h3>
+                <div className="rounded-3xl border border-border bg-card overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-background/80 border-b border-border font-mono text-[11px] font-bold text-muted-foreground uppercase">
+                        <tr>
+                          <th className="p-4">Log ID</th>
+                          <th className="p-4">Action</th>
+                          <th className="p-4">Entity</th>
+                          <th className="p-4">Description</th>
+                          <th className="p-4">Actor Role</th>
+                          <th className="p-4">Timestamp</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/60">
+                        {adminActivity.map((act) => (
+                          <tr key={act.id} className="hover:bg-background/40 transition-colors">
+                            <td className="p-4 font-mono font-bold text-accent">#{act.id}</td>
+                            <td className="p-4 font-bold text-primary">{act.actionType}</td>
+                            <td className="p-4 font-mono text-muted-foreground">{act.entityType} #{act.entityId}</td>
+                            <td className="p-4 text-primary">{act.description}</td>
+                            <td className="p-4">
+                              <span className="rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[10px] font-bold text-accent">
+                                {act.actorRole}
+                              </span>
+                            </td>
+                            <td className="p-4 font-mono text-muted-foreground">{formatDate(act.createdAt)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Admin RBAC and Platform Metadata Footer */}
             <div className="grid gap-5 md:grid-cols-[1.4fr_.6fr] border-t border-border pt-10">

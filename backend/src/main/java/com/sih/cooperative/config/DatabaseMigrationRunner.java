@@ -23,8 +23,16 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             // Drop outdated PostgreSQL check constraint created when JobStatus only had OPEN, ACCEPTED
             jdbcTemplate.execute("ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check");
             logger.info("Database migration: Successfully dropped legacy jobs_status_check constraint if present.");
+
+            // Drop outdated PostgreSQL check constraint for NotificationType enum values
+            jdbcTemplate.execute("ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check");
+            logger.info("Database migration: Successfully dropped legacy notifications_type_check constraint if present.");
+
+            // Ensure users active column exists for legacy databases
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE");
+            logger.info("Database migration: Successfully verified users active column.");
         } catch (Exception e) {
-            logger.warn("Database migration warning when dropping jobs_status_check: {}", e.getMessage());
+            logger.warn("Database migration warning: {}", e.getMessage());
         }
     }
 }

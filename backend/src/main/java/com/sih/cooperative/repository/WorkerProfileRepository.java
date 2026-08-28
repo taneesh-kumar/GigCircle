@@ -12,4 +12,6 @@ public interface WorkerProfileRepository extends JpaRepository<WorkerProfile, Lo
     Optional<WorkerProfile> findByWorkerId(Long workerId);
 
     boolean existsByWorkerId(Long workerId);
+
+    java.util.List<WorkerProfile> findAllByOrderByCreatedAtDesc();
 }

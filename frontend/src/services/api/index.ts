@@ -8,3 +8,4 @@ export * from './workerJob';
 export * from './rating';
 export * from './earning';
 export * from './notification';
+export * from './admin';

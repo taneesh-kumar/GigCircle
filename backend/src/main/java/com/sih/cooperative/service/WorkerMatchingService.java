@@ -25,6 +25,11 @@ public class WorkerMatchingService {
             return false;
         }
 
+        // 0. Worker account active status check
+        if (profile.getWorker() == null || !profile.getWorker().isActive()) {
+            return false;
+        }
+
         // 1. Worker availability check
         if (!profile.isAvailable()) {
             return false;

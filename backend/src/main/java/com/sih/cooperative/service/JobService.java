@@ -59,6 +59,10 @@ public class JobService {
     public List<ServiceRequestResponse> getEligibleJobsForWorker(String workerEmail) {
         User worker = getAuthenticatedWorker(workerEmail);
 
+        if (!worker.isActive()) {
+            return List.of();
+        }
+
         WorkerProfile profile = workerProfileRepository.findByWorkerId(worker.getId())
                 .orElse(null);
 
@@ -89,6 +93,10 @@ public class JobService {
     @Transactional
     public JobResponse acceptJob(Long requestId, String workerEmail) {
         User worker = getAuthenticatedWorker(workerEmail);
+
+        if (!worker.isActive()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Worker account is deactivated");
+        }
 
         WorkerProfile profile = workerProfileRepository.findByWorkerId(worker.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Worker profile required to accept jobs"));
