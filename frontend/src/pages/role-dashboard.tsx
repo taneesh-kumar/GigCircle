@@ -607,6 +607,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     return u.role === adminUserFilter;
   });
 
+  const displayUsers = activeTab === 'overview' ? filteredAdminUsers.slice(0, 5) : filteredAdminUsers;
+  const displayWorkers = activeTab === 'overview' ? adminWorkers.slice(0, 5) : adminWorkers;
+  const displayRequests = activeTab === 'overview' ? adminRequests.slice(0, 5) : adminRequests;
+  const displayJobs = activeTab === 'overview' ? adminJobs.slice(0, 5) : adminJobs;
+  const displayRatings = activeTab === 'overview' ? adminRatings.slice(0, 5) : adminRatings;
+  const displayActivity = activeTab === 'overview' ? adminActivity.slice(0, 5) : adminActivity;
+
   const Icon = content.icon;
 
   const getNotificationIcon = (noti: Notification) => {
@@ -2517,27 +2524,41 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               {(activeTab === 'users' || activeTab === 'overview') && (
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
-                    <h3 className="text-lg font-bold text-slate-900">User Directory</h3>
-                    <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
-                      {(['ALL', 'CUSTOMER', 'WORKER', 'ADMIN'] as const).map((r) => (
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">User Directory</h3>
+                      <p className="text-xs text-slate-500">System user registrations and active roles</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {activeTab === 'overview' && (
                         <button
-                          key={r}
                           type="button"
-                          onClick={() => setAdminUserFilter(r)}
-                          className={`rounded-lg px-3 py-1.5 font-bold transition-all ${
-                            adminUserFilter === r
-                              ? 'bg-emerald-600 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
+                          onClick={() => setSearchParams({ tab: 'users' })}
+                          className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors mr-2"
                         >
-                          {r}
+                          View All Users →
                         </button>
-                      ))}
+                      )}
+                      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
+                        {(['ALL', 'CUSTOMER', 'WORKER', 'ADMIN'] as const).map((r) => (
+                          <button
+                            key={r}
+                            type="button"
+                            onClick={() => setAdminUserFilter(r)}
+                            className={`rounded-lg px-3 py-1.5 font-bold transition-all ${
+                              adminUserFilter === r
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
                   <div className="divide-y divide-slate-100 overflow-x-auto">
-                    {filteredAdminUsers.map((u) => (
+                    {displayUsers.map((u) => (
                       <div key={u.id} className="py-3 flex items-center justify-between text-xs min-w-[500px]">
                         <div>
                           <strong className="text-slate-900">{u.name}</strong> ({u.email})
@@ -2557,9 +2578,23 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               {/* WORKERS GOVERNANCE DIRECTORY */}
               {(activeTab === 'workers' || activeTab === 'overview') && (
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                  <h3 className="text-lg font-bold text-slate-900">Worker Governance & Activation</h3>
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Worker Governance & Activation</h3>
+                      <p className="text-xs text-slate-500">Worker professional status and activation control</p>
+                    </div>
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'workers' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Workers →
+                      </button>
+                    )}
+                  </div>
                   <div className="divide-y divide-slate-100 overflow-x-auto">
-                    {adminWorkers.map((w) => (
+                    {displayWorkers.map((w) => (
                       <div key={w.workerId} className="py-3.5 flex items-center justify-between text-xs min-w-[550px]">
                         <div>
                           <strong className="text-slate-900">{w.name}</strong> ({w.email})
@@ -2579,6 +2614,211 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         </button>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SERVICE REQUESTS DIRECTORY */}
+              {(activeTab === 'requests' || activeTab === 'overview') && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Service Requests</h3>
+                      <p className="text-xs text-slate-500">Service request postings and assignment status</p>
+                    </div>
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'requests' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Requests →
+                      </button>
+                    )}
+                  </div>
+                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                    {displayRequests.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-4 text-center">No service requests found.</p>
+                    ) : (
+                      displayRequests.map((r) => (
+                        <div key={r.id} className="py-3 flex flex-wrap items-center justify-between text-xs gap-3 min-w-[600px]">
+                          <div className="flex-1 min-w-[200px]">
+                            <strong className="text-slate-900">{r.category}</strong>
+                            <p className="text-slate-500 mt-0.5 max-w-md truncate">{r.description}</p>
+                          </div>
+                          <div className="w-[120px]">
+                            <span className="text-slate-400 block">Budget & Location</span>
+                            <strong className="text-slate-800">₹{r.budget}</strong> • <span className="text-slate-500">{r.location}</span>
+                          </div>
+                          <div className="w-[150px]">
+                            <span className="text-slate-400 block">Customer</span>
+                            <span className="text-slate-700 font-medium">{r.customerName}</span>
+                          </div>
+                          <div className="w-[150px]">
+                            <span className="text-slate-400 block">Worker Match</span>
+                            {r.assignmentStatus === 'ASSIGNED' ? (
+                              <span className="text-emerald-700 font-bold">{r.assignedWorkerName || 'Assigned'}</span>
+                            ) : (
+                              <span className="text-amber-600 font-semibold">Unassigned</span>
+                            )}
+                          </div>
+                          <div className="shrink-0">
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase border ${
+                              r.status === 'OPEN' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}>
+                              {r.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* JOBS TRACKING DIRECTORY */}
+              {(activeTab === 'jobs' || activeTab === 'overview') && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Job Executions</h3>
+                      <p className="text-xs text-slate-500">Live worker performance and contract tracking</p>
+                    </div>
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'jobs' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Jobs →
+                      </button>
+                    )}
+                  </div>
+                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                    {displayJobs.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-4 text-center">No job records found.</p>
+                    ) : (
+                      displayJobs.map((j) => (
+                        <div key={j.id} className="py-3 flex flex-wrap items-center justify-between text-xs gap-3 min-w-[600px]">
+                          <div className="w-[80px]">
+                            <strong className="text-slate-900">Job #{j.id}</strong>
+                            <span className="text-[10px] text-slate-400 block font-mono">{formatNotificationTime(j.createdAt)}</span>
+                          </div>
+                          <div className="w-[180px]">
+                            <span className="text-slate-400 block">Customer</span>
+                            <span className="text-slate-800 font-semibold">{j.customerName}</span>
+                          </div>
+                          <div className="w-[180px]">
+                            <span className="text-slate-400 block">Assigned Worker</span>
+                            <span className="text-slate-800 font-semibold">{j.workerName}</span>
+                          </div>
+                          <div className="w-[120px]">
+                            <span className="text-slate-400 block">Status</span>
+                            <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-extrabold uppercase border ${
+                              j.status === 'COMPLETED' ? 'bg-green-50 text-green-700 border-green-200' :
+                              j.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                              j.status === 'DECLINED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                              'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {j.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* RATINGS & REVIEWS DIRECTORY */}
+              {(activeTab === 'ratings' || activeTab === 'overview') && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Ratings & Customer Reviews</h3>
+                      <p className="text-xs text-slate-500">Star ratings and qualitative feedback submitted by customers</p>
+                    </div>
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'ratings' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Ratings →
+                      </button>
+                    )}
+                  </div>
+                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                    {displayRatings.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-4 text-center">No customer reviews found.</p>
+                    ) : (
+                      displayRatings.map((r) => (
+                        <div key={r.id} className="py-3 flex flex-wrap items-start justify-between text-xs gap-3 min-w-[600px]">
+                          <div className="w-[160px]">
+                            <span className="text-slate-400 block">Customer / Worker</span>
+                            <span className="text-slate-800 font-semibold">{r.customerName}</span> to <span className="text-slate-700 font-medium">{r.workerName}</span>
+                          </div>
+                          <div className="w-[100px] shrink-0">
+                            <span className="text-slate-400 block">Score</span>
+                            <div className="flex items-center gap-1 mt-0.5 text-amber-500">
+                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                              <strong className="text-slate-800 text-sm font-black">{r.score}.0</strong>
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-[200px]">
+                            <span className="text-slate-400 block">Review Comment</span>
+                            <p className="text-slate-600 font-medium italic mt-0.5">{r.review || "No qualitative feedback left."}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ACTIVITY LOGS DIRECTORY */}
+              {(activeTab === 'activity' || activeTab === 'overview') && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">System Activity Audit Log</h3>
+                      <p className="text-xs text-slate-500">Audit trail trace logs generated from cooperative activities</p>
+                    </div>
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'activity' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Logs →
+                      </button>
+                    )}
+                  </div>
+                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                    {displayActivity.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-4 text-center">No trace activities recorded.</p>
+                    ) : (
+                      displayActivity.map((act) => (
+                        <div key={act.id} className="py-3 flex items-start gap-4 text-xs min-w-[600px]">
+                          <div className="w-[120px] font-mono text-[10px] text-slate-400 shrink-0 mt-0.5">
+                            {formatNotificationTime(act.createdAt)}
+                          </div>
+                          <div className="w-[130px] shrink-0">
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-700 uppercase">
+                              {act.actorRole}
+                            </span>
+                            <p className="text-[10px] text-slate-400 mt-0.5">ID: {act.actorUserId}</p>
+                          </div>
+                          <div className="w-[130px] shrink-0">
+                            <span className="text-slate-800 font-bold block">{act.actionType}</span>
+                            <span className="text-[10px] text-slate-400">{act.entityType} #{act.entityId}</span>
+                          </div>
+                          <div className="flex-1 min-w-[200px] text-slate-600 font-medium">
+                            {act.description}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
