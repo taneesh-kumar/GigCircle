@@ -99,6 +99,16 @@ public class RatingService {
                     savedRating.getId()
             );
 
+            if (savedRating.getScore() <= 2) {
+                notificationService.createAdminNotification(
+                        NotificationType.LOW_WORKER_RATING,
+                        "Low worker rating",
+                        worker.getName() + " received a " + savedRating.getScore() + "-star rating from " + customer.getName() + " for the completed " + job.getServiceRequest().getCategory() + " service.",
+                        "RATING",
+                        savedRating.getId()
+                );
+            }
+
             return RatingResponse.fromEntity(savedRating);
         } catch (DataIntegrityViolationException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This job has already been rated.");

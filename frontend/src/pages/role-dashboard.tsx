@@ -52,6 +52,7 @@ import {
   acceptWorkerJobApi,
   activateWorkerApi,
   completeWorkerJobApi,
+  declineWorkerJobApi,
   deactivateWorkerApi,
   getAdminActivityApi,
   getAdminEarningsApi,
@@ -81,6 +82,7 @@ import {
   markCustomerNotificationReadApi,
   markWorkerNotificationReadApi,
   markAdminNotificationReadApi,
+  markAllAdminNotificationsReadApi,
 } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { PlatformShell } from '@/components/platform-shell';
@@ -243,6 +245,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [adminActivity, setAdminActivity] = useState<AdminActivity[]>([]);
   const [isLoadingAdminData, setIsLoadingAdminData] = useState<boolean>(role === 'admin');
   const [adminUserFilter, setAdminUserFilter] = useState<'ALL' | 'CUSTOMER' | 'WORKER' | 'ADMIN'>('ALL');
+  const [adminNotifFilter, setAdminNotifFilter] = useState<'all' | 'unread' | 'alerts'>('all');
   const [operatingWorkerId, setOperatingWorkerId] = useState<number | null>(null);
 
   const fetchCustomerRequests = async () => {
@@ -549,6 +552,31 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     }
   };
 
+  const handleDeclineJob = async (jobId: number) => {
+    if (operatingJobId !== null) return;
+    setOperatingJobId(jobId);
+    try {
+      await declineWorkerJobApi(jobId);
+      toast({
+        title: 'Job Declined',
+        description: 'You have declined this job assignment. It is now open to other workers.',
+      });
+      setAssignedJobs((prev) => prev.filter((j) => j.id !== jobId));
+      fetchWorkerJobs();
+      window.dispatchEvent(new CustomEvent('gigcircle-notifications-updated'));
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to decline job.';
+      toast({
+        title: 'Action Failed',
+        description: msg,
+        variant: 'destructive',
+      });
+      fetchWorkerJobs();
+    } finally {
+      setOperatingJobId(null);
+    }
+  };
+
   const handleOpenDetail = (req: ServiceRequest) => {
     setSelectedRequest(req);
     setIsDetailModalOpen(true);
@@ -651,54 +679,251 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     }
   };
 
-  const renderNotificationsView = () => (
-    <div className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-6">
-      {/* CARD HEADER WITH GREEN BELL CIRCLE */}
-      <div className="flex items-center gap-3.5 pb-4 border-b border-slate-100">
-        <div className="h-10 w-10 rounded-full bg-emerald-100/80 border border-emerald-200/70 flex items-center justify-center text-emerald-600 shrink-0">
-          <Bell className="h-5 w-5" />
-        </div>
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">Notifications</h2>
-          <p className="text-xs text-slate-500 mt-0.5 font-medium">Recent updates and activity alerts</p>
-        </div>
-      </div>
-
-      {/* NOTIFICATIONS LIST CONTAINER */}
-      <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden divide-y divide-slate-100">
-        {isLoadingNotifications ? (
-          <div className="p-8 text-center text-xs text-slate-400">Loading updates...</div>
-        ) : notificationsList.length === 0 ? (
-          <div className="py-12 text-center">
-            <Bell className="mx-auto h-8 w-8 text-slate-300" />
-            <p className="mt-3 text-sm font-semibold text-slate-700">You're all caught up.</p>
-            <p className="text-xs text-slate-500 mt-1">No new activity requires your attention.</p>
+  const getAdminNotifIcon = (type: string) => {
+    switch (type) {
+      case 'NEW_WORKER_REGISTERED':
+        return (
+          <div className="h-9 w-9 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center text-green-600 shrink-0 shadow-3xs">
+            <Sprout className="h-4.5 w-4.5" />
           </div>
-        ) : (
-          notificationsList.map((n) => (
-            <div
-              key={n.id}
-              className="px-5 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors"
-            >
-              <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
-                {getNotificationIcon(n)}
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-slate-900 tracking-tight">{n.title}</p>
-                  <p className="text-xs text-slate-600 mt-0.5 font-normal leading-relaxed">{n.message}</p>
-                </div>
-              </div>
+        );
+      case 'SERVICE_REQUEST_CANCELLED':
+        return (
+          <div className="h-9 w-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 shrink-0 shadow-3xs">
+            <AlertCircle className="h-4.5 w-4.5" />
+          </div>
+        );
+      case 'WORKER_DECLINED_JOB':
+        return (
+          <div className="h-9 w-9 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shrink-0 shadow-3xs">
+            <Ban className="h-4.5 w-4.5" />
+          </div>
+        );
+      case 'LOW_WORKER_RATING':
+        return (
+          <div className="h-9 w-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500 shrink-0 shadow-3xs">
+            <Star className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
+          </div>
+        );
+      case 'LEDGER_ERROR':
+        return (
+          <div className="h-9 w-9 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0 animate-pulse shadow-3xs">
+            <ShieldAlert className="h-4.5 w-4.5" />
+          </div>
+        );
+      case 'SYSTEM_ERROR':
+        return (
+          <div className="h-9 w-9 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0 shadow-3xs">
+            <AlertCircle className="h-4.5 w-4.5" />
+          </div>
+        );
+      default:
+        return (
+          <div className="h-9 w-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 shrink-0 shadow-3xs">
+            <Bell className="h-4.5 w-4.5" />
+          </div>
+        );
+    }
+  };
 
-              <div className="text-right shrink-0">
-                <span className="font-mono text-xs font-semibold text-slate-400 whitespace-nowrap ml-4">
-                  {formatNotificationTime(n.createdAt)}
-                </span>
+  const renderNotificationsView = () => {
+    if (role === 'admin') {
+      const filtered = notificationsList.filter((n) => {
+        if (adminNotifFilter === 'unread') return !n.read;
+        if (adminNotifFilter === 'alerts') return n.type === 'SYSTEM_ERROR' || n.type === 'LEDGER_ERROR';
+        return true;
+      });
+
+      return (
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-3.5">
+              <div className="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-xs">
+                <Bell className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">Cooperative Operations Alerts</h2>
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">Monitor system exceptions and operation notifications</p>
               </div>
             </div>
-          ))
-        )}
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
+                {(['all', 'unread', 'alerts'] as const).map((filterOpt) => (
+                  <button
+                    key={filterOpt}
+                    type="button"
+                    onClick={() => setAdminNotifFilter(filterOpt)}
+                    className={`rounded-lg px-3.5 py-1.5 font-extrabold uppercase tracking-wider transition-all ${
+                      adminNotifFilter === filterOpt
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {filterOpt}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await markAllAdminNotificationsReadApi();
+                    setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
+                    window.dispatchEvent(new CustomEvent('gigcircle-notifications-updated'));
+                    toast({ title: 'Marked all read', description: 'All admin alerts marked as read.' });
+                  } catch {
+                    // Fallback
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-2xs"
+              >
+                <CheckCheck className="h-4 w-4" /> Mark all read
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden divide-y divide-slate-100">
+            {isLoadingNotifications ? (
+              <div className="p-12 text-center text-xs text-slate-400">Loading alerts...</div>
+            ) : filtered.length === 0 ? (
+              <div className="py-16 text-center space-y-2">
+                <Bell className="mx-auto h-8 w-8 text-slate-300" />
+                <p className="text-sm font-bold text-slate-800">No alerts found</p>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">There are no operational events matching the selected filter.</p>
+              </div>
+            ) : (
+              filtered.map((n) => {
+                const isCritical = n.type === 'LEDGER_ERROR';
+                const isHigh = n.type === 'SYSTEM_ERROR';
+                const priority = isCritical ? 'CRITICAL' : isHigh ? 'HIGH' : 'MEDIUM';
+
+                return (
+                  <div
+                    key={n.id}
+                    onClick={async () => {
+                      if (!n.read) {
+                        try {
+                          await markAdminNotificationReadApi(n.id);
+                          setNotificationsList((prev) =>
+                            prev.map((item) => (item.id === n.id ? { ...item, read: true } : item))
+                          );
+                          window.dispatchEvent(new CustomEvent('gigcircle-notifications-updated'));
+                        } catch {
+                          // Fallback
+                        }
+                      }
+                      
+                      if (n.relatedEntityType === 'USER') {
+                        setSearchParams({ tab: 'workers' });
+                      } else if (n.relatedEntityType === 'SERVICE_REQUEST') {
+                        setSearchParams({ tab: 'requests' });
+                      } else if (n.relatedEntityType === 'JOB') {
+                        setSearchParams({ tab: 'jobs' });
+                      } else if (n.type === 'SYSTEM_ERROR') {
+                        setSearchParams({ tab: 'activity' });
+                      }
+                    }}
+                    className={`px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors cursor-pointer ${
+                      !n.read ? 'bg-slate-50/40 border-l-2 border-l-emerald-500' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-4 flex-1 min-w-0">
+                      {getAdminNotifIcon(n.type)}
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <p className={`text-sm font-black tracking-tight ${!n.read ? 'text-slate-900' : 'text-slate-700'}`}>
+                            {n.title}
+                          </p>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider border ${
+                              isCritical
+                                ? 'bg-red-50 text-red-700 border-red-200'
+                                : isHigh
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                            }`}
+                          >
+                            {priority}
+                          </span>
+                          {!n.read && (
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 font-medium leading-relaxed">{n.message}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3.5 shrink-0 self-end sm:self-center">
+                      <span className="font-mono text-[10px] font-semibold text-slate-400 whitespace-nowrap">
+                        {formatNotificationTime(n.createdAt)}
+                      </span>
+                      <button
+                        type="button"
+                        className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-1.5 text-[10px] font-bold text-slate-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-3xs"
+                      >
+                        Action →
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-6">
+        {/* CARD HEADER WITH GREEN BELL CIRCLE */}
+        <div className="flex items-center gap-3.5 pb-4 border-b border-slate-100">
+          <div className="h-10 w-10 rounded-full bg-emerald-100/80 border border-emerald-200/70 flex items-center justify-center text-emerald-600 shrink-0">
+            <Bell className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">Notifications</h2>
+            <p className="text-xs text-slate-500 mt-0.5 font-medium">Recent updates and activity alerts</p>
+          </div>
+        </div>
+
+        {/* NOTIFICATIONS LIST CONTAINER */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden divide-y divide-slate-100">
+          {isLoadingNotifications ? (
+            <div className="p-8 text-center text-xs text-slate-400">Loading updates...</div>
+          ) : notificationsList.length === 0 ? (
+            <div className="py-12 text-center">
+              <Bell className="mx-auto h-8 w-8 text-slate-300" />
+              <p className="mt-3 text-sm font-semibold text-slate-700">You're all caught up.</p>
+              <p className="text-xs text-slate-500 mt-1">No new activity requires your attention.</p>
+            </div>
+          ) : (
+            notificationsList.map((n) => (
+              <div
+                key={n.id}
+                className="px-5 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors"
+              >
+                <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
+                  {getNotificationIcon(n)}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-slate-900 tracking-tight">{n.title}</p>
+                    <p className="text-xs text-slate-600 mt-0.5 font-normal leading-relaxed">{n.message}</p>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <span className="font-mono text-xs font-semibold text-slate-400 whitespace-nowrap ml-4">
+                    {formatNotificationTime(n.createdAt)}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <PlatformShell>
@@ -1880,20 +2105,30 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               </button>
 
                               {isAccepted && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleStartJob(job.id)}
-                                  disabled={operatingJobId === job.id}
-                                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 py-2.5 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50"
-                                >
-                                  {operatingJobId === job.id ? (
-                                    <>
-                                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Starting...
-                                    </>
-                                  ) : (
-                                    'Start Job Execution'
-                                  )}
-                                </button>
+                                <div className="flex-1 flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartJob(job.id)}
+                                    disabled={operatingJobId === job.id}
+                                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 py-2.5 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50"
+                                  >
+                                    {operatingJobId === job.id ? (
+                                      <>
+                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Starting...
+                                      </>
+                                    ) : (
+                                      'Start Job Execution'
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeclineJob(job.id)}
+                                    disabled={operatingJobId === job.id}
+                                    className="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 px-3.5 py-2.5 text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-2xs"
+                                  >
+                                    Decline
+                                  </button>
+                                </div>
                               )}
 
                               {isInProgress && (

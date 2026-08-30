@@ -155,6 +155,130 @@ public class JobService {
 
     @Transactional
     public JobResponse startJob(Long jobId, String workerEmail) {
+        try {
+            User worker = getAuthenticatedWorker(workerEmail);
+
+            Job job = jobRepository.findById(jobId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found"));
+
+            if (!job.getWorker().getId().equals(worker.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: job assigned to another worker");
+            }
+
+            if (job.getStatus() != JobStatus.ACCEPTED) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Job must be ACCEPTED before it can be started");
+            }
+
+            job.setStatus(JobStatus.IN_PROGRESS);
+            if (job.getStartedAt() == null) {
+                job.setStartedAt(LocalDateTime.now());
+            }
+
+            Job savedJob = jobRepository.save(job);
+
+            // Segment 8 Notification
+            notificationService.createNotification(
+                    job.getServiceRequest().getCustomer(),
+                    NotificationType.JOB_STARTED,
+                    "Job started",
+                    "Your assigned worker has started the job.",
+                    "JOB",
+                    savedJob.getId()
+            );
+
+            return JobResponse.fromEntity(savedJob);
+        } catch (ResponseStatusException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            notificationService.createAdminNotification(
+                    NotificationType.SYSTEM_ERROR,
+                    "System operation failed",
+                    "A service operation failed while processing Job #" + jobId + ". Please review the system activity.",
+                    "JOB",
+                    jobId
+            );
+            throw ex;
+        }
+    }
+
+    @Transactional
+    public JobResponse completeJob(Long jobId, String workerEmail) {
+        Job savedJob = null;
+        try {
+            User worker = getAuthenticatedWorker(workerEmail);
+
+            Job job = jobRepository.findById(jobId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found"));
+
+            if (!job.getWorker().getId().equals(worker.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: job assigned to another worker");
+            }
+
+            if (job.getStatus() != JobStatus.IN_PROGRESS) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Only IN_PROGRESS jobs can be completed");
+            }
+
+            job.setStatus(JobStatus.COMPLETED);
+            if (job.getCompletedAt() == null) {
+                job.setCompletedAt(LocalDateTime.now());
+            }
+
+            savedJob = jobRepository.save(job);
+        } catch (ResponseStatusException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            notificationService.createAdminNotification(
+                    NotificationType.SYSTEM_ERROR,
+                    "System operation failed",
+                    "A service operation failed while processing Job #" + jobId + ". Please review the system activity.",
+                    "JOB",
+                    jobId
+            );
+            throw ex;
+        }
+
+        // Ledger calculation execution
+        try {
+            earningService.generateEarningForCompletedJob(savedJob);
+        } catch (Exception ex) {
+            notificationService.createAdminNotification(
+                    NotificationType.LEDGER_ERROR,
+                    "Ledger calculation requires attention",
+                    "The earnings calculation for Job #" + savedJob.getId() + " could not be completed. Please review the job ledger.",
+                    "JOB",
+                    savedJob.getId()
+            );
+            throw ex;
+        }
+
+        try {
+            // Segment 8 Notifications
+            notificationService.createNotification(
+                    savedJob.getServiceRequest().getCustomer(),
+                    NotificationType.JOB_COMPLETED,
+                    "Job completed",
+                    "Your service job has been marked as completed.",
+                    "JOB",
+                    savedJob.getId()
+            );
+
+            notificationService.createNotification(
+                    savedJob.getWorker(),
+                    NotificationType.JOB_COMPLETED,
+                    "Job completed",
+                    "Your job has been completed successfully.",
+                    "JOB",
+                    savedJob.getId()
+            );
+        } catch (Exception ex) {
+            // Non-critical
+        }
+
+        return JobResponse.fromEntity(savedJob);
+    }
+
+    @Transactional
+    public JobResponse declineJob(Long jobId, String workerEmail) {
         User worker = getAuthenticatedWorker(workerEmail);
 
         Job job = jobRepository.findById(jobId)
@@ -165,73 +289,25 @@ public class JobService {
         }
 
         if (job.getStatus() != JobStatus.ACCEPTED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Job must be ACCEPTED before it can be started");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only ACCEPTED jobs can be declined");
         }
 
-        job.setStatus(JobStatus.IN_PROGRESS);
-        if (job.getStartedAt() == null) {
-            job.setStartedAt(LocalDateTime.now());
-        }
+        ServiceRequest request = job.getServiceRequest();
 
-        Job savedJob = jobRepository.save(job);
-
-        // Segment 8 Notification
-        notificationService.createNotification(
-                job.getServiceRequest().getCustomer(),
-                NotificationType.JOB_STARTED,
-                "Job started",
-                "Your assigned worker has started the job.",
-                "JOB",
-                savedJob.getId()
+        // Trigger Admin Notification before deleting the job record
+        notificationService.createAdminNotification(
+                NotificationType.WORKER_DECLINED_JOB,
+                "Worker declined job",
+                worker.getName() + " declined the '" + request.getDescription() + "' request from " + request.getCustomer().getName() + ".",
+                "SERVICE_REQUEST",
+                request.getId()
         );
 
-        return JobResponse.fromEntity(savedJob);
-    }
+        // Delete the Job record so that the service request becomes open for other workers
+        jobRepository.delete(job);
 
-    @Transactional
-    public JobResponse completeJob(Long jobId, String workerEmail) {
-        User worker = getAuthenticatedWorker(workerEmail);
-
-        Job job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found"));
-
-        if (!job.getWorker().getId().equals(worker.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: job assigned to another worker");
-        }
-
-        if (job.getStatus() != JobStatus.IN_PROGRESS) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only IN_PROGRESS jobs can be completed");
-        }
-
-        job.setStatus(JobStatus.COMPLETED);
-        if (job.getCompletedAt() == null) {
-            job.setCompletedAt(LocalDateTime.now());
-        }
-
-        Job savedJob = jobRepository.save(job);
-
-        // Segment 7 Integration: Generate earning ledger record
-        earningService.generateEarningForCompletedJob(savedJob);
-
-        // Segment 8 Notifications
-        notificationService.createNotification(
-                job.getServiceRequest().getCustomer(),
-                NotificationType.JOB_COMPLETED,
-                "Job completed",
-                "Your service job has been marked as completed.",
-                "JOB",
-                savedJob.getId()
-        );
-
-        notificationService.createNotification(
-                worker,
-                NotificationType.JOB_COMPLETED,
-                "Job completed",
-                "Your job has been completed successfully.",
-                "JOB",
-                savedJob.getId()
-        );
-
-        return JobResponse.fromEntity(savedJob);
+        // Return a mock response representing the declined job state
+        job.setStatus(JobStatus.DECLINED);
+        return JobResponse.fromEntity(job);
     }
 }

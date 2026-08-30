@@ -26,3 +26,8 @@ export const completeWorkerJobApi = async (jobId: number): Promise<JobResponse> 
   const response = await apiClient.post<JobResponse>(`/worker/jobs/${jobId}/complete`);
   return response.data;
 };
+
+export const declineWorkerJobApi = async (jobId: number): Promise<JobResponse> => {
+  const response = await apiClient.post<JobResponse>(`/worker/jobs/${jobId}/decline`);
+  return response.data;
+};

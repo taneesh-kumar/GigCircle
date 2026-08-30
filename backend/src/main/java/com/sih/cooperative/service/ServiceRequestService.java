@@ -154,6 +154,14 @@ public class ServiceRequestService {
                 updatedRequest.getId()
         );
 
+        notificationService.createAdminNotification(
+                NotificationType.SERVICE_REQUEST_CANCELLED,
+                "Service request cancelled",
+                customer.getName() + " cancelled the '" + updatedRequest.getDescription() + "' request.",
+                "SERVICE_REQUEST",
+                updatedRequest.getId()
+        );
+
         return ServiceRequestResponse.fromEntity(updatedRequest);
     }
 }

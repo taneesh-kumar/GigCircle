@@ -1,6 +1,7 @@
 package com.sih.cooperative.repository;
 
 import com.sih.cooperative.entity.Notification;
+import com.sih.cooperative.entity.NotificationType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +14,8 @@ import java.util.Optional;
 
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
+
+    boolean existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(Long recipientId, NotificationType type, String relatedEntityType, Long relatedEntityId);
 
     List<Notification> findByRecipientIdOrderByCreatedAtDesc(Long recipientId);
 

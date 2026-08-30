@@ -22,10 +22,12 @@ public class WorkerProfileService {
 
     private final WorkerProfileRepository workerProfileRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public WorkerProfileService(WorkerProfileRepository workerProfileRepository, UserRepository userRepository) {
+    public WorkerProfileService(WorkerProfileRepository workerProfileRepository, UserRepository userRepository, NotificationService notificationService) {
         this.workerProfileRepository = workerProfileRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     private User getAuthenticatedWorker(String email) {
@@ -86,6 +88,15 @@ public class WorkerProfileService {
         );
 
         WorkerProfile savedProfile = workerProfileRepository.save(profile);
+
+        notificationService.createAdminNotification(
+                com.sih.cooperative.entity.NotificationType.NEW_WORKER_REGISTERED,
+                "New worker registered",
+                worker.getName() + " has registered as a worker and is available for work in " + (profile.getServiceLocation() != null ? profile.getServiceLocation() : "unspecified location") + ".",
+                "USER",
+                worker.getId()
+        );
+
         return WorkerProfileResponse.fromEntity(savedProfile);
     }
 

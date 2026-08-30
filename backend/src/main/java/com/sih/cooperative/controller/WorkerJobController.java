@@ -51,4 +51,10 @@ public class WorkerJobController {
         JobResponse response = jobService.completeJob(jobId, principal.getName());
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/{jobId}/decline")
+    public ResponseEntity<JobResponse> declineJob(@PathVariable Long jobId, Principal principal) {
+        JobResponse response = jobService.declineJob(jobId, principal.getName());
+        return ResponseEntity.ok(response);
+    }
 }

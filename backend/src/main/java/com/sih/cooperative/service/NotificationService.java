@@ -47,12 +47,31 @@ public class NotificationService {
             return null;
         }
 
+        // De-duplication check: if notification with same type, relatedEntityType and relatedEntityId exists for recipient, skip creating duplicate
+        if (relatedEntityId != null && relatedEntityType != null) {
+            boolean exists = notificationRepository.existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(
+                recipient.getId(), type, relatedEntityType, relatedEntityId
+            );
+            if (exists) {
+                log.info("Skipping duplicate notification of type {} for recipient {} on {} #{}", type, recipient.getId(), relatedEntityType, relatedEntityId);
+                return null;
+            }
+        }
+
         try {
             Notification notification = new Notification(recipient, type, title, message, relatedEntityType, relatedEntityId);
             return notificationRepository.save(notification);
         } catch (Exception e) {
             log.error("Failed to create notification of type {} for user {}: {}", type, recipient.getEmail(), e.getMessage());
             return null;
+        }
+    }
+
+    @Transactional
+    public void createAdminNotification(NotificationType type, String title, String message, String relatedEntityType, Long relatedEntityId) {
+        List<User> admins = userRepository.findByRole(Role.ADMIN);
+        for (User admin : admins) {
+            createNotification(admin, type, title, message, relatedEntityType, relatedEntityId);
         }
     }
 

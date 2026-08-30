@@ -5,7 +5,12 @@ export type NotificationType =
   | 'JOB_COMPLETED'
   | 'RATING_RECEIVED'
   | 'EARNING_GENERATED'
-  | 'SERVICE_REQUEST_CANCELLED';
+  | 'SERVICE_REQUEST_CANCELLED'
+  | 'NEW_WORKER_REGISTERED'
+  | 'WORKER_DECLINED_JOB'
+  | 'LOW_WORKER_RATING'
+  | 'LEDGER_ERROR'
+  | 'SYSTEM_ERROR';
 
 export interface Notification {
   id: number;
