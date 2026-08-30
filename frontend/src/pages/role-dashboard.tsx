@@ -145,6 +145,20 @@ const roleContent: Record<
   },
 };
 
+const getCategoryIcon = (category: string) => {
+  const catLower = (category || '').toUpperCase();
+  switch (catLower) {
+    case 'PLUMBING':
+      return <Wrench className="h-5 w-5 text-emerald-600" />;
+    case 'ELECTRICAL':
+      return <Activity className="h-5 w-5 text-amber-600 animate-pulse" />;
+    case 'CLEANING':
+      return <Sparkles className="h-5 w-5 text-teal-600" />;
+    default:
+      return <Briefcase className="h-5 w-5 text-blue-600" />;
+  }
+};
+
 export default function RoleDashboard({ role }: { role: RoleKey }) {
   const { toast } = useToast();
   const content = roleContent[role];
@@ -835,28 +849,28 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:bg-white hover:border-emerald-200 hover:shadow-md hover:-translate-y-0.5 group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                           >
                             <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-                              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-blue-500/10 text-emerald-700 border border-emerald-200/50 flex items-center justify-center font-extrabold text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                                {req.category ? req.category.substring(0, 2).toUpperCase() : 'GC'}
+                              <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                {getCategoryIcon(req.category)}
                               </div>
                               <div className="min-w-0 space-y-1">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-emerald-950 transition-colors truncate">
                                     {req.description}
                                   </span>
-                                  <span className="rounded-md bg-slate-200/70 border border-slate-300/60 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                                  <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700">
                                     {categoryInfo.label}
                                   </span>
                                   <span
                                     className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                                       statusStr === 'COMPLETED'
-                                        ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-200'
+                                        ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
                                         : statusStr === 'IN_PROGRESS'
-                                        ? 'bg-blue-100/90 text-blue-800 border border-blue-200'
+                                        ? 'bg-blue-50 border border-blue-200 text-blue-700'
                                         : statusStr === 'ACCEPTED'
-                                        ? 'bg-amber-100/90 text-amber-800 border border-amber-200'
+                                        ? 'bg-amber-50 border border-amber-200 text-amber-700'
                                         : statusStr === 'CANCELLED'
-                                        ? 'bg-red-100/90 text-red-800 border border-red-200'
-                                        : 'bg-slate-100 text-slate-800 border border-slate-200'
+                                        ? 'bg-red-50 border border-red-200 text-red-700'
+                                        : 'bg-slate-50 border border-slate-200 text-slate-700'
                                     }`}
                                   >
                                     {statusStr === 'COMPLETED' ? (
@@ -869,14 +883,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     {statusStr}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                                <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
                                   {req.workerName ? (
                                     <span className="flex items-center gap-1 font-medium text-slate-600">
                                       <User className="h-3.5 w-3.5 text-slate-400" /> Assigned Worker: <strong className="text-slate-800 font-semibold">{req.workerName}</strong>
                                     </span>
                                   ) : (
                                     <span className="flex items-center gap-1 text-slate-400 italic">
-                                      <Clock3 className="h-3.5 w-3.5" /> Awaiting Worker Assignment
+                                      <Clock3 className="h-3.5 w-3.5 text-slate-400" /> Awaiting Worker Assignment
                                     </span>
                                   )}
                                   {req.location && (
@@ -888,12 +902,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               </div>
                             </div>
 
-                            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3.5 py-1.5 text-right shrink-0 self-end sm:self-center">
-                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-800 block">
+                            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-4 py-2 text-right shrink-0 self-end sm:self-center hover:bg-emerald-100/50 transition-colors">
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">
                                 Budget
                               </span>
-                              <span className="text-sm font-black text-emerald-800 font-mono">
-                                ₹{req.budget}
+                              <span className="text-sm font-black text-emerald-700 font-mono">
+                                ₹{req.budget.toLocaleString()}
                               </span>
                             </div>
                           </div>
@@ -1032,7 +1046,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           return (
                             <div
                               key={req.id}
-                              className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all space-y-4"
+                              className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all space-y-4 group"
                             >
                               <div className="space-y-4">
                                 <div className="flex items-center justify-between gap-2">
@@ -1040,66 +1054,95 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     {categoryInfo.label}
                                   </span>
                                   <span
-                                    className={`rounded-full px-3 py-0.5 text-[10px] font-extrabold uppercase ${
+                                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                                       statusStr === 'COMPLETED'
-                                        ? 'bg-emerald-100 text-emerald-800'
+                                        ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
                                         : statusStr === 'IN_PROGRESS'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : statusStr === 'ACCEPTED'
-                                        ? 'bg-amber-100 text-amber-800'
+                                        ? 'bg-blue-50 border border-blue-200 text-blue-700'
+                                        : statusStr === 'ACCEPTED' || req.workerName
+                                        ? 'bg-amber-50 border border-amber-200 text-amber-700'
                                         : statusStr === 'CANCELLED'
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-slate-100 text-slate-800'
+                                        ? 'bg-red-50 border border-red-200 text-red-700'
+                                        : 'bg-slate-50 border border-slate-200 text-slate-700'
                                     }`}
                                   >
-                                    [{statusStr}]
+                                    {statusStr === 'COMPLETED' ? (
+                                      <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                    ) : statusStr === 'IN_PROGRESS' ? (
+                                      <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
+                                    ) : (
+                                      <Clock3 className="h-3 w-3 text-amber-600" />
+                                    )}
+                                    {statusStr}
                                   </span>
                                 </div>
 
-                                <div>
-                                  <h3 className="text-base font-bold text-slate-900 leading-snug">{req.description}</h3>
-                                  <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-                                    <span>Budget: <strong className="text-slate-900 font-bold">₹{req.budget}</strong></span>
-                                    <span>Location: <strong className="text-slate-700">{req.location}</strong></span>
+                                <div className="flex items-start gap-4">
+                                  <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                    {getCategoryIcon(req.category)}
+                                  </div>
+                                  <div className="flex-1 min-w-0 space-y-1.5">
+                                    <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">
+                                      {req.description}
+                                    </h3>
+                                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-slate-500">
+                                      <span className="flex items-center gap-1 font-medium text-slate-600">
+                                        <MapPin className="h-3.5 w-3.5 text-slate-400" /> Location: <strong className="text-slate-800 font-semibold">{req.location}</strong>
+                                      </span>
+                                      <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
+                                        Budget: <strong className="text-emerald-800 font-extrabold font-mono text-sm">₹{req.budget.toLocaleString()}</strong>
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
 
                                 {statusStr !== 'CANCELLED' && (
-                                  <div className="pt-2">
-                                    <div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400 mb-1.5">
-                                      <span className={currentStage >= 1 ? 'text-emerald-700' : ''}>Requested</span>
-                                      <span className={currentStage >= 2 ? 'text-emerald-700' : ''}>Assigned</span>
-                                      <span className={currentStage >= 3 ? 'text-blue-700' : ''}>In Progress</span>
-                                      <span className={currentStage >= 4 ? 'text-emerald-700' : ''}>Completed</span>
+                                  <div className="pt-2.5 space-y-2">
+                                    <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
+                                      <span className={currentStage >= 1 ? 'text-emerald-700 flex items-center gap-1' : 'flex items-center gap-1'}>
+                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 1 ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Requested
+                                      </span>
+                                      <span className={currentStage >= 2 ? 'text-amber-700 flex items-center gap-1' : 'flex items-center gap-1'}>
+                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 2 ? 'bg-amber-500' : 'bg-slate-300'}`} /> Assigned
+                                      </span>
+                                      <span className={currentStage >= 3 ? 'text-blue-700 flex items-center gap-1' : 'flex items-center gap-1'}>
+                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 3 ? 'bg-blue-500' : 'bg-slate-300'}`} /> In Progress
+                                      </span>
+                                      <span className={currentStage >= 4 ? 'text-emerald-700 flex items-center gap-1' : 'flex items-center gap-1'}>
+                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 4 ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Completed
+                                      </span>
                                     </div>
-                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex p-0.5 border border-slate-200/40">
                                       <div
-                                        className={`h-full transition-all duration-500 ${
+                                        className={`h-full rounded-full transition-all duration-500 ${
                                           currentStage === 4
-                                            ? 'w-full bg-emerald-500'
+                                            ? 'w-full bg-gradient-to-r from-emerald-500 to-teal-500'
                                             : currentStage === 3
-                                            ? 'w-3/4 bg-blue-500'
+                                            ? 'w-3/4 bg-gradient-to-r from-blue-500 to-indigo-500'
                                             : currentStage === 2
-                                            ? 'w-1/2 bg-emerald-500'
-                                            : 'w-1/4 bg-slate-300'
+                                            ? 'w-1/2 bg-gradient-to-r from-amber-400 to-amber-500'
+                                            : 'w-1/4 bg-gradient-to-r from-emerald-400 to-emerald-500'
                                         }`}
                                       />
                                     </div>
                                   </div>
                                 )}
 
-                                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 flex items-center justify-between text-xs">
-                                  <div className="flex items-center gap-2">
-                                    <div className="h-7 w-7 rounded-full bg-slate-900 text-white font-bold text-[10px] flex items-center justify-center">
+                                <div className="rounded-2xl bg-slate-50/50 border border-slate-100 p-3.5 flex items-center justify-between text-xs transition-all hover:bg-white hover:border-slate-200">
+                                  <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded-full bg-slate-900 text-white font-extrabold text-[10px] flex items-center justify-center shadow-xs shrink-0">
                                       {req.workerName ? req.workerName.substring(0, 2).toUpperCase() : 'GC'}
                                     </div>
                                     <div>
-                                      <span className="text-[10px] text-slate-400 block font-semibold">Assigned Worker</span>
+                                      <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Assigned Worker</span>
                                       <span className="font-bold text-slate-900">
                                         {req.workerName || 'Awaiting Worker Match'}
                                       </span>
                                     </div>
                                   </div>
+                                  {!req.workerName && (
+                                    <span className="inline-flex h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" title="Searching for worker" />
+                                  )}
                                 </div>
                               </div>
 
@@ -1107,15 +1150,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenDetail(req)}
-                                  className="text-xs font-semibold text-slate-700 hover:text-emerald-600 flex items-center gap-1"
+                                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
                                 >
-                                  <Eye className="h-3.5 w-3.5" /> Details
+                                  <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
                                 </button>
-
                                 {statusStr === 'COMPLETED' && (
                                   req.isRated ? (
-                                    <span className="text-xs font-bold text-amber-600 flex items-center gap-1">
-                                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> Rated
+                                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200/80 px-3.5 py-2 text-xs font-extrabold text-amber-700">
+                                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> Rated
                                     </span>
                                   ) : (
                                     <button
@@ -1127,9 +1169,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                           setIsRatingModalOpen(true);
                                         }
                                       }}
-                                      className="rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-amber-600 shadow-xs"
+                                      className="rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5"
                                     >
-                                      Rate Service
+                                      <Star className="h-3.5 w-3.5" /> Rate Service
                                     </button>
                                   )
                                 )}
@@ -1150,67 +1192,85 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             {/* TAB: PROFILE */}
             {activeTab === 'profile' && (
               <div className="space-y-6 max-w-3xl mx-auto">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6">
-                  <div className="h-20 w-20 rounded-full bg-slate-900 text-white font-extrabold text-2xl flex items-center justify-center shadow-md shrink-0">
-                    {user?.name ? user.name.substring(0, 2).toUpperCase() : 'JC'}
+                {/* PROFILE IDENTITY HEADER */}
+                <div className="rounded-3xl border border-slate-200/90 bg-gradient-to-br from-slate-50/65 via-white to-emerald-50/20 p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6 hover:shadow-sm transition-all">
+                  <div className="relative shrink-0">
+                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-950 text-white font-black text-2xl flex items-center justify-center shadow-md">
+                      {user?.name ? user.name.substring(0, 2).toUpperCase() : 'JC'}
+                    </div>
+                    <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500" />
                   </div>
 
                   <div className="space-y-2 text-center sm:text-left flex-1">
                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                      <h2 className="text-2xl font-bold text-slate-900">{user?.name || 'John customer'}</h2>
-                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-700">
-                        AUTHENTICATED CUSTOMER
+                      <h2 className="text-2xl font-black text-slate-900">{user?.name || 'Customer Account'}</h2>
+                      <span className="rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">
+                        Authenticated Customer
                       </span>
                     </div>
 
                     <p className="text-xs text-slate-500">{user?.email || 'customer@example.com'}</p>
 
-                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-600">
-                      <span className="flex items-center gap-1.5">
+                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-600 font-medium">
+                      <span className="flex items-center gap-1.5 text-emerald-700">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Account Active & Verified
                       </span>
                     </div>
                   </div>
                 </div>
 
+                {/* ACCOUNT INFORMATION CARD */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
-                  <h3 className="text-lg font-bold text-slate-900">Account Information</h3>
-                  <div className="divide-y divide-slate-100 text-xs">
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Full Name</span>
-                      <strong className="text-slate-900">{user?.name || 'John customer'}</strong>
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3.5 mb-2">
+                    <div className="h-7 w-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                      <User className="h-4 w-4" />
                     </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Email Address</span>
-                      <strong className="text-slate-900">{user?.email || 'customer@example.com'}</strong>
+                    <h3 className="text-base font-extrabold text-slate-900">Account Details</h3>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-2">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Full Name</span>
+                      <strong className="text-sm font-extrabold text-slate-900 block mt-1">{user?.name || 'John customer'}</strong>
                     </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Account Role</span>
-                      <strong className="text-emerald-700 font-bold uppercase">{user?.role || 'CUSTOMER'}</strong>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Email Address</span>
+                      <strong className="text-sm font-extrabold text-slate-900 block mt-1 truncate">{user?.email || 'customer@example.com'}</strong>
                     </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Authentication Method</span>
-                      <strong className="text-slate-900">JWT Token Secured</strong>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Role</span>
+                      <strong className="text-sm font-black text-emerald-700 font-mono block mt-1 uppercase">{user?.role || 'CUSTOMER'}</strong>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Security Status</span>
+                      <strong className="text-sm font-extrabold text-slate-900 block mt-1">JWT Secured</strong>
                     </div>
                   </div>
                 </div>
 
+                {/* CUSTOMER ACTIVITY SUMMARY */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
-                  <h3 className="text-lg font-bold text-slate-900">Customer Activity Summary</h3>
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/60 via-white to-blue-50/30 p-4">
-                      <span className="text-[11px] text-slate-500 font-medium block">Total Requests</span>
-                      <strong className="text-2xl font-bold text-slate-900 mt-1 block">{requests.length}</strong>
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3.5 mb-2">
+                    <div className="h-7 w-7 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                      <Activity className="h-4 w-4" />
                     </div>
-                    <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/60 via-white to-teal-50/30 p-4">
-                      <span className="text-[11px] text-slate-500 font-medium block">Completed Services</span>
-                      <strong className="text-2xl font-bold text-slate-900 mt-1 block">
+                    <h3 className="text-base font-extrabold text-slate-900">Activity Summary</h3>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-3 pt-2">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Requests</span>
+                      <strong className="text-lg font-black text-slate-900 font-mono block mt-1">{requests.length}</strong>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Completed Services</span>
+                      <strong className="text-lg font-black text-emerald-700 font-mono block mt-1">
                         {requests.filter((r) => r.jobStatus === 'COMPLETED').length}
                       </strong>
                     </div>
-                    <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/60 via-white to-slate-50/30 p-4">
-                      <span className="text-[11px] text-slate-500 font-medium block">Total Investment</span>
-                      <strong className="text-2xl font-bold text-slate-900 mt-1 block">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-indigo-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Investment</span>
+                      <strong className="text-lg font-black text-slate-900 font-mono block mt-1">
                         ₹{requests.reduce((acc, r) => acc + (r.budget || 0), 0).toLocaleString()}
                       </strong>
                     </div>
@@ -1549,9 +1609,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <button
                       type="button"
                       onClick={fetchWorkerJobs}
-                      className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
+                      disabled={isLoadingJobs}
+                      className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50"
+                      title="Refresh available jobs"
                     >
-                      <RefreshCw className="h-4 w-4" />
+                      <RefreshCw className={`h-4 w-4 ${isLoadingJobs ? 'animate-spin' : ''}`} />
                     </button>
                   </div>
 
@@ -1669,9 +1731,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       <button
                         type="button"
                         onClick={fetchWorkerJobs}
-                        className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
+                        disabled={isLoadingJobs}
+                        className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50"
+                        title="Refresh assigned jobs"
                       >
-                        <RefreshCw className="h-4 w-4" />
+                        <RefreshCw className={`h-4 w-4 ${isLoadingJobs ? 'animate-spin' : ''}`} />
                       </button>
                     </div>
                   </div>
