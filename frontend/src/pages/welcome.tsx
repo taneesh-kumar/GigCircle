@@ -20,7 +20,6 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { BrandMark } from '@/components/platform-shell';
-import { FoundationStatus } from '@/components/status-panel';
 
 const POPULAR_SERVICES = [
   {
@@ -104,13 +103,13 @@ export default function Welcome() {
     <div className="paper-grain min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
       {/* PUBLIC HEADER */}
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2.5 focus:outline-none">
+        <div className="mx-auto grid h-20 max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8">
+          <Link to="/" className="flex items-center gap-2.5 justify-self-start focus:outline-none">
             <BrandMark />
           </Link>
 
-          {/* NAV LINKS — CLEANED UP */}
-          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold text-slate-600">
+          {/* NAV LINKS — CENTERED */}
+          <nav className="hidden md:flex items-center justify-center gap-8 text-xs font-semibold text-slate-600">
             <a href="#" className="text-slate-900 font-bold hover:text-emerald-600 transition-colors">
               Home
             </a>
@@ -126,7 +125,7 @@ export default function Welcome() {
           </nav>
 
           {/* AUTH BUTTONS */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-end gap-3 justify-self-end">
             {isAuthenticated && user ? (
               <Link
                 to={userDashboard}
@@ -217,7 +216,6 @@ export default function Welcome() {
                     <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 text-[10px] font-extrabold uppercase text-emerald-300 tracking-wider">
                       LOCAL SERVICE NETWORK
                     </span>
-                    <span className="text-xs font-mono text-slate-400">Goa • Neighborhood 01</span>
                   </div>
 
                   <h3 className="text-2xl font-bold text-white">Trusted Skilled Professionals</h3>
@@ -441,21 +439,17 @@ export default function Welcome() {
 
       {/* FOOTER */}
       <footer className="mt-auto border-t border-slate-200 bg-white py-8 text-xs text-slate-500">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-6 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-self-start gap-3">
             <BrandMark />
-            <span className="text-slate-300">•</span>
-            <span>Smart India Hackathon</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6 font-medium text-slate-600">
+          <div className="flex flex-wrap items-center justify-center gap-6 font-medium text-slate-600">
             <a href="#services" className="hover:text-emerald-600">Services</a>
             <a href="#how-it-works" className="hover:text-emerald-600">How It Works</a>
             <Link to="/register" className="hover:text-emerald-600">Become a Worker</Link>
             <Link to="/login" className="hover:text-emerald-600">Log In</Link>
           </div>
-
-          <FoundationStatus compact />
         </div>
       </footer>
     </div>
