@@ -45,8 +45,6 @@ export function PlatformShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="font-medium text-slate-700">GigCircle Cooperative Services Platform</span>
-            <span className="text-slate-300">•</span>
-            <span className="text-slate-500">System Operational</span>
           </div>
 
           <Link
