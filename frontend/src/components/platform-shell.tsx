@@ -1,141 +1,25 @@
-import { ArrowUpRight, Compass, HandHeart, LayoutDashboard, Menu, ShieldCheck, Sparkles, UsersRound, X } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { FoundationStatus } from '@/components/status-panel';
-
-const navItems = [
-  { href: '/customer/dashboard', label: 'Customer view', icon: LayoutDashboard, allowedRoles: ['CUSTOMER'] },
-  { href: '/worker/dashboard', label: 'Worker view', icon: HandHeart, allowedRoles: ['WORKER'] },
-  { href: '/admin/dashboard', label: 'Cooperative view', icon: ShieldCheck, allowedRoles: ['ADMIN'] },
-];
+import { type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { Compass, HandHeart, UsersRound, ArrowRight } from 'lucide-react';
+import { AppHeader } from '@/components/app-shell/AppHeader';
+import { HorizontalNav } from '@/components/app-shell/HorizontalNav';
 
 export function BrandMark({ inverse = false }: { inverse?: boolean }) {
   return (
     <span className="flex items-center gap-2.5" data-testid="brand-mark">
       <img
-        src="/gigcircle-logo.png"
+        src="/gigcircle-logo.png?v=4"
         alt="GigCircle Logo"
-        className="h-9 w-9 rounded-[13px] object-cover shadow-sm"
+        className="h-9 w-9 rounded-xl object-cover shadow-sm"
       />
-      <span className={`font-display text-lg font-semibold tracking-tight ${inverse ? 'text-sidebar-foreground' : 'text-foreground'}`}>
+      <span
+        className={`font-display text-lg font-bold tracking-tight ${
+          inverse ? 'text-white' : 'text-slate-900'
+        }`}
+      >
         GigCircle
       </span>
     </span>
-  );
-}
-
-export function PlatformShell({ children }: { children: ReactNode }) {
-  const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const { user, isAuthenticated } = useAuth();
-
-  // Role-aware navigation: filter sidebar links based on authenticated user's role
-  const visibleNavItems = navItems.filter((item) => {
-    if (!isAuthenticated || !user) return false;
-    return item.allowedRoles.includes(user.role);
-  });
-
-  return (
-    <div className="paper-grain min-h-[100dvh] bg-background text-foreground">
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[276px] flex-col bg-sidebar px-5 py-6 text-sidebar-foreground shadow-2xl shadow-primary/10 transition-transform duration-300 md:translate-x-0 ${
-          menuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <Link to="/" className="focus-ring rounded-xl" data-testid="link-shell-home">
-            <BrandMark inverse />
-          </Link>
-          <button
-            type="button"
-            aria-label="Close menu"
-            data-testid="button-close-menu"
-            onClick={() => setMenuOpen(false)}
-            className="focus-ring rounded-lg p-2 text-sidebar-foreground/60 hover:bg-sidebar-accent md:hidden"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="mt-12">
-          <p className="px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-sidebar-foreground/45">
-            {isAuthenticated ? 'Active Navigation' : 'Portal'}
-          </p>
-          <nav className="mt-3 space-y-1.5">
-            {visibleNavItems.map(({ href, label, icon: Icon }) => {
-              const active = location.pathname === href;
-              return (
-                <Link
-                  key={href}
-                  to={href}
-                  data-testid={`link-nav-${label.toLowerCase().replaceAll(' ', '-')}`}
-                  onClick={() => setMenuOpen(false)}
-                  className={`focus-ring flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors ${
-                    active
-                      ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                      : 'text-sidebar-foreground/68 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                  {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-current" />}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div className="mt-auto">
-          <div className="mb-5 rounded-2xl border border-sidebar-border bg-sidebar-accent/55 p-4">
-            <div className="flex items-center gap-2 text-xs font-semibold text-sidebar-foreground/80">
-              <Sparkles className="h-3.5 w-3.5 text-sidebar-primary" /> GigCircle · Foundation
-            </div>
-            <p className="mt-2 text-xs leading-5 text-sidebar-foreground/52">
-              A transparent, cooperative-driven economic model for local services.
-            </p>
-          </div>
-          <FoundationStatus compact />
-        </div>
-      </aside>
-
-      {menuOpen && (
-        <button
-          type="button"
-          aria-label="Close navigation overlay"
-          data-testid="button-overlay-menu"
-          onClick={() => setMenuOpen(false)}
-          className="fixed inset-0 z-30 bg-primary/20 backdrop-blur-sm md:hidden"
-        />
-      )}
-      <main className="min-h-[100dvh] md:pl-[276px]">
-        <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between border-b border-border/70 bg-background/90 px-5 backdrop-blur-md md:px-10">
-          <button
-            type="button"
-            aria-label="Open menu"
-            data-testid="button-open-menu"
-            onClick={() => setMenuOpen(true)}
-            className="focus-ring rounded-lg p-2 text-muted-foreground hover:bg-muted md:hidden"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <div className="hidden items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground md:flex">
-            <Compass className="h-4 w-4 text-accent" /> GigCircle Cooperative Services
-          </div>
-          <Link to="/" data-testid="link-mobile-brand" className="md:hidden">
-            <BrandMark />
-          </Link>
-          <Link
-            to="/"
-            data-testid="link-shell-back"
-            className="focus-ring flex items-center gap-1 text-sm font-semibold text-primary transition-transform hover:-translate-y-0.5"
-          >
-            Home <ArrowUpRight className="h-4 w-4" />
-          </Link>
-        </header>
-        {children}
-      </main>
-    </div>
   );
 }
 
@@ -143,4 +27,36 @@ export function RoleIcon({ role }: { role: string }) {
   if (role.toLowerCase().includes('worker')) return <HandHeart className="h-6 w-6" />;
   if (role.toLowerCase().includes('admin')) return <UsersRound className="h-6 w-6" />;
   return <Compass className="h-6 w-6" />;
+}
+
+export function PlatformShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="paper-grain min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+      {/* TOP HEADER */}
+      <AppHeader />
+
+      {/* MAIN CONTAINER */}
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 flex-1 flex flex-col">
+        {/* PAGE CONTENT */}
+        <main className="flex-1 w-full">{children}</main>
+
+        {/* OPTIONAL FOOTER */}
+        <footer className="mt-16 border-t border-slate-200/80 py-6 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-medium text-slate-700">GigCircle Cooperative Services Platform</span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-500">System Operational</span>
+          </div>
+
+          <Link
+            to="/"
+            className="flex items-center gap-1.5 font-semibold text-slate-700 hover:text-emerald-600 transition-colors"
+          >
+            Back to Home <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </footer>
+      </div>
+    </div>
+  );
 }
