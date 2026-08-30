@@ -20,7 +20,8 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
   if (!isOpen || !request) return null;
 
   const categoryInfo = CATEGORY_LABELS[request.category] || { label: request.category, description: '' };
-  const isOpenStatus = request.status === 'OPEN';
+  const jobStatusStr = request.jobStatus || (request.workerId ? 'ACCEPTED' : request.status);
+  const isCancellable = request.status === 'OPEN' && !request.jobStatus && !request.workerId;
 
   const formatDateTime = (isoString: string) => {
     try {
@@ -77,12 +78,18 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
               </span>
               <span
                 className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
-                  isOpenStatus
+                  jobStatusStr === 'COMPLETED'
                     ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : jobStatusStr === 'IN_PROGRESS'
+                    ? 'border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                    : jobStatusStr === 'ACCEPTED'
+                    ? 'border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    : jobStatusStr === 'CANCELLED'
+                    ? 'border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400'
                     : 'border border-slate-500/30 bg-slate-500/10 text-slate-500 dark:text-slate-400'
                 }`}
               >
-                {request.status}
+                {jobStatusStr}
               </span>
             </div>
             <h2 id="detail-modal-title" className="mt-1 font-display text-2xl font-semibold text-primary">
@@ -202,7 +209,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
             Close
           </button>
 
-          {isOpenStatus && !isConfirmingCancel && (
+          {isCancellable && !isConfirmingCancel && (
             <button
               type="button"
               onClick={() => setIsConfirmingCancel(true)}

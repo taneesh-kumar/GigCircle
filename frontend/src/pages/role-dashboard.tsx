@@ -794,67 +794,106 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   </div>
                 </div>
 
-                {/* RECENT SERVICE ACTIVITY SECTION */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                        RECENT ACTIVITY
-                      </span>
-                      <h3 className="text-xl font-bold text-slate-900 mt-0.5">Recent Service Activity</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Your latest requested services and current execution progress.</p>
+                {/* RECENT SERVICE ACTIVITY / ACTIVE EXECUTION SECTION */}
+                <div className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-5 transition-all">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100/80 pb-4">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                          ACTIVE EXECUTION
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900">Recent Service Activity</h3>
+                      <p className="text-xs text-slate-500">Your latest requested services and live execution progress.</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSearchParams({ tab: 'requests' })}
-                      className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-3.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-all shadow-2xs"
                     >
                       View all requests <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
 
-                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                  <div className="space-y-3">
                     {requests.length === 0 ? (
-                      <div className="py-10 text-center text-xs text-slate-400">
-                        No service requests created yet. Click "Request a Service" to create one.
+                      <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-8 text-center space-y-2">
+                        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                          <Wrench className="h-5 w-5" />
+                        </div>
+                        <p className="text-xs font-bold text-slate-800">No service requests created yet</p>
+                        <p className="text-[11px] text-slate-500">Click "Request a Service" above to match with verified local workers.</p>
                       </div>
                     ) : (
                       requests.slice(0, 4).map((req) => {
                         const statusStr = req.jobStatus || req.status;
+                        const categoryInfo = CATEGORY_LABELS[req.category] || { label: req.category, description: '' };
                         return (
-                          <div key={req.id} className="py-4 flex items-center justify-between gap-4 text-xs min-w-[500px]">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0 font-bold text-xs">
-                                {req.category.substring(0, 2).toUpperCase()}
+                          <div
+                            key={req.id}
+                            className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:bg-white hover:border-emerald-200 hover:shadow-md hover:-translate-y-0.5 group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                          >
+                            <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-blue-500/10 text-emerald-700 border border-emerald-200/50 flex items-center justify-center font-extrabold text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                {req.category ? req.category.substring(0, 2).toUpperCase() : 'GC'}
                               </div>
-                              <div className="min-w-0">
-                                <p className="font-bold text-slate-900 truncate">{req.description}</p>
-                                <p className="text-slate-500 text-[11px] mt-0.5">
-                                  {req.location} • Budget: <strong className="text-slate-700">₹{req.budget}</strong>
-                                </p>
+                              <div className="min-w-0 space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-emerald-950 transition-colors truncate">
+                                    {req.description}
+                                  </span>
+                                  <span className="rounded-md bg-slate-200/70 border border-slate-300/60 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                                    {categoryInfo.label}
+                                  </span>
+                                  <span
+                                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
+                                      statusStr === 'COMPLETED'
+                                        ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-200'
+                                        : statusStr === 'IN_PROGRESS'
+                                        ? 'bg-blue-100/90 text-blue-800 border border-blue-200'
+                                        : statusStr === 'ACCEPTED'
+                                        ? 'bg-amber-100/90 text-amber-800 border border-amber-200'
+                                        : statusStr === 'CANCELLED'
+                                        ? 'bg-red-100/90 text-red-800 border border-red-200'
+                                        : 'bg-slate-100 text-slate-800 border border-slate-200'
+                                    }`}
+                                  >
+                                    {statusStr === 'COMPLETED' ? (
+                                      <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                    ) : statusStr === 'IN_PROGRESS' ? (
+                                      <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
+                                    ) : (
+                                      <Clock3 className="h-3 w-3 text-amber-600" />
+                                    )}
+                                    {statusStr}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                                  {req.workerName ? (
+                                    <span className="flex items-center gap-1 font-medium text-slate-600">
+                                      <User className="h-3.5 w-3.5 text-slate-400" /> Assigned Worker: <strong className="text-slate-800 font-semibold">{req.workerName}</strong>
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1 text-slate-400 italic">
+                                      <Clock3 className="h-3.5 w-3.5" /> Awaiting Worker Assignment
+                                    </span>
+                                  )}
+                                  {req.location && (
+                                    <span className="flex items-center gap-1 hidden sm:flex">
+                                      <MapPin className="h-3.5 w-3.5 text-slate-400" /> {req.location}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-3 shrink-0">
-                              {req.workerName && (
-                                <span className="text-slate-600 hidden sm:inline">
-                                  Worker: <strong className="text-slate-900">{req.workerName}</strong>
-                                </span>
-                              )}
-                              <span
-                                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
-                                  statusStr === 'COMPLETED'
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : statusStr === 'IN_PROGRESS'
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : statusStr === 'ACCEPTED'
-                                    ? 'bg-amber-100 text-amber-800'
-                                    : statusStr === 'CANCELLED'
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-slate-100 text-slate-800'
-                                }`}
-                              >
-                                {statusStr}
+                            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3.5 py-1.5 text-right shrink-0 self-end sm:self-center">
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-800 block">
+                                Budget
+                              </span>
+                              <span className="text-sm font-black text-emerald-800 font-mono">
+                                ₹{req.budget}
                               </span>
                             </div>
                           </div>
@@ -1110,7 +1149,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
             {/* TAB: PROFILE */}
             {activeTab === 'profile' && (
-              <div className="space-y-6 max-w-3xl">
+              <div className="space-y-6 max-w-3xl mx-auto">
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6">
                   <div className="h-20 w-20 rounded-full bg-slate-900 text-white font-extrabold text-2xl flex items-center justify-center shadow-md shrink-0">
                     {user?.name ? user.name.substring(0, 2).toUpperCase() : 'JC'}
@@ -1298,43 +1337,97 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                 {/* OVERVIEW SUMMARY GRID: RECENT JOBS & EARNINGS / RATINGS COMPACT BOXES */}
                 <div className="grid gap-6 lg:grid-cols-3">
-                  {/* RECENT JOBS LIST */}
-                  <div className="lg:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                          ACTIVE EXECUTION
-                        </span>
-                        <h3 className="text-lg font-bold text-slate-900 mt-0.5">Recent Jobs Summary</h3>
+                  {/* RECENT JOBS LIST / ACTIVE EXECUTION CARD */}
+                  <div className="lg:col-span-2 rounded-3xl border border-slate-200/90 bg-white p-6 md:p-7 shadow-xs space-y-5 transition-all">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100/80 pb-4">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                            ACTIVE EXECUTION
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                          Recent Jobs Summary
+                        </h3>
                       </div>
                       <button
                         onClick={() => setSearchParams({ tab: 'assigned' })}
-                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-3.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-all shadow-2xs"
                       >
                         View all assigned <ArrowRight className="h-3.5 w-3.5" />
                       </button>
                     </div>
 
-                    <div className="divide-y divide-slate-100">
+                    <div className="space-y-3">
                       {assignedJobs.length === 0 && availableJobs.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-slate-400">
-                          No active or assigned jobs right now. Check "Available Jobs" to accept work.
+                        <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-8 text-center space-y-2">
+                          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                            <Briefcase className="h-5 w-5" />
+                          </div>
+                          <p className="text-xs font-bold text-slate-800">No active or assigned jobs</p>
+                          <p className="text-[11px] text-slate-500">Check "Available Jobs" to discover and accept work nearby.</p>
                         </div>
                       ) : (
-                        assignedJobs.slice(0, 3).map((job) => (
-                          <div key={job.id} className="py-3 flex items-center justify-between gap-3 text-xs">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-900">{job.description}</span>
-                                <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 uppercase">
-                                  {job.jobStatus}
+                        assignedJobs.slice(0, 3).map((job) => {
+                          const status = job.jobStatus || 'ASSIGNED';
+                          return (
+                            <div
+                              key={job.id}
+                              className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:bg-white hover:border-emerald-200 hover:shadow-md hover:-translate-y-0.5 group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                            >
+                              <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-blue-500/10 text-emerald-700 border border-emerald-200/50 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                  <Briefcase className="h-5 w-5 text-emerald-600" />
+                                </div>
+                                <div className="min-w-0 space-y-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-emerald-950 transition-colors truncate">
+                                      {job.description}
+                                    </span>
+                                    <span
+                                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
+                                        status === 'COMPLETED'
+                                          ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-200'
+                                          : status === 'IN_PROGRESS'
+                                          ? 'bg-blue-100/90 text-blue-800 border border-blue-200'
+                                          : 'bg-amber-100/90 text-amber-800 border border-amber-200'
+                                      }`}
+                                    >
+                                      {status === 'COMPLETED' ? (
+                                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                      ) : status === 'IN_PROGRESS' ? (
+                                        <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
+                                      ) : (
+                                        <Clock3 className="h-3 w-3 text-amber-600" />
+                                      )}
+                                      {status}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                                    <span className="flex items-center gap-1 font-medium text-slate-600">
+                                      <User className="h-3.5 w-3.5 text-slate-400" /> Customer: <strong className="text-slate-800 font-semibold">{job.customerName || 'Customer'}</strong>
+                                    </span>
+                                    {job.location && (
+                                      <span className="flex items-center gap-1 hidden sm:flex">
+                                        <MapPin className="h-3.5 w-3.5 text-slate-400" /> {job.location}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3.5 py-1.5 text-right shrink-0 self-end sm:self-center">
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-800 block">
+                                  Job Budget
+                                </span>
+                                <span className="text-sm font-black text-emerald-800 font-mono">
+                                  ₹{job.budget}
                                 </span>
                               </div>
-                              <p className="text-slate-500 mt-0.5">Customer: {job.customerName || 'Customer'}</p>
                             </div>
-                            <span className="font-bold text-slate-900">₹{job.budget}</span>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   </div>
@@ -1589,67 +1682,120 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         const isCompleted = job.jobStatus === 'COMPLETED';
                         const isInProgress = job.jobStatus === 'IN_PROGRESS';
                         const isAccepted = job.jobStatus === 'ACCEPTED';
+                        const status = job.jobStatus || 'ASSIGNED';
 
                         return (
                           <div
                             key={job.id}
-                            className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all space-y-4"
+                            className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all space-y-4 group"
                           >
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between gap-2">
                                 <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
                                   {CATEGORY_LABELS[job.category]?.label || job.category}
                                 </span>
                                 <span
-                                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${
+                                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                                     isCompleted
-                                      ? 'bg-emerald-100 text-emerald-800'
+                                      ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-200'
                                       : isInProgress
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : 'bg-amber-100 text-amber-800'
+                                      ? 'bg-blue-100/90 text-blue-800 border border-blue-200'
+                                      : 'bg-amber-100/90 text-amber-800 border border-amber-200'
                                   }`}
                                 >
-                                  [{job.jobStatus}]
+                                  {isCompleted ? (
+                                    <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                  ) : isInProgress ? (
+                                    <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
+                                  ) : (
+                                    <Clock3 className="h-3 w-3 text-amber-600" />
+                                  )}
+                                  {status}
                                 </span>
                               </div>
 
-                              <h3 className="text-base font-bold text-slate-900 leading-snug">{job.description}</h3>
+                              <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">
+                                {job.description}
+                              </h3>
 
-                              <div className="flex items-center justify-between text-xs text-slate-600">
-                                <span>Customer: <strong className="text-slate-900">{job.customerName || 'Customer'}</strong></span>
-                                <span>Budget: <strong className="text-slate-900 font-bold">₹{job.budget}</strong></span>
+                              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                                <span className="flex items-center gap-1">
+                                  <User className="h-3.5 w-3.5 text-slate-400" /> Customer: <strong className="text-slate-800 font-semibold">{job.customerName || 'Customer'}</strong>
+                                </span>
+                                <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
+                                  Budget: <strong className="text-emerald-800 font-extrabold font-mono">₹{job.budget}</strong>
+                                </span>
                               </div>
 
                               {/* 3-STAGE WORKER EXECUTION PIPELINE LINE */}
-                              <div className="pt-2">
-                                <div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400 mb-1.5">
-                                  <span className="text-emerald-700">Assigned ✓</span>
-                                  <span className={isInProgress || isCompleted ? 'text-blue-700' : ''}>In Progress</span>
-                                  <span className={isCompleted ? 'text-emerald-700' : ''}>Completed</span>
+                              <div className="pt-2.5 space-y-2">
+                                <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wide">
+                                  <span className="text-emerald-700 flex items-center gap-1">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Assigned
+                                  </span>
+                                  <span className={isInProgress || isCompleted ? 'text-blue-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${isInProgress || isCompleted ? 'bg-blue-500' : 'bg-slate-300'}`} /> In Progress
+                                  </span>
+                                  <span className={isCompleted ? 'text-emerald-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Completed
+                                  </span>
                                 </div>
-                                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex p-0.5 border border-slate-200/40">
                                   <div
-                                    className={`h-full transition-all duration-500 ${
+                                    className={`h-full rounded-full transition-all duration-500 ${
                                       isCompleted
-                                        ? 'w-full bg-emerald-500'
+                                        ? 'w-full bg-gradient-to-r from-emerald-500 to-teal-500'
                                         : isInProgress
-                                        ? 'w-2/3 bg-blue-500'
-                                        : 'w-1/3 bg-emerald-500'
+                                        ? 'w-2/3 bg-gradient-to-r from-blue-500 to-indigo-500'
+                                        : 'w-1/3 bg-gradient-to-r from-emerald-400 to-emerald-500'
                                     }`}
                                   />
                                 </div>
                               </div>
                             </div>
 
-                            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                             <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDetail({
+                                  id: job.serviceRequestId,
+                                  category: job.category,
+                                  description: job.description,
+                                  location: job.location,
+                                  budget: job.budget,
+                                  preferredTime: job.preferredTime,
+                                  status: job.requestStatus || 'OPEN',
+                                  createdAt: job.createdAt,
+                                  updatedAt: job.createdAt,
+                                  customerId: job.customerId,
+                                  customerName: job.customerName,
+                                  assignmentStatus: 'ASSIGNED',
+                                  jobId: job.id,
+                                  workerId: job.workerId,
+                                  workerName: job.workerName,
+                                  jobStatus: job.jobStatus,
+                                  startedAt: job.startedAt,
+                                  completedAt: job.completedAt,
+                                })}
+                                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
+                              >
+                                <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
+                              </button>
+
                               {isAccepted && (
                                 <button
                                   type="button"
                                   onClick={() => handleStartJob(job.id)}
                                   disabled={operatingJobId === job.id}
-                                  className="w-full rounded-xl bg-blue-600 py-2.5 text-xs font-bold text-white hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+                                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 py-2.5 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50"
                                 >
-                                  {operatingJobId === job.id ? 'Starting...' : 'Start Job'}
+                                  {operatingJobId === job.id ? (
+                                    <>
+                                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Starting...
+                                    </>
+                                  ) : (
+                                    'Start Job Execution'
+                                  )}
                                 </button>
                               )}
 
@@ -1658,25 +1804,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   type="button"
                                   onClick={() => handleCompleteJob(job.id)}
                                   disabled={operatingJobId === job.id}
-                                  className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+                                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50"
                                 >
-                                  {operatingJobId === job.id ? 'Completing...' : 'Complete Job'}
+                                  {operatingJobId === job.id ? (
+                                    <>
+                                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Completing...
+                                    </>
+                                  ) : (
+                                    'Complete Job'
+                                  )}
                                 </button>
-                              )}
-
-                              {isCompleted && (
-                                <div className="w-full flex items-center justify-between">
-                                  <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-                                    <CheckCircle2 className="h-4 w-4 text-emerald-600" /> JOB COMPLETED
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setSearchParams({ tab: 'earnings' })}
-                                    className="text-xs font-semibold text-slate-600 hover:text-emerald-600"
-                                  >
-                                    View Ledger Payout →
-                                  </button>
-                                </div>
                               )}
                             </div>
                           </div>
@@ -1781,23 +1918,55 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
 
                 {/* COMPLETED JOBS EARNINGS LEDGER TABLE */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                  <h3 className="text-base font-bold text-slate-900">Completed Job Transactions</h3>
-                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                <div className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-5 transition-all">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3.5 mb-2">
+                    <div className="h-7 w-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                      <Receipt className="h-4 w-4" />
+                    </div>
+                    <h3 className="text-base font-extrabold text-slate-900">Completed Job Transactions</h3>
+                  </div>
+
+                  <div className="space-y-3">
                     {workerEarnings.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-slate-400">
-                        No earnings transactions recorded yet. Complete assigned jobs to generate payouts.
+                      <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-8 text-center space-y-2">
+                        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                          <Receipt className="h-5 w-5" />
+                        </div>
+                        <p className="text-xs font-bold text-slate-800">No earnings transactions recorded yet</p>
+                        <p className="text-[11px] text-slate-500">Complete assigned jobs to generate payouts and ledger entries.</p>
                       </div>
                     ) : (
                       workerEarnings.map((e) => (
-                        <div key={e.id} className="py-3 flex items-center justify-between text-xs min-w-[550px]">
-                          <div>
-                            <span className="font-bold text-slate-900 block">Job #{e.jobId}</span>
-                            <span className="text-slate-500 text-[11px]">Gross: ₹{e.grossAmount?.toFixed(2)}</span>
+                        <div
+                          key={e.id}
+                          className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:bg-white hover:border-emerald-200 hover:shadow-xs group flex items-center justify-between gap-4"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-700 border border-emerald-200/50 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
+                              #{e.jobId}
+                            </div>
+                            <div>
+                              <span className="font-bold text-slate-900 text-sm group-hover:text-emerald-950 block">
+                                Job Contract #{e.jobId}
+                              </span>
+                              <span className="text-slate-500 text-[11px] flex items-center gap-1 mt-0.5">
+                                Gross Amount: <strong className="text-slate-700 font-semibold">₹{e.grossAmount?.toFixed(2)}</strong>
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="text-emerald-700 font-bold block">+₹{e.workerEarning?.toFixed(2)} (90%)</span>
-                            <span className="text-slate-400 text-[10px]">Fee: ₹{e.platformFee?.toFixed(2)} (10%)</span>
+                          <div className="flex items-center gap-4 shrink-0">
+                            <div className="text-right">
+                              <span className="text-emerald-700 font-extrabold text-sm block leading-tight">
+                                +₹{e.workerEarning?.toFixed(2)}
+                              </span>
+                              <span className="text-slate-400 text-[10px]">Cooperative Payout (90%)</span>
+                            </div>
+                            <div className="rounded-xl bg-slate-100 border border-slate-200/60 px-3 py-1.5 text-right hidden sm:block">
+                              <span className="text-slate-600 font-extrabold text-[10px] block leading-none">Coop Fee</span>
+                              <span className="text-slate-500 text-[10px] font-medium block mt-0.5">
+                                ₹{e.platformFee?.toFixed(2)} (10%)
+                              </span>
+                            </div>
                           </div>
                         </div>
                       ))
@@ -1810,49 +1979,81 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             {/* TAB: RATINGS & REVIEWS */}
             {activeTab === 'ratings' && (
               <div className="space-y-6">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                      PUBLIC REPUTATION
-                    </span>
-                    <h2 className="text-2xl font-bold text-slate-900 mt-0.5">Ratings & Reviews</h2>
-                    <p className="text-xs text-slate-500 mt-1">Verified customer ratings for your completed service jobs.</p>
+                <div className="rounded-3xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 transition-all">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-700">
+                        PUBLIC REPUTATION
+                      </span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                      Ratings & Reviews
+                    </h2>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Verified customer ratings & feedback from completed community service jobs.
+                    </p>
                   </div>
 
-                  <div className="flex items-center gap-3 bg-gradient-to-br from-amber-50 to-orange-50/50 border border-amber-200 rounded-2xl px-5 py-3 shrink-0">
-                    <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
+                  <div className="flex items-center gap-4 bg-white/90 backdrop-blur-md border border-amber-200/80 rounded-2xl p-4 shrink-0 shadow-sm hover:shadow-md transition-all">
+                    <div className="h-11 w-11 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                      <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
+                    </div>
                     <div>
-                      <span className="text-2xl font-extrabold text-amber-950 block leading-none">
+                      <span className="text-2xl font-black text-amber-950 block leading-none">
                         {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
                       </span>
-                      <span className="text-[11px] font-semibold text-amber-800">
-                        {workerRatingSummary?.totalRatings || 0} reviews
+                      <span className="text-[11px] font-bold text-amber-700 block mt-1">
+                        {workerRatingSummary?.totalRatings || 0} verified reviews
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* REVIEWS LIST */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
-                  <h3 className="text-base font-bold text-slate-900">Customer Feedback</h3>
+                {/* REVIEWS LIST / CUSTOMER FEEDBACK */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-5">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-3">
+                    <div className="h-7 w-7 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    </div>
+                    <h3 className="text-base font-extrabold text-slate-900">Customer Feedback</h3>
+                  </div>
+
                   {workerRatings.length === 0 ? (
-                    <div className="py-10 text-center space-y-2">
-                      <Star className="mx-auto h-8 w-8 text-amber-300" />
-                      <h4 className="text-sm font-bold text-slate-900">No reviews received yet</h4>
-                      <p className="text-xs text-slate-500">Complete service jobs to start receiving customer ratings.</p>
+                    <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-10 text-center space-y-2.5">
+                      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100">
+                        <Star className="h-5.5 w-5.5 fill-amber-400 text-amber-400 animate-pulse" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800">No reviews received yet</h4>
+                      <p className="text-xs text-slate-500">Complete assigned community jobs to start receiving verified customer ratings.</p>
                     </div>
                   ) : (
                     <div className="grid gap-4 md:grid-cols-2">
                       {workerRatings.map((rating) => (
-                        <div key={rating.id} className="rounded-2xl border border-slate-200 bg-slate-50/50 p-5 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-900 text-xs">{rating.customerName || `Customer #${rating.customerId}`}</span>
-                            <div className="flex items-center gap-1 text-amber-600 font-bold text-xs">
-                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                        <div
+                          key={rating.id}
+                          className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 space-y-3.5 hover:bg-white hover:border-amber-300 hover:shadow-xs transition-all group relative overflow-hidden"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="h-8 w-8 rounded-full bg-slate-900 text-white font-extrabold text-[10px] flex items-center justify-center shadow-xs shrink-0">
+                                {(rating.customerName || 'Customer').substring(0, 2).toUpperCase()}
+                              </div>
+                              <span className="font-extrabold text-slate-900 text-xs truncate">
+                                {rating.customerName || `Customer #${rating.customerId}`}
+                              </span>
+                            </div>
+                            <div className="inline-flex items-center gap-1 rounded-xl bg-amber-50 border border-amber-200/80 px-2.5 py-1 text-amber-700 font-extrabold text-xs shrink-0 shadow-2xs">
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                               {rating.score?.toFixed(1)}
                             </div>
                           </div>
-                          <p className="text-xs text-slate-700 italic">"{rating.review || 'Great service quality!'}"</p>
+                          <div className="relative">
+                            <span className="absolute -top-3 -left-1 text-slate-200 text-3xl font-serif select-none pointer-events-none">“</span>
+                            <p className="text-xs text-slate-600 italic pl-3 relative z-10 leading-relaxed font-medium">
+                              {rating.review || 'Great service quality!'}
+                            </p>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1863,7 +2064,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
             {/* TAB: WORKER PROFILE */}
             {activeTab === 'profile' && (
-              <div className="space-y-6 max-w-3xl">
+              <div className="space-y-6 max-w-3xl mx-auto">
                 {/* PROFILE IDENTITY HEADER */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6">
                   <div className="h-20 w-20 rounded-full bg-slate-900 text-white font-extrabold text-2xl flex items-center justify-center shadow-md shrink-0">
@@ -1900,25 +2101,31 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                 {/* PROFESSIONAL INFORMATION CARD */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
-                  <h3 className="text-lg font-bold text-slate-900">Professional Information</h3>
-                  <div className="divide-y divide-slate-100 text-xs">
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Hourly Rate</span>
-                      <strong className="text-slate-900 font-bold">₹{workerProfile?.hourlyRate || 100}/hr</strong>
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3.5 mb-2">
+                    <div className="h-7 w-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                      <Wrench className="h-4 w-4" />
                     </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Experience</span>
-                      <strong className="text-slate-900">{workerProfile?.experienceYears || 2} Years</strong>
+                    <h3 className="text-base font-extrabold text-slate-900">Professional Information</h3>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-2">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Hourly Rate</span>
+                      <strong className="text-lg font-black text-emerald-700 font-mono block mt-1">₹{workerProfile?.hourlyRate || 100}/hr</strong>
                     </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Service Radius</span>
-                      <strong className="text-slate-900">{workerProfile?.serviceRadiusKm || 15} km</strong>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Experience</span>
+                      <strong className="text-lg font-extrabold text-slate-900 block mt-1">{workerProfile?.experienceYears || 2} Years</strong>
                     </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Skills & Categories</span>
-                      <div className="flex flex-wrap gap-1">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Service Radius</span>
+                      <strong className="text-lg font-extrabold text-slate-900 block mt-1">{workerProfile?.serviceRadiusKm || 15} km</strong>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">Skills & Categories</span>
+                      <div className="flex flex-wrap gap-1.5">
                         {workerProfile?.serviceCategories?.map((c) => (
-                          <span key={c} className="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                          <span key={c} className="rounded-lg bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 text-[10px] font-extrabold text-emerald-700 uppercase tracking-wide">
                             {CATEGORY_LABELS[c]?.label || c}
                           </span>
                         ))}
