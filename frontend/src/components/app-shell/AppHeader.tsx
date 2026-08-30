@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   Clock3,
   Briefcase,
+  Star,
+  Wallet,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -181,38 +183,52 @@ export function AppHeader({ sectionTitle }: AppHeaderProps) {
       : 'Customer Dashboard');
 
   const getNotificationIcon = (noti: Notification) => {
-    const type = noti.type || '';
-    const notiTitle = (noti.title || '').toLowerCase();
+    const type = (noti.type || '').toUpperCase();
+    const title = (noti.title || '').toLowerCase();
 
-    if (type === 'SERVICE_REQUEST_CANCELLED' || notiTitle.includes('cancel')) {
+    if (type.includes('CANCEL') || title.includes('cancel')) {
       return (
         <div className="h-8 w-8 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 shrink-0">
           <AlertCircle className="h-4 w-4" />
         </div>
       );
     }
-    if (type === 'SERVICE_REQUEST_CREATED' || notiTitle.includes('created') || notiTitle.includes('request')) {
+    if (type.includes('RATING') || title.includes('rating') || title.includes('review')) {
+      return (
+        <div className="h-8 w-8 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500 shrink-0">
+          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+        </div>
+      );
+    }
+    if (type.includes('EARNING') || title.includes('earning') || title.includes('payout') || title.includes('ledger')) {
+      return (
+        <div className="h-8 w-8 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+          <Wallet className="h-4 w-4" />
+        </div>
+      );
+    }
+    if (type.includes('CREATED') || title.includes('created') || title.includes('request')) {
       return (
         <div className="h-8 w-8 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500 shrink-0">
           <FileText className="h-4 w-4" />
         </div>
       );
     }
-    if (type === 'JOB_COMPLETED' || notiTitle.includes('completed') || notiTitle.includes('complete')) {
+    if (type.includes('COMPLETED') || title.includes('completed') || title.includes('complete')) {
       return (
-        <div className="h-8 w-8 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 shrink-0">
+        <div className="h-8 w-8 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
           <CheckCircle2 className="h-4 w-4" />
         </div>
       );
     }
-    if (type === 'JOB_STARTED' || notiTitle.includes('started') || notiTitle.includes('start')) {
+    if (type.includes('STARTED') || title.includes('started') || title.includes('start')) {
       return (
         <div className="h-8 w-8 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500 shrink-0">
           <Clock3 className="h-4 w-4" />
         </div>
       );
     }
-    if (type === 'WORKER_ASSIGNED' || notiTitle.includes('assigned') || notiTitle.includes('worker')) {
+    if (type.includes('ASSIGNED') || title.includes('assigned') || title.includes('worker') || title.includes('job')) {
       return (
         <div className="h-8 w-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 shrink-0">
           <Briefcase className="h-4 w-4" />

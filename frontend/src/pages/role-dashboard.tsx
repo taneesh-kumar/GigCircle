@@ -39,6 +39,7 @@ import {
   FileText,
   Layers,
   Bell,
+  ChevronRight,
 } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi } from '@/hooks/use-api';
@@ -85,7 +86,6 @@ import { CreateRequestModal } from '@/components/create-request-modal';
 import { RequestDetailModal } from '@/components/request-detail-modal';
 import { WorkerProfileModal } from '@/components/worker-profile-modal';
 import { RatingModal } from '@/components/rating-modal';
-import { NotificationPanel } from '@/components/notification-panel';
 import { CATEGORY_LABELS, type ServiceRequest } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
 import type { JobResponse } from '@/types/worker-job';
@@ -181,13 +181,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isTogglingAvailability, setIsTogglingAvailability] = useState(false);
 
-  // Worker Jobs
+  // Worker Jobs State & Filters
   const [availableJobs, setAvailableJobs] = useState<ServiceRequest[]>([]);
   const [assignedJobs, setAssignedJobs] = useState<JobResponse[]>([]);
   const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(role === 'worker');
   const [jobsError, setJobsError] = useState<string | null>(null);
   const [acceptingRequestId, setAcceptingRequestId] = useState<number | null>(null);
   const [operatingJobId, setOperatingJobId] = useState<number | null>(null);
+  const [assignedFilterStatus, setAssignedFilterStatus] = useState<'ALL' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
 
   // Worker Ratings State
   const [workerRatings, setWorkerRatings] = useState<Rating[]>([]);
@@ -384,6 +385,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     const handleSync = () => {
       fetchNotificationsPage();
       if (role === 'customer') fetchCustomerRequests();
+      if (role === 'worker') {
+        fetchWorkerJobs();
+        fetchWorkerEarnings();
+        fetchWorkerRatings();
+      }
     };
     window.addEventListener('gigcircle-notifications-updated', handleSync);
     return () => window.removeEventListener('gigcircle-notifications-updated', handleSync);
@@ -535,6 +541,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     return true;
   });
 
+  // WORKER ASSIGNED JOBS FILTERING
+  const filteredAssignedJobs = assignedJobs.filter((j) => {
+    if (assignedFilterStatus === 'ALL') return true;
+    return j.jobStatus === assignedFilterStatus;
+  });
+
   const filteredAdminUsers = adminUsers.filter((u) => {
     if (adminUserFilter === 'ALL') return true;
     return u.role === adminUserFilter;
@@ -543,38 +555,52 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const Icon = content.icon;
 
   const getNotificationIcon = (noti: Notification) => {
-    const type = noti.type || '';
+    const type = (noti.type || '').toUpperCase();
     const title = (noti.title || '').toLowerCase();
 
-    if (type === 'SERVICE_REQUEST_CANCELLED' || title.includes('cancel')) {
+    if (type.includes('CANCEL') || title.includes('cancel')) {
       return (
         <div className="h-9 w-9 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 shrink-0">
           <AlertCircle className="h-4.5 w-4.5" />
         </div>
       );
     }
-    if (type === 'SERVICE_REQUEST_CREATED' || title.includes('created') || title.includes('request')) {
+    if (type.includes('RATING') || title.includes('rating') || title.includes('review')) {
+      return (
+        <div className="h-9 w-9 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500 shrink-0">
+          <Star className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
+        </div>
+      );
+    }
+    if (type.includes('EARNING') || title.includes('earning') || title.includes('payout') || title.includes('ledger')) {
+      return (
+        <div className="h-9 w-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+          <Wallet className="h-4.5 w-4.5" />
+        </div>
+      );
+    }
+    if (type.includes('CREATED') || title.includes('created') || title.includes('request')) {
       return (
         <div className="h-9 w-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500 shrink-0">
           <FileText className="h-4.5 w-4.5" />
         </div>
       );
     }
-    if (type === 'JOB_COMPLETED' || title.includes('completed') || title.includes('complete')) {
+    if (type.includes('COMPLETED') || title.includes('completed') || title.includes('complete')) {
       return (
-        <div className="h-9 w-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 shrink-0">
+        <div className="h-9 w-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
           <CheckCircle2 className="h-4.5 w-4.5" />
         </div>
       );
     }
-    if (type === 'JOB_STARTED' || title.includes('started') || title.includes('start')) {
+    if (type.includes('STARTED') || title.includes('started') || title.includes('start')) {
       return (
         <div className="h-9 w-9 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500 shrink-0">
           <Clock3 className="h-4.5 w-4.5" />
         </div>
       );
     }
-    if (type === 'WORKER_ASSIGNED' || title.includes('assigned') || title.includes('worker')) {
+    if (type.includes('ASSIGNED') || title.includes('assigned') || title.includes('worker') || title.includes('job')) {
       return (
         <div className="h-9 w-9 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 shrink-0">
           <Briefcase className="h-4.5 w-4.5" />
@@ -650,96 +676,98 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   return (
     <PlatformShell>
       <div className="py-4 space-y-6">
-        {/* HERO SECTION WITH GIGCIRCLE BLUE + GREEN IDENTITY & GRADIENT DEPTH */}
-        <div className="rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-blue-50/40 to-emerald-50/30 p-6 md:p-10 shadow-xs relative overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-6 relative z-10">
-            <div className="space-y-3 max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-50/80 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest text-emerald-700">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                {content.eyebrow}
+        {/* HERO SECTION FOR CUSTOMER AND ADMIN (WORKER HAS HERO EXCLUSIVELY ON OVERVIEW TAB) */}
+        {role !== 'worker' && (
+          <div className="rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-blue-50/40 to-emerald-50/30 p-6 md:p-10 shadow-xs relative overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-6 relative z-10">
+              <div className="space-y-3 max-w-3xl">
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-50/80 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest text-emerald-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                  {content.eyebrow}
+                </div>
+                <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-slate-900 leading-[1.05]">
+                  {content.title}
+                </h1>
+                <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl">
+                  {content.intro}
+                </p>
               </div>
-              <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-slate-900 leading-[1.05]">
-                {content.title}
-              </h1>
-              <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl">
-                {content.intro}
-              </p>
-            </div>
 
-            {/* ROLE INDICATOR CARD */}
-            <div className="relative flex h-36 w-36 sm:h-44 sm:w-44 flex-col justify-between overflow-hidden rounded-3xl border border-blue-900/20 bg-gradient-to-br from-blue-950 via-slate-900 to-emerald-950 p-5 text-white shadow-lg">
-              <Icon className="absolute -right-3 -top-3 h-28 w-28 opacity-15 text-emerald-400" strokeWidth={1} />
-              <span className="font-mono text-2xl font-bold text-emerald-400">{content.stat}</span>
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-300 block">
-                  AUTHENTICATED
-                </span>
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 block mt-0.5">
-                  {user?.role || role}
-                </span>
+              {/* ROLE INDICATOR CARD */}
+              <div className="relative flex h-36 w-36 sm:h-44 sm:w-44 flex-col justify-between overflow-hidden rounded-3xl border border-blue-900/20 bg-gradient-to-br from-blue-950 via-slate-900 to-emerald-950 p-5 text-white shadow-lg">
+                <Icon className="absolute -right-3 -top-3 h-28 w-28 opacity-15 text-emerald-400" strokeWidth={1} />
+                <span className="font-mono text-2xl font-bold text-emerald-400">{content.stat}</span>
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-300 block">
+                    AUTHENTICATED
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 block mt-0.5">
+                    {user?.role || role}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* HORIZONTAL NAVIGATION BAR - MOVED DIRECTLY BELOW HERO SECTION */}
+        {/* HORIZONTAL NAVIGATION BAR - DISTRIBUTED EVENLY ACROSS ALL VIEWS */}
         <HorizontalNav />
 
-        {/* CUSTOMER VIEWS (REDESIGNED COMMAND CENTER EXPERIENCE) */}
+        {/* CUSTOMER VIEWS */}
         {role === 'customer' && (
           <div className="space-y-8">
             {/* TAB: OVERVIEW / COMMAND CENTER */}
             {activeTab === 'overview' && (
               <div className="space-y-8">
-                {/* 4 STATISTIC METRIC CARDS */}
+                {/* 4 STATISTIC METRIC CARDS WITH SUBTLE GIGCIRCLE GRADIENTS */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex items-center justify-between">
+                  <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs flex items-center justify-between hover:shadow-md hover:border-emerald-300 transition-all">
                     <div>
-                      <span className="text-xs font-semibold text-slate-500 block">Active Requests</span>
+                      <span className="text-xs font-semibold text-slate-600 block">Active Requests</span>
                       <div className="mt-1 text-3xl font-bold text-slate-900">
                         {requests.filter((r) => r.status === 'OPEN' && r.jobStatus !== 'COMPLETED').length}
                       </div>
-                      <span className="text-[10px] font-semibold text-emerald-600 mt-1 block">In Progress or Open</span>
+                      <span className="text-[10px] font-semibold text-emerald-700 mt-1 block">In Progress or Open</span>
                     </div>
-                    <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                      <Wrench className="h-5 w-5" />
+                    <div className="h-11 w-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <Wrench className="h-5.5 w-5.5" />
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex items-center justify-between">
+                  <div className="rounded-2xl border border-teal-200/90 bg-gradient-to-br from-teal-50/70 via-white to-emerald-50/40 p-5 shadow-xs flex items-center justify-between hover:shadow-md hover:border-teal-300 transition-all">
                     <div>
-                      <span className="text-xs font-semibold text-slate-500 block">Completed Services</span>
+                      <span className="text-xs font-semibold text-slate-600 block">Completed Services</span>
                       <div className="mt-1 text-3xl font-bold text-slate-900">
                         {requests.filter((r) => r.jobStatus === 'COMPLETED').length}
                       </div>
-                      <span className="text-[10px] font-semibold text-emerald-600 mt-1 block">Verified Work Done</span>
+                      <span className="text-[10px] font-semibold text-emerald-700 mt-1 block">Verified Work Done</span>
                     </div>
-                    <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                      <CheckCheck className="h-5 w-5" />
+                    <div className="h-11 w-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <CheckCheck className="h-5.5 w-5.5" />
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex items-center justify-between">
+                  <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-slate-50/40 p-5 shadow-xs flex items-center justify-between hover:shadow-md hover:border-blue-300 transition-all">
                     <div>
-                      <span className="text-xs font-semibold text-slate-500 block">Total Investment</span>
+                      <span className="text-xs font-semibold text-slate-600 block">Total Investment</span>
                       <div className="mt-1 text-3xl font-bold text-slate-900">
                         ₹{requests.reduce((acc, r) => acc + (r.budget || 0), 0).toLocaleString()}
                       </div>
-                      <span className="text-[10px] font-semibold text-slate-400 mt-1 block">Transparent Budget</span>
+                      <span className="text-[10px] font-semibold text-slate-500 mt-1 block">Transparent Budget</span>
                     </div>
-                    <div className="h-10 w-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-                      <IndianRupee className="h-5 w-5" />
+                    <div className="h-11 w-11 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <IndianRupee className="h-5.5 w-5.5" />
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex items-center justify-between">
+                  <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-5 shadow-xs flex items-center justify-between hover:shadow-md hover:border-indigo-300 transition-all">
                     <div>
-                      <span className="text-xs font-semibold text-slate-500 block">Total Requests</span>
+                      <span className="text-xs font-semibold text-slate-600 block">Total Requests</span>
                       <div className="mt-1 text-3xl font-bold text-slate-900">{requests.length}</div>
-                      <span className="text-[10px] font-semibold text-slate-400 mt-1 block">Lifetime Requests</span>
+                      <span className="text-[10px] font-semibold text-slate-500 mt-1 block">Lifetime Requests</span>
                     </div>
-                    <div className="h-10 w-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
-                      <FileText className="h-5 w-5" />
+                    <div className="h-11 w-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <FileText className="h-5.5 w-5.5" />
                     </div>
                   </div>
                 </div>
@@ -875,7 +903,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               </div>
             )}
 
-            {/* TAB: MY REQUESTS (REDESIGNED CARDS WITH PIPELINE) */}
+            {/* TAB: MY REQUESTS */}
             {(activeTab === 'requests' || activeTab === 'overview') && activeTab !== 'overview' && (
               <div className="space-y-6">
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs">
@@ -891,7 +919,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                      {/* EXACTLY THREE STATUS TABS */}
                       <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
                         {(['OPEN', 'COMPLETED', 'CANCELLED'] as const).map((st) => (
                           <button
@@ -954,8 +981,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         {filteredRequests.map((req) => {
                           const categoryInfo = CATEGORY_LABELS[req.category] || { label: req.category, description: '' };
                           const statusStr = req.jobStatus || req.status;
-
-                          // Stage calculation: 1: REQUESTED, 2: ASSIGNED, 3: IN_PROGRESS, 4: COMPLETED
                           const currentStage =
                             statusStr === 'COMPLETED'
                               ? 4
@@ -1000,7 +1025,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   </div>
                                 </div>
 
-                                {/* EXECUTION PIPELINE STAGE INDICATOR FOR ACTIVE REQUESTS */}
                                 {statusStr !== 'CANCELLED' && (
                                   <div className="pt-2">
                                     <div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400 mb-1.5">
@@ -1025,7 +1049,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   </div>
                                 )}
 
-                                {/* WORKER INFO STRIP */}
                                 <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 flex items-center justify-between text-xs">
                                   <div className="flex items-center gap-2">
                                     <div className="h-7 w-7 rounded-full bg-slate-900 text-white font-bold text-[10px] flex items-center justify-center">
@@ -1085,10 +1108,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             {/* TAB: NOTIFICATIONS */}
             {activeTab === 'notifications' && renderNotificationsView()}
 
-            {/* TAB: PROFILE (POLISHED CUSTOMER PROFILE CARD) */}
+            {/* TAB: PROFILE */}
             {activeTab === 'profile' && (
               <div className="space-y-6 max-w-3xl">
-                {/* PROFILE IDENTITY HEADER */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6">
                   <div className="h-20 w-20 rounded-full bg-slate-900 text-white font-extrabold text-2xl flex items-center justify-center shadow-md shrink-0">
                     {user?.name ? user.name.substring(0, 2).toUpperCase() : 'JC'}
@@ -1112,7 +1134,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   </div>
                 </div>
 
-                {/* ACCOUNT INFORMATION CARD */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
                   <h3 className="text-lg font-bold text-slate-900">Account Information</h3>
                   <div className="divide-y divide-slate-100 text-xs">
@@ -1135,21 +1156,20 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   </div>
                 </div>
 
-                {/* ACTIVITY SUMMARY CARD */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
                   <h3 className="text-lg font-bold text-slate-900">Customer Activity Summary</h3>
                   <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/60 via-white to-blue-50/30 p-4">
                       <span className="text-[11px] text-slate-500 font-medium block">Total Requests</span>
                       <strong className="text-2xl font-bold text-slate-900 mt-1 block">{requests.length}</strong>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/60 via-white to-teal-50/30 p-4">
                       <span className="text-[11px] text-slate-500 font-medium block">Completed Services</span>
                       <strong className="text-2xl font-bold text-slate-900 mt-1 block">
                         {requests.filter((r) => r.jobStatus === 'COMPLETED').length}
                       </strong>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/60 via-white to-slate-50/30 p-4">
                       <span className="text-[11px] text-slate-500 font-medium block">Total Investment</span>
                       <strong className="text-2xl font-bold text-slate-900 mt-1 block">
                         ₹{requests.reduce((acc, r) => acc + (r.budget || 0), 0).toLocaleString()}
@@ -1162,78 +1182,514 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           </div>
         )}
 
-        {/* WORKER VIEWS */}
+        {/* WORKER VIEWS — REDESIGNED WITH DEDICATED OVERVIEW HERO AND ACCURATE IA */}
         {role === 'worker' && (
           <div className="space-y-8">
-            {/* WORKER OPERATIONS PANEL & PROFILE STRIP */}
-            <div className="rounded-3xl border border-blue-200/70 bg-gradient-to-br from-blue-900 via-slate-900 to-emerald-950 p-6 md:p-8 text-white shadow-lg relative overflow-hidden">
-              <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
-                <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-                    WORKER WORKSPACE
-                  </span>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white mt-1">
-                    Worker Operations & Execution
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-                    Manage skills, toggle availability, accept service jobs, control job execution, and monitor transparent earnings.
-                  </p>
-                </div>
-
-                {workerProfile && (
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={handleToggleAvailability}
-                      disabled={isTogglingAvailability}
-                      className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all shadow-sm ${
-                        workerProfile.available
-                          ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'
-                          : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
-                      }`}
-                    >
-                      {workerProfile.available ? 'Status: Available' : 'Status: Unavailable'}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsProfileModalOpen(true)}
-                      className="rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-700"
-                    >
-                      Edit Profile
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* WORKER PROFILE DETAILS STRIP */}
-              {workerProfile && (
-                <div className="mt-6 pt-6 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-4 text-xs">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-lg text-white">{workerProfile.workerName}</span>
-                      <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2.5 py-0.5 text-[10px] font-extrabold uppercase">
-                        {workerProfile.available ? 'AVAILABLE FOR WORK' : 'UNAVAILABLE'}
+            {/* WORKER OVERVIEW TAB */}
+            {activeTab === 'overview' && (
+              <div className="space-y-8">
+                {/* WORKER OPERATIONS PANEL & PROFILE STRIP */}
+                <div className="rounded-3xl border border-blue-200/70 bg-gradient-to-br from-blue-900 via-slate-900 to-emerald-950 p-6 md:p-8 text-white shadow-lg relative overflow-hidden">
+                  <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+                        WORKER WORKSPACE
                       </span>
+                      <h2 className="text-2xl sm:text-3xl font-bold text-white mt-1">
+                        Worker Operations & Execution
+                      </h2>
+                      <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
+                        Manage your availability, discover jobs, execute assigned work, and track your cooperative earnings.
+                      </p>
                     </div>
-                    <p className="text-slate-400">
-                      ₹{workerProfile.hourlyRate}/hr • {workerProfile.experienceYears} Years Exp • {workerProfile.serviceLocation || 'Goa'} ({workerProfile.serviceRadiusKm || 15} km)
-                    </p>
+
+                    {workerProfile && (
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleToggleAvailability}
+                          disabled={isTogglingAvailability}
+                          className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all shadow-sm ${
+                            workerProfile.available
+                              ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'
+                              : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                          }`}
+                        >
+                          {workerProfile.available ? 'Status: Available' : 'Status: Unavailable'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setIsProfileModalOpen(true)}
+                          className="rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-700"
+                        >
+                          Edit Profile
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex flex-wrap gap-1.5">
-                    {workerProfile.serviceCategories?.map((cat) => (
-                      <span key={cat} className="rounded-lg bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-semibold text-emerald-300">
-                        {CATEGORY_LABELS[cat]?.label || cat}
-                      </span>
-                    ))}
+                  {workerProfile && (
+                    <div className="mt-6 pt-6 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-4 text-xs">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-lg text-white">{workerProfile.workerName}</span>
+                          <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2.5 py-0.5 text-[10px] font-extrabold uppercase">
+                            {workerProfile.available ? 'AVAILABLE FOR WORK' : 'UNAVAILABLE'}
+                          </span>
+                        </div>
+                        <p className="text-slate-400">
+                          ₹{workerProfile.hourlyRate}/hr • {workerProfile.experienceYears} Years Exp • {workerProfile.serviceLocation || 'Goa'} ({workerProfile.serviceRadiusKm || 15} km)
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {workerProfile.serviceCategories?.map((cat) => (
+                          <span key={cat} className="rounded-lg bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-semibold text-emerald-300">
+                            {CATEGORY_LABELS[cat]?.label || cat}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 5 WORKER SUMMARY METRIC CARDS WITH GRADIENT STYLING */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                  <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all">
+                    <span className="text-xs font-semibold text-slate-600 block">Available Jobs</span>
+                    <div className="mt-1 text-2xl font-bold text-slate-900">{availableJobs.length}</div>
+                    <span className="text-[10px] text-emerald-700 font-semibold mt-1 block">Matching Skills</span>
+                  </div>
+
+                  <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs hover:shadow-md hover:border-blue-300 transition-all">
+                    <span className="text-xs font-semibold text-slate-600 block">Assigned Jobs</span>
+                    <div className="mt-1 text-2xl font-bold text-slate-900">{assignedJobs.length}</div>
+                    <span className="text-[10px] text-blue-700 font-semibold mt-1 block">Active Execution</span>
+                  </div>
+
+                  <div className="rounded-2xl border border-teal-200/90 bg-gradient-to-br from-teal-50/70 via-white to-emerald-50/40 p-5 shadow-xs hover:shadow-md hover:border-teal-300 transition-all">
+                    <span className="text-xs font-semibold text-slate-600 block">Completed Jobs</span>
+                    <div className="mt-1 text-2xl font-bold text-slate-900">
+                      {workerEarningsSummary?.totalJobs || assignedJobs.filter((j) => j.jobStatus === 'COMPLETED').length}
+                    </div>
+                    <span className="text-[10px] text-emerald-700 font-semibold mt-1 block">Verified Work</span>
+                  </div>
+
+                  <div className="rounded-2xl border border-emerald-300 bg-gradient-to-br from-emerald-100/60 via-white to-emerald-50/80 p-5 shadow-xs hover:shadow-md hover:border-emerald-400 transition-all">
+                    <span className="text-xs font-bold text-emerald-800 block">Ledger Balance</span>
+                    <div className="mt-1 text-2xl font-bold text-emerald-950">
+                      ₹{workerEarningsSummary?.totalWorkerEarnings?.toFixed(2) || '0.00'}
+                    </div>
+                    <span className="text-[10px] text-emerald-700 font-bold mt-1 block">Net 90% Payout</span>
+                  </div>
+
+                  <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 p-5 shadow-xs hover:shadow-md hover:border-amber-300 transition-all">
+                    <span className="text-xs font-semibold text-slate-600 block">Average Rating</span>
+                    <div className="mt-1 text-2xl font-bold text-amber-600 flex items-center gap-1">
+                      <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+                      {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      ({workerRatingSummary?.totalRatings || 0} reviews)
+                    </span>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* TAB: EARNINGS LEDGER */}
-            {(activeTab === 'earnings' || activeTab === 'overview') && (
+                {/* OVERVIEW SUMMARY GRID: RECENT JOBS & EARNINGS / RATINGS COMPACT BOXES */}
+                <div className="grid gap-6 lg:grid-cols-3">
+                  {/* RECENT JOBS LIST */}
+                  <div className="lg:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                          ACTIVE EXECUTION
+                        </span>
+                        <h3 className="text-lg font-bold text-slate-900 mt-0.5">Recent Jobs Summary</h3>
+                      </div>
+                      <button
+                        onClick={() => setSearchParams({ tab: 'assigned' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                      >
+                        View all assigned <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="divide-y divide-slate-100">
+                      {assignedJobs.length === 0 && availableJobs.length === 0 ? (
+                        <div className="py-8 text-center text-xs text-slate-400">
+                          No active or assigned jobs right now. Check "Available Jobs" to accept work.
+                        </div>
+                      ) : (
+                        assignedJobs.slice(0, 3).map((job) => (
+                          <div key={job.id} className="py-3 flex items-center justify-between gap-3 text-xs">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-900">{job.description}</span>
+                                <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 uppercase">
+                                  {job.jobStatus}
+                                </span>
+                              </div>
+                              <p className="text-slate-500 mt-0.5">Customer: {job.customerName || 'Customer'}</p>
+                            </div>
+                            <span className="font-bold text-slate-900">₹{job.budget}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* OVERVIEW SIDE SUMMARY BOXES WITH SUBTLE GRADIENTS */}
+                  <div className="space-y-6">
+                    {/* OVERVIEW EARNINGS SUMMARY */}
+                    <div className="rounded-3xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/60 via-white to-teal-50/30 p-6 shadow-xs space-y-3">
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                        FINANCIAL SUMMARY
+                      </span>
+                      <h4 className="text-base font-bold text-slate-900">Earnings Summary</h4>
+
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Available in Ledger</span>
+                          <strong className="text-emerald-700 font-bold">
+                            ₹{workerEarningsSummary?.totalWorkerEarnings?.toFixed(2) || '0.00'}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Gross Job Value</span>
+                          <strong className="text-slate-900">
+                            ₹{workerEarningsSummary?.totalGross?.toFixed(2) || '0.00'}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Cooperative Fees (10%)</span>
+                          <strong className="text-slate-600">
+                            ₹{workerEarningsSummary?.totalPlatformFees?.toFixed(2) || '0.00'}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setSearchParams({ tab: 'earnings' })}
+                        className="w-full mt-2 rounded-xl border border-slate-200 bg-white py-2 text-center text-xs font-bold text-slate-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-colors shadow-xs"
+                      >
+                        View Full Earnings Ledger →
+                      </button>
+                    </div>
+
+                    {/* OVERVIEW RATING SUMMARY */}
+                    <div className="rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-50/60 via-white to-orange-50/30 p-6 shadow-xs space-y-3">
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                        REPUTATION SUMMARY
+                      </span>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-base font-bold text-slate-900">Ratings & Reviews</h4>
+                        <div className="flex items-center gap-1 text-amber-600 font-bold text-sm">
+                          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                          {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-slate-500">
+                        Based on {workerRatingSummary?.totalRatings || 0} verified customer job reviews.
+                      </p>
+
+                      <button
+                        onClick={() => setSearchParams({ tab: 'ratings' })}
+                        className="w-full mt-2 rounded-xl border border-slate-200 bg-white py-2 text-center text-xs font-bold text-slate-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-colors shadow-xs"
+                      >
+                        View All Reviews →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* WORKER QUICK ACTIONS ROW */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-3">
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                    QUICK ACTIONS
+                  </span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={() => setSearchParams({ tab: 'available' })}
+                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
+                    >
+                      <Search className="h-4 w-4" /> Find Available Jobs
+                    </button>
+                    <button
+                      onClick={() => setSearchParams({ tab: 'assigned' })}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                    >
+                      <Briefcase className="h-4 w-4 text-slate-500" /> View Assigned Jobs
+                    </button>
+                    <button
+                      onClick={() => setSearchParams({ tab: 'earnings' })}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                    >
+                      <Wallet className="h-4 w-4 text-slate-500" /> View Earnings
+                    </button>
+                    <button
+                      onClick={() => setSearchParams({ tab: 'ratings' })}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                    >
+                      <Star className="h-4 w-4 text-slate-500" /> View Reviews
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: AVAILABLE JOBS */}
+            {activeTab === 'available' && (
+              <div className="space-y-6">
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                        JOB DISCOVERY WORKSPACE
+                      </span>
+                      <h2 className="text-2xl font-bold text-slate-900 mt-0.5">Available Jobs</h2>
+                      <p className="text-xs text-slate-600 mt-1">
+                        Find service requests that match your skills and availability.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={fetchWorkerJobs}
+                      className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {isLoadingJobs ? (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {[1, 2].map((i) => (
+                        <div key={i} className="animate-pulse rounded-2xl border border-slate-200 bg-slate-50 p-6 space-y-3">
+                          <div className="h-4 w-28 bg-slate-200 rounded" />
+                          <div className="h-6 w-3/4 bg-slate-200 rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : availableJobs.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center space-y-3">
+                      <Search className="mx-auto h-8 w-8 text-slate-400" />
+                      <h3 className="text-base font-bold text-slate-900">No available jobs right now</h3>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto">
+                        New service opportunities will appear here when customers submit requests matching your skills.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-6 md:grid-cols-2">
+                      {availableJobs.map((job) => (
+                        <div
+                          key={job.id}
+                          className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all space-y-4"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                                {CATEGORY_LABELS[job.category]?.label || job.category}
+                              </span>
+                              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-slate-700">
+                                OPEN
+                              </span>
+                            </div>
+
+                            <h3 className="text-base font-bold text-slate-900 leading-snug">{job.description}</h3>
+
+                            <div className="flex items-center justify-between text-xs text-slate-600 pt-1">
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3.5 w-3.5 text-slate-400" /> {job.location || 'Goa'}
+                              </span>
+                              <span className="font-bold text-slate-900 text-sm">₹{job.budget}</span>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-slate-100 flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDetail(job)}
+                              className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1"
+                            >
+                              <Eye className="h-3.5 w-3.5" /> View Details
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleAcceptJob(job.id)}
+                              disabled={acceptingRequestId === job.id}
+                              className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+                            >
+                              {acceptingRequestId === job.id ? 'Accepting...' : 'Accept Job'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB: ASSIGNED JOBS */}
+            {activeTab === 'assigned' && (
+              <div className="space-y-6">
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                        JOB EXECUTION WORKSPACE
+                      </span>
+                      <h2 className="text-2xl font-bold text-slate-900 mt-0.5">Assigned Jobs</h2>
+                      <p className="text-xs text-slate-600 mt-1">
+                        Manage accepted service jobs and track execution progress.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
+                        {(['ALL', 'ACCEPTED', 'IN_PROGRESS', 'COMPLETED'] as const).map((st) => (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => setAssignedFilterStatus(st)}
+                            className={`rounded-lg px-3 py-1.5 font-bold transition-all ${
+                              assignedFilterStatus === st
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            {st}
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={fetchWorkerJobs}
+                        className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {filteredAssignedJobs.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center space-y-3">
+                      <Briefcase className="mx-auto h-8 w-8 text-slate-400" />
+                      <h3 className="text-base font-bold text-slate-900">No assigned jobs</h3>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto">
+                        Accept jobs from the Available Jobs tab to manage job execution here.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-6 md:grid-cols-2">
+                      {filteredAssignedJobs.map((job) => {
+                        const isCompleted = job.jobStatus === 'COMPLETED';
+                        const isInProgress = job.jobStatus === 'IN_PROGRESS';
+                        const isAccepted = job.jobStatus === 'ACCEPTED';
+
+                        return (
+                          <div
+                            key={job.id}
+                            className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all space-y-4"
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                                  {CATEGORY_LABELS[job.category]?.label || job.category}
+                                </span>
+                                <span
+                                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${
+                                    isCompleted
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : isInProgress
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : 'bg-amber-100 text-amber-800'
+                                  }`}
+                                >
+                                  [{job.jobStatus}]
+                                </span>
+                              </div>
+
+                              <h3 className="text-base font-bold text-slate-900 leading-snug">{job.description}</h3>
+
+                              <div className="flex items-center justify-between text-xs text-slate-600">
+                                <span>Customer: <strong className="text-slate-900">{job.customerName || 'Customer'}</strong></span>
+                                <span>Budget: <strong className="text-slate-900 font-bold">₹{job.budget}</strong></span>
+                              </div>
+
+                              {/* 3-STAGE WORKER EXECUTION PIPELINE LINE */}
+                              <div className="pt-2">
+                                <div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400 mb-1.5">
+                                  <span className="text-emerald-700">Assigned ✓</span>
+                                  <span className={isInProgress || isCompleted ? 'text-blue-700' : ''}>In Progress</span>
+                                  <span className={isCompleted ? 'text-emerald-700' : ''}>Completed</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                                  <div
+                                    className={`h-full transition-all duration-500 ${
+                                      isCompleted
+                                        ? 'w-full bg-emerald-500'
+                                        : isInProgress
+                                        ? 'w-2/3 bg-blue-500'
+                                        : 'w-1/3 bg-emerald-500'
+                                    }`}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                              {isAccepted && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartJob(job.id)}
+                                  disabled={operatingJobId === job.id}
+                                  className="w-full rounded-xl bg-blue-600 py-2.5 text-xs font-bold text-white hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+                                >
+                                  {operatingJobId === job.id ? 'Starting...' : 'Start Job'}
+                                </button>
+                              )}
+
+                              {isInProgress && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCompleteJob(job.id)}
+                                  disabled={operatingJobId === job.id}
+                                  className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+                                >
+                                  {operatingJobId === job.id ? 'Completing...' : 'Complete Job'}
+                                </button>
+                              )}
+
+                              {isCompleted && (
+                                <div className="w-full flex items-center justify-between">
+                                  <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-600" /> JOB COMPLETED
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSearchParams({ tab: 'earnings' })}
+                                    className="text-xs font-semibold text-slate-600 hover:text-emerald-600"
+                                  >
+                                    View Ledger Payout →
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB: EARNINGS LEDGER — MATCHING REFERENCE IMAGE & SUBTLE GRADIENTS */}
+            {activeTab === 'earnings' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1241,6 +1697,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       FINANCIAL TRANSPARENCY
                     </span>
                     <h2 className="text-2xl font-bold text-slate-900 mt-0.5">💰 Earnings Ledger</h2>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      Transparent record of completed job earnings with 10% cooperative fee deduction.
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -1251,155 +1710,220 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   </button>
                 </div>
 
-                {/* 4 SUMMARY CARDS WITH SUBTLE GIGCIRCLE GRADIENTS */}
+                {/* 4 SUMMARY CARDS MATCHING REFERENCE SCREENSHOT WITH RICH GRADIENTS */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50/50 p-5 shadow-xs">
-                    <span className="text-xs font-bold text-emerald-800">Available in GigCircle Ledger</span>
-                    <div className="mt-2 text-3xl font-bold text-emerald-950">
-                      ₹{workerEarningsSummary?.totalWorkerEarnings?.toFixed(2) || '0.00'}
+                  {/* CARD 1: GREEN BORDER + BG */}
+                  <div className="rounded-2xl border border-emerald-300 bg-gradient-to-br from-emerald-100/70 via-white to-teal-50/50 p-5 shadow-xs hover:shadow-md transition-all flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <Wallet className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-slate-900">
+                        ₹{workerEarningsSummary?.totalWorkerEarnings?.toFixed(2) || '0.00'}
+                      </div>
+                      <span className="text-[11px] font-bold text-emerald-700 block">Available in GigCircle Ledger</span>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-slate-50 p-5 shadow-xs">
-                    <span className="text-xs font-bold text-blue-900">Total Gross Job Value</span>
-                    <div className="mt-2 text-3xl font-bold text-slate-900">
-                      ₹{workerEarningsSummary?.totalGross?.toFixed(2) || '0.00'}
+                  {/* CARD 2: BLUE ACCENT */}
+                  <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs hover:shadow-md transition-all flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <TrendingUp className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-slate-900">
+                        ₹{workerEarningsSummary?.totalGross?.toFixed(2) || '0.00'}
+                      </div>
+                      <span className="text-[11px] font-semibold text-slate-500 block">Total Gross Job Value</span>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                    <span className="text-xs font-semibold text-slate-500">Cooperative Fees (10%)</span>
-                    <div className="mt-2 text-3xl font-bold text-slate-900">
-                      ₹{workerEarningsSummary?.totalPlatformFees?.toFixed(2) || '0.00'}
+                  {/* CARD 3: GRAY ACCENT */}
+                  <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/80 via-white to-slate-100/40 p-5 shadow-xs hover:shadow-md transition-all flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0 font-bold">
+                      ₹
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-slate-900">
+                        ₹{workerEarningsSummary?.totalPlatformFees?.toFixed(2) || '0.00'}
+                      </div>
+                      <span className="text-[11px] font-semibold text-slate-500 block">Cooperative Fees (10%)</span>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                    <span className="text-xs font-semibold text-slate-500">Completed Jobs</span>
-                    <div className="mt-2 text-3xl font-bold text-slate-900">
-                      {workerEarningsSummary?.totalJobs || 0}
+                  {/* CARD 4: INDIGO ACCENT */}
+                  <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-5 shadow-xs hover:shadow-md transition-all flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 font-bold">
+                      ✓
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-slate-900">
+                        {workerEarningsSummary?.totalJobs || 0}
+                      </div>
+                      <span className="text-[11px] font-semibold text-slate-500 block">Completed Jobs</span>
                     </div>
                   </div>
                 </div>
 
-                {/* TRANSPARENT CALCULATION BREAKDOWN CARD */}
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5 text-xs flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-2 text-emerald-900 font-semibold">
+                {/* TRANSPARENT FORMULA BANNER */}
+                <div className="rounded-2xl border border-emerald-300 bg-emerald-50/60 p-4 text-xs flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 text-emerald-900 font-bold">
                     <ShieldCheck className="h-4 w-4 text-emerald-600" />
                     <span>Transparent Cooperative Ledger Formula:</span>
                   </div>
-                  <div className="flex items-center gap-4 font-mono font-bold text-slate-800">
+                  <div className="flex items-center gap-3 font-mono font-bold text-slate-800">
                     <span>Gross Job Value</span>
                     <span className="text-slate-400">→</span>
-                    <span className="text-slate-500">10% Cooperative Fee</span>
+                    <span className="text-slate-600">10% Cooperative Fee</span>
                     <span className="text-slate-400">→</span>
                     <span className="text-emerald-700">90% Worker Payout</span>
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* TAB: AVAILABLE JOBS */}
-            {activeTab === 'available' && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold text-slate-900">Available Jobs Feed</h2>
-                {availableJobs.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-                    <Search className="mx-auto h-8 w-8 text-slate-400" />
-                    <h3 className="mt-3 text-base font-bold text-slate-900">No available jobs right now</h3>
-                    <p className="mt-1 text-xs text-slate-500">
-                      New service opportunities will appear here when customers submit requests.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {availableJobs.map((job) => (
-                      <div key={job.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-                            {job.category}
-                          </span>
-                          <span className="text-sm font-bold text-slate-900">₹{job.budget}</span>
-                        </div>
-                        <p className="text-xs text-slate-700">{job.description}</p>
-                        <button
-                          type="button"
-                          onClick={() => handleAcceptJob(job.id)}
-                          disabled={acceptingRequestId === job.id}
-                          className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
-                        >
-                          {acceptingRequestId === job.id ? 'Accepting...' : 'Accept Job'}
-                        </button>
+                {/* COMPLETED JOBS EARNINGS LEDGER TABLE */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                  <h3 className="text-base font-bold text-slate-900">Completed Job Transactions</h3>
+                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                    {workerEarnings.length === 0 ? (
+                      <div className="py-8 text-center text-xs text-slate-400">
+                        No earnings transactions recorded yet. Complete assigned jobs to generate payouts.
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB: ASSIGNED JOBS */}
-            {activeTab === 'assigned' && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold text-slate-900">Assigned Jobs</h2>
-                {assignedJobs.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-                    <Briefcase className="mx-auto h-8 w-8 text-slate-400" />
-                    <h3 className="mt-3 text-base font-bold text-slate-900">No assigned jobs</h3>
-                    <p className="mt-1 text-xs text-slate-500">Accept jobs from the Available Jobs tab to manage execution here.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {assignedJobs.map((job) => (
-                      <div key={job.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-slate-900">Job #{job.id}</span>
-                          <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 uppercase">
-                            {job.jobStatus}
-                          </span>
+                    ) : (
+                      workerEarnings.map((e) => (
+                        <div key={e.id} className="py-3 flex items-center justify-between text-xs min-w-[550px]">
+                          <div>
+                            <span className="font-bold text-slate-900 block">Job #{e.jobId}</span>
+                            <span className="text-slate-500 text-[11px]">Gross: ₹{e.grossAmount?.toFixed(2)}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-emerald-700 font-bold block">+₹{e.workerEarning?.toFixed(2)} (90%)</span>
+                            <span className="text-slate-400 text-[10px]">Fee: ₹{e.platformFee?.toFixed(2)} (10%)</span>
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-700">{job.description}</p>
-
-                        <div className="pt-2 flex gap-2">
-                          {job.jobStatus === 'ACCEPTED' && (
-                            <button
-                              type="button"
-                              onClick={() => handleStartJob(job.id)}
-                              className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700"
-                            >
-                              Start Job
-                            </button>
-                          )}
-                          {job.jobStatus === 'IN_PROGRESS' && (
-                            <button
-                              type="button"
-                              onClick={() => handleCompleteJob(job.id)}
-                              className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700"
-                            >
-                              Complete Job
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             )}
 
             {/* TAB: RATINGS & REVIEWS */}
             {activeTab === 'ratings' && (
               <div className="space-y-6">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs flex items-center justify-between">
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900">Ratings & Reviews</h2>
-                    <p className="text-xs text-slate-500 mt-0.5">Verified customer ratings for your completed jobs.</p>
-                  </div>
-                  <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2">
-                    <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
-                    <span className="text-xl font-bold text-amber-900">
-                      {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                      PUBLIC REPUTATION
                     </span>
-                    <span className="text-xs text-amber-700">({workerRatingSummary?.totalRatings || 0} reviews)</span>
+                    <h2 className="text-2xl font-bold text-slate-900 mt-0.5">Ratings & Reviews</h2>
+                    <p className="text-xs text-slate-500 mt-1">Verified customer ratings for your completed service jobs.</p>
+                  </div>
+
+                  <div className="flex items-center gap-3 bg-gradient-to-br from-amber-50 to-orange-50/50 border border-amber-200 rounded-2xl px-5 py-3 shrink-0">
+                    <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
+                    <div>
+                      <span className="text-2xl font-extrabold text-amber-950 block leading-none">
+                        {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
+                      </span>
+                      <span className="text-[11px] font-semibold text-amber-800">
+                        {workerRatingSummary?.totalRatings || 0} reviews
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* REVIEWS LIST */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
+                  <h3 className="text-base font-bold text-slate-900">Customer Feedback</h3>
+                  {workerRatings.length === 0 ? (
+                    <div className="py-10 text-center space-y-2">
+                      <Star className="mx-auto h-8 w-8 text-amber-300" />
+                      <h4 className="text-sm font-bold text-slate-900">No reviews received yet</h4>
+                      <p className="text-xs text-slate-500">Complete service jobs to start receiving customer ratings.</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {workerRatings.map((rating) => (
+                        <div key={rating.id} className="rounded-2xl border border-slate-200 bg-slate-50/50 p-5 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-900 text-xs">{rating.customerName || `Customer #${rating.customerId}`}</span>
+                            <div className="flex items-center gap-1 text-amber-600 font-bold text-xs">
+                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                              {rating.score?.toFixed(1)}
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-700 italic">"{rating.review || 'Great service quality!'}"</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB: WORKER PROFILE */}
+            {activeTab === 'profile' && (
+              <div className="space-y-6 max-w-3xl">
+                {/* PROFILE IDENTITY HEADER */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                  <div className="h-20 w-20 rounded-full bg-slate-900 text-white font-extrabold text-2xl flex items-center justify-center shadow-md shrink-0">
+                    {workerProfile?.workerName ? workerProfile.workerName.substring(0, 2).toUpperCase() : 'JW'}
+                  </div>
+
+                  <div className="space-y-2 text-center sm:text-left flex-1">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <h2 className="text-2xl font-bold text-slate-900">{workerProfile?.workerName || 'Worker Profile'}</h2>
+                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-700">
+                        {workerProfile?.available ? 'AVAILABLE FOR WORK' : 'UNAVAILABLE'}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-500">{user?.email || 'worker@example.com'}</p>
+
+                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-600">
+                      <span className="flex items-center gap-1 text-amber-600 font-bold">
+                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                        {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'} ({workerRatingSummary?.totalRatings || 0} reviews)
+                      </span>
+                      <span>• {workerProfile?.serviceLocation || 'Goa'}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-xs"
+                  >
+                    Edit Profile
+                  </button>
+                </div>
+
+                {/* PROFESSIONAL INFORMATION CARD */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
+                  <h3 className="text-lg font-bold text-slate-900">Professional Information</h3>
+                  <div className="divide-y divide-slate-100 text-xs">
+                    <div className="flex justify-between py-3">
+                      <span className="text-slate-500 font-medium">Hourly Rate</span>
+                      <strong className="text-slate-900 font-bold">₹{workerProfile?.hourlyRate || 100}/hr</strong>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <span className="text-slate-500 font-medium">Experience</span>
+                      <strong className="text-slate-900">{workerProfile?.experienceYears || 2} Years</strong>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <span className="text-slate-500 font-medium">Service Radius</span>
+                      <strong className="text-slate-900">{workerProfile?.serviceRadiusKm || 15} km</strong>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <span className="text-slate-500 font-medium">Skills & Categories</span>
+                      <div className="flex flex-wrap gap-1">
+                        {workerProfile?.serviceCategories?.map((c) => (
+                          <span key={c} className="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                            {CATEGORY_LABELS[c]?.label || c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1425,18 +1949,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </button>
               </div>
 
-              {/* METRIC CARDS */}
+              {/* METRIC CARDS WITH GRADIENT STYLING */}
               <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                  <span className="text-xs text-slate-500 font-semibold">Total Users</span>
+                <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs hover:shadow-md transition-all">
+                  <span className="text-xs text-slate-600 font-semibold">Total Users</span>
                   <div className="mt-2 text-3xl font-bold text-slate-900">{adminUsers.length}</div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                  <span className="text-xs text-slate-500 font-semibold">Active Workers</span>
+                <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs hover:shadow-md transition-all">
+                  <span className="text-xs text-slate-600 font-semibold">Active Workers</span>
                   <div className="mt-2 text-3xl font-bold text-slate-900">{adminWorkers.length}</div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                  <span className="text-xs text-slate-500 font-semibold">Total Service Requests</span>
+                <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-5 shadow-xs hover:shadow-md transition-all">
+                  <span className="text-xs text-slate-600 font-semibold">Total Service Requests</span>
                   <div className="mt-2 text-3xl font-bold text-slate-900">{adminRequests.length}</div>
                 </div>
               </div>
@@ -1547,16 +2071,27 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
       {/* Worker Modals */}
       {role === 'worker' && (
-        <WorkerProfileModal
-          isOpen={isProfileModalOpen}
-          onClose={() => setIsProfileModalOpen(false)}
-          onSuccess={(profile) => {
-            setWorkerProfile(profile);
-            setProfileNotFound(false);
-            fetchWorkerJobs();
-          }}
-          existingProfile={workerProfile}
-        />
+        <>
+          <WorkerProfileModal
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
+            onSuccess={(profile) => {
+              setWorkerProfile(profile);
+              setProfileNotFound(false);
+              fetchWorkerJobs();
+            }}
+            existingProfile={workerProfile}
+          />
+          <RequestDetailModal
+            request={selectedRequest}
+            isOpen={isDetailModalOpen}
+            onClose={() => {
+              setIsDetailModalOpen(false);
+              setSelectedRequest(null);
+            }}
+            onStatusChange={fetchWorkerJobs}
+          />
+        </>
       )}
     </PlatformShell>
   );
