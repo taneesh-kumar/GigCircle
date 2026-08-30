@@ -383,6 +383,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
     const handleSync = () => {
       fetchNotificationsPage();
+      if (role === 'customer') fetchCustomerRequests();
     };
     window.addEventListener('gigcircle-notifications-updated', handleSync);
     return () => window.removeEventListener('gigcircle-notifications-updated', handleSync);
@@ -452,6 +453,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         description: `You have accepted the ${response.category} job. Ready to start!`,
       });
       fetchWorkerJobs();
+      window.dispatchEvent(new CustomEvent('gigcircle-notifications-updated'));
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Failed to accept job.';
       toast({
@@ -475,6 +477,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         description: `Job status is now IN_PROGRESS.`,
       });
       setAssignedJobs((prev) => prev.map((j) => (j.id === jobId ? updated : j)));
+      window.dispatchEvent(new CustomEvent('gigcircle-notifications-updated'));
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Failed to start job.';
       toast({
@@ -499,6 +502,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       });
       setAssignedJobs((prev) => prev.map((j) => (j.id === jobId ? updated : j)));
       fetchWorkerEarnings();
+      window.dispatchEvent(new CustomEvent('gigcircle-notifications-updated'));
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Failed to complete job.';
       toast({
@@ -607,7 +611,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         </div>
       </div>
 
-      {/* NOTIFICATIONS LIST CONTAINER MATCHING SCREENSHOT 3 */}
+      {/* NOTIFICATIONS LIST CONTAINER */}
       <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden divide-y divide-slate-100">
         {isLoadingNotifications ? (
           <div className="p-8 text-center text-xs text-slate-400">Loading updates...</div>
@@ -681,71 +685,208 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         {/* HORIZONTAL NAVIGATION BAR - MOVED DIRECTLY BELOW HERO SECTION */}
         <HorizontalNav />
 
-        {/* CUSTOMER VIEWS */}
+        {/* CUSTOMER VIEWS (REDESIGNED COMMAND CENTER EXPERIENCE) */}
         {role === 'customer' && (
           <div className="space-y-8">
-            {/* TAB: OVERVIEW */}
+            {/* TAB: OVERVIEW / COMMAND CENTER */}
             {activeTab === 'overview' && (
-              <div className="space-y-6">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                    <div className="flex items-center justify-between text-slate-500 text-xs font-semibold">
-                      <span>Active Requests</span>
-                      <Wrench className="h-4 w-4 text-emerald-600" />
+              <div className="space-y-8">
+                {/* 4 STATISTIC METRIC CARDS */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-500 block">Active Requests</span>
+                      <div className="mt-1 text-3xl font-bold text-slate-900">
+                        {requests.filter((r) => r.status === 'OPEN' && r.jobStatus !== 'COMPLETED').length}
+                      </div>
+                      <span className="text-[10px] font-semibold text-emerald-600 mt-1 block">In Progress or Open</span>
                     </div>
-                    <div className="mt-2 text-3xl font-bold text-slate-900">
-                      {requests.filter((r) => r.status === 'OPEN' && r.jobStatus !== 'COMPLETED').length}
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                    <div className="flex items-center justify-between text-slate-500 text-xs font-semibold">
-                      <span>Completed Services</span>
-                      <CheckCheck className="h-4 w-4 text-emerald-600" />
-                    </div>
-                    <div className="mt-2 text-3xl font-bold text-slate-900">
-                      {requests.filter((r) => r.jobStatus === 'COMPLETED').length}
+                    <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                      <Wrench className="h-5 w-5" />
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                    <div className="flex items-center justify-between text-slate-500 text-xs font-semibold">
-                      <span>Total Value</span>
-                      <IndianRupee className="h-4 w-4 text-emerald-600" />
+                  <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-500 block">Completed Services</span>
+                      <div className="mt-1 text-3xl font-bold text-slate-900">
+                        {requests.filter((r) => r.jobStatus === 'COMPLETED').length}
+                      </div>
+                      <span className="text-[10px] font-semibold text-emerald-600 mt-1 block">Verified Work Done</span>
                     </div>
-                    <div className="mt-2 text-3xl font-bold text-slate-900">
-                      ₹{requests.reduce((acc, r) => acc + (r.budget || 0), 0).toLocaleString()}
+                    <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                      <CheckCheck className="h-5 w-5" />
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-500 block">Total Investment</span>
+                      <div className="mt-1 text-3xl font-bold text-slate-900">
+                        ₹{requests.reduce((acc, r) => acc + (r.budget || 0), 0).toLocaleString()}
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-400 mt-1 block">Transparent Budget</span>
+                    </div>
+                    <div className="h-10 w-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                      <IndianRupee className="h-5 w-5" />
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-500 block">Total Requests</span>
+                      <div className="mt-1 text-3xl font-bold text-slate-900">{requests.length}</div>
+                      <span className="text-[10px] font-semibold text-slate-400 mt-1 block">Lifetime Requests</span>
+                    </div>
+                    <div className="h-10 w-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                      <FileText className="h-5 w-5" />
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-r from-blue-50 via-white to-emerald-50 p-6 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                {/* QUICK ACTIONS BANNER */}
+                <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-r from-blue-50/80 via-white to-emerald-50/60 p-6 shadow-xs flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">Need help with home repairs or services?</h3>
+                    <h3 className="text-lg font-bold text-slate-900">Need help with household repairs or services?</h3>
                     <p className="text-xs text-slate-600 mt-1">Submit a transparent service request and match with trusted local workers.</p>
                   </div>
-                  <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors"
-                  >
-                    <Plus className="h-4 w-4" /> Request a Service
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setIsCreateModalOpen(true)}
+                      className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors"
+                    >
+                      <Plus className="h-4 w-4" /> Request a Service
+                    </button>
+                    <button
+                      onClick={() => setSearchParams({ tab: 'requests' })}
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      View All Requests <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* RECENT SERVICE ACTIVITY SECTION */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                        RECENT ACTIVITY
+                      </span>
+                      <h3 className="text-xl font-bold text-slate-900 mt-0.5">Recent Service Activity</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">Your latest requested services and current execution progress.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSearchParams({ tab: 'requests' })}
+                      className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                    >
+                      View all requests <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                    {requests.length === 0 ? (
+                      <div className="py-10 text-center text-xs text-slate-400">
+                        No service requests created yet. Click "Request a Service" to create one.
+                      </div>
+                    ) : (
+                      requests.slice(0, 4).map((req) => {
+                        const statusStr = req.jobStatus || req.status;
+                        return (
+                          <div key={req.id} className="py-4 flex items-center justify-between gap-4 text-xs min-w-[500px]">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0 font-bold text-xs">
+                                {req.category.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold text-slate-900 truncate">{req.description}</p>
+                                <p className="text-slate-500 text-[11px] mt-0.5">
+                                  {req.location} • Budget: <strong className="text-slate-700">₹{req.budget}</strong>
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0">
+                              {req.workerName && (
+                                <span className="text-slate-600 hidden sm:inline">
+                                  Worker: <strong className="text-slate-900">{req.workerName}</strong>
+                                </span>
+                              )}
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                                  statusStr === 'COMPLETED'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : statusStr === 'IN_PROGRESS'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : statusStr === 'ACCEPTED'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : statusStr === 'CANCELLED'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-slate-100 text-slate-800'
+                                }`}
+                              >
+                                {statusStr}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* THE COOPERATIVE LOOP CARD */}
+                <div className="rounded-3xl border border-slate-200/90 bg-gradient-to-br from-slate-900 via-blue-950 to-emerald-950 p-6 md:p-8 text-white shadow-md space-y-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+                      COOPERATIVE WORKFLOW
+                    </span>
+                    <h3 className="text-xl font-bold text-white">The Cooperative Loop</h3>
+                    <p className="text-xs text-slate-300">Your request strengthens the local neighborhood network.</p>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-4 pt-2 text-xs">
+                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md">
+                      <span className="font-mono text-emerald-400 font-bold">01</span>
+                      <p className="font-bold text-white mt-1">Request a service</p>
+                      <p className="text-[11px] text-slate-300 mt-0.5">Describe your household need & set budget.</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md">
+                      <span className="font-mono text-emerald-400 font-bold">02</span>
+                      <p className="font-bold text-white mt-1">Connect with worker</p>
+                      <p className="text-[11px] text-slate-300 mt-0.5">Match with verified local skills nearby.</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md">
+                      <span className="font-mono text-emerald-400 font-bold">03</span>
+                      <p className="font-bold text-white mt-1">Complete the job</p>
+                      <p className="text-[11px] text-slate-300 mt-0.5">Track work & transparent 90/10 ledger payout.</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md">
+                      <span className="font-mono text-emerald-400 font-bold">04</span>
+                      <p className="font-bold text-white mt-1">Rate & strengthen</p>
+                      <p className="text-[11px] text-slate-300 mt-0.5">Build community trust through real ratings.</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* TAB: MY REQUESTS */}
-            {(activeTab === 'requests' || activeTab === 'overview') && (
+            {/* TAB: MY REQUESTS (REDESIGNED CARDS WITH PIPELINE) */}
+            {(activeTab === 'requests' || activeTab === 'overview') && activeTab !== 'overview' && (
               <div className="space-y-6">
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
                         CUSTOMER WORKSPACE
                       </span>
                       <h2 className="text-2xl font-bold text-slate-900 mt-0.5">My Service Requests</h2>
                       <p className="text-xs text-slate-600 mt-1">
-                        Track request assignments, worker job progress, financial breakdowns, and rate completed services.
+                        Manage the services you've requested and track their execution progress.
                       </p>
                     </div>
 
@@ -809,24 +950,33 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         </p>
                       </div>
                     ) : (
-                      <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-6 md:grid-cols-2">
                         {filteredRequests.map((req) => {
                           const categoryInfo = CATEGORY_LABELS[req.category] || { label: req.category, description: '' };
                           const statusStr = req.jobStatus || req.status;
 
+                          // Stage calculation: 1: REQUESTED, 2: ASSIGNED, 3: IN_PROGRESS, 4: COMPLETED
+                          const currentStage =
+                            statusStr === 'COMPLETED'
+                              ? 4
+                              : statusStr === 'IN_PROGRESS'
+                              ? 3
+                              : req.workerName || statusStr === 'ACCEPTED'
+                              ? 2
+                              : 1;
+
                           return (
                             <div
                               key={req.id}
-                              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all"
+                              className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all space-y-4"
                             >
-                              <div>
+                              <div className="space-y-4">
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                                  <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
                                     {categoryInfo.label}
                                   </span>
-                                  {/* ONE AUTHORITATIVE STATUS BADGE */}
                                   <span
-                                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                                    className={`rounded-full px-3 py-0.5 text-[10px] font-extrabold uppercase ${
                                       statusStr === 'COMPLETED'
                                         ? 'bg-emerald-100 text-emerald-800'
                                         : statusStr === 'IN_PROGRESS'
@@ -842,24 +992,56 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   </span>
                                 </div>
 
-                                <p className="mt-3 text-sm font-semibold text-slate-900 line-clamp-2">
-                                  {req.description}
-                                </p>
-
-                                <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                                  <span>Budget: <strong className="text-slate-900">₹{req.budget}</strong></span>
-                                  <span>{req.location}</span>
+                                <div>
+                                  <h3 className="text-base font-bold text-slate-900 leading-snug">{req.description}</h3>
+                                  <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                                    <span>Budget: <strong className="text-slate-900 font-bold">₹{req.budget}</strong></span>
+                                    <span>Location: <strong className="text-slate-700">{req.location}</strong></span>
+                                  </div>
                                 </div>
 
-                                {req.workerName && (
-                                  <div className="mt-3 rounded-xl bg-slate-50 p-2.5 text-xs">
-                                    <span className="text-slate-500">Assigned Worker: </span>
-                                    <strong className="text-slate-900">{req.workerName}</strong>
+                                {/* EXECUTION PIPELINE STAGE INDICATOR FOR ACTIVE REQUESTS */}
+                                {statusStr !== 'CANCELLED' && (
+                                  <div className="pt-2">
+                                    <div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400 mb-1.5">
+                                      <span className={currentStage >= 1 ? 'text-emerald-700' : ''}>Requested</span>
+                                      <span className={currentStage >= 2 ? 'text-emerald-700' : ''}>Assigned</span>
+                                      <span className={currentStage >= 3 ? 'text-blue-700' : ''}>In Progress</span>
+                                      <span className={currentStage >= 4 ? 'text-emerald-700' : ''}>Completed</span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                                      <div
+                                        className={`h-full transition-all duration-500 ${
+                                          currentStage === 4
+                                            ? 'w-full bg-emerald-500'
+                                            : currentStage === 3
+                                            ? 'w-3/4 bg-blue-500'
+                                            : currentStage === 2
+                                            ? 'w-1/2 bg-emerald-500'
+                                            : 'w-1/4 bg-slate-300'
+                                        }`}
+                                      />
+                                    </div>
                                   </div>
                                 )}
+
+                                {/* WORKER INFO STRIP */}
+                                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-7 w-7 rounded-full bg-slate-900 text-white font-bold text-[10px] flex items-center justify-center">
+                                      {req.workerName ? req.workerName.substring(0, 2).toUpperCase() : 'GC'}
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] text-slate-400 block font-semibold">Assigned Worker</span>
+                                      <span className="font-bold text-slate-900">
+                                        {req.workerName || 'Awaiting Worker Match'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
 
-                              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                                 <button
                                   type="button"
                                   onClick={() => handleOpenDetail(req)}
@@ -883,7 +1065,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                           setIsRatingModalOpen(true);
                                         }
                                       }}
-                                      className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-600"
+                                      className="rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-amber-600 shadow-xs"
                                     >
                                       Rate Service
                                     </button>
@@ -903,22 +1085,76 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             {/* TAB: NOTIFICATIONS */}
             {activeTab === 'notifications' && renderNotificationsView()}
 
-            {/* TAB: PROFILE */}
+            {/* TAB: PROFILE (POLISHED CUSTOMER PROFILE CARD) */}
             {activeTab === 'profile' && (
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs max-w-xl space-y-4">
-                <h2 className="text-xl font-bold text-slate-900">Customer Profile</h2>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between py-2 border-b border-slate-100">
-                    <span className="text-slate-500">Name</span>
-                    <span className="font-bold text-slate-900">{user?.name}</span>
+              <div className="space-y-6 max-w-3xl">
+                {/* PROFILE IDENTITY HEADER */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                  <div className="h-20 w-20 rounded-full bg-slate-900 text-white font-extrabold text-2xl flex items-center justify-center shadow-md shrink-0">
+                    {user?.name ? user.name.substring(0, 2).toUpperCase() : 'JC'}
                   </div>
-                  <div className="flex justify-between py-2 border-b border-slate-100">
-                    <span className="text-slate-500">Email</span>
-                    <span className="font-bold text-slate-900">{user?.email}</span>
+
+                  <div className="space-y-2 text-center sm:text-left flex-1">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <h2 className="text-2xl font-bold text-slate-900">{user?.name || 'John customer'}</h2>
+                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-700">
+                        AUTHENTICATED CUSTOMER
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-500">{user?.email || 'customer@example.com'}</p>
+
+                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-600">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Account Active & Verified
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between py-2 border-b border-slate-100">
-                    <span className="text-slate-500">Role</span>
-                    <span className="font-bold text-emerald-600 uppercase">{user?.role}</span>
+                </div>
+
+                {/* ACCOUNT INFORMATION CARD */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
+                  <h3 className="text-lg font-bold text-slate-900">Account Information</h3>
+                  <div className="divide-y divide-slate-100 text-xs">
+                    <div className="flex justify-between py-3">
+                      <span className="text-slate-500 font-medium">Full Name</span>
+                      <strong className="text-slate-900">{user?.name || 'John customer'}</strong>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <span className="text-slate-500 font-medium">Email Address</span>
+                      <strong className="text-slate-900">{user?.email || 'customer@example.com'}</strong>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <span className="text-slate-500 font-medium">Account Role</span>
+                      <strong className="text-emerald-700 font-bold uppercase">{user?.role || 'CUSTOMER'}</strong>
+                    </div>
+                    <div className="flex justify-between py-3">
+                      <span className="text-slate-500 font-medium">Authentication Method</span>
+                      <strong className="text-slate-900">JWT Token Secured</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ACTIVITY SUMMARY CARD */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
+                  <h3 className="text-lg font-bold text-slate-900">Customer Activity Summary</h3>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <span className="text-[11px] text-slate-500 font-medium block">Total Requests</span>
+                      <strong className="text-2xl font-bold text-slate-900 mt-1 block">{requests.length}</strong>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <span className="text-[11px] text-slate-500 font-medium block">Completed Services</span>
+                      <strong className="text-2xl font-bold text-slate-900 mt-1 block">
+                        {requests.filter((r) => r.jobStatus === 'COMPLETED').length}
+                      </strong>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <span className="text-[11px] text-slate-500 font-medium block">Total Investment</span>
+                      <strong className="text-2xl font-bold text-slate-900 mt-1 block">
+                        ₹{requests.reduce((acc, r) => acc + (r.budget || 0), 0).toLocaleString()}
+                      </strong>
+                    </div>
                   </div>
                 </div>
               </div>

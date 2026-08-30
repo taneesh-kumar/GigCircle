@@ -65,7 +65,7 @@ export function HorizontalNav() {
     <div className="w-full my-4">
       <div className="rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xs">
         <nav
-          className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-0.5"
+          className="flex w-full items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-0.5"
           aria-label="Application Navigation"
         >
           {items.map((item) => {
@@ -77,14 +77,14 @@ export function HorizontalNav() {
                 type="button"
                 onClick={() => handleTabChange(item.id)}
                 data-testid={`nav-tab-${item.id}`}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold whitespace-nowrap transition-all duration-200 min-w-[110px] ${
                   isActive
-                    ? 'bg-emerald-600 text-white shadow-sm'
+                    ? 'bg-emerald-600 text-white shadow-sm font-bold'
                     : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-900'
                 }`}
               >
-                <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
-                {item.label}
+                <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                <span>{item.label}</span>
               </button>
             );
           })}
