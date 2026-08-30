@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, Calendar, Clock, DollarSign, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert, IndianRupee, Clock3, Activity, User } from 'lucide-react';
 import { cancelServiceRequestApi } from '@/services/api';
 import { CATEGORY_LABELS, type ServiceRequest } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
@@ -64,35 +64,43 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs animate-rise-in">
       <div
-        className="relative w-full max-w-xl rounded-3xl border border-border bg-card p-6 shadow-2xl md:p-8"
+        className="relative w-full max-w-xl rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xl md:p-8"
         role="dialog"
         aria-modal="true"
         aria-labelledby="detail-modal-title"
       >
         {/* Modal Header */}
-        <div className="flex items-start justify-between border-b border-border/60 pb-4">
-          <div>
+        <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+          <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-accent">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 Request #{request.id}
               </span>
               <span
-                className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                   jobStatusStr === 'COMPLETED'
-                    ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
                     : jobStatusStr === 'IN_PROGRESS'
-                    ? 'border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                    ? 'bg-blue-50 border border-blue-200 text-blue-700'
                     : jobStatusStr === 'ACCEPTED'
-                    ? 'border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    ? 'bg-amber-50 border border-amber-200 text-amber-700'
                     : jobStatusStr === 'CANCELLED'
-                    ? 'border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400'
-                    : 'border border-slate-500/30 bg-slate-500/10 text-slate-500 dark:text-slate-400'
+                    ? 'bg-red-50 border border-red-200 text-red-700'
+                    : 'bg-slate-50 border border-slate-200 text-slate-700'
                 }`}
               >
+                {jobStatusStr === 'COMPLETED' ? (
+                  <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                ) : jobStatusStr === 'IN_PROGRESS' ? (
+                  <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
+                ) : (
+                  <Clock3 className="h-3 w-3 text-amber-600" />
+                )}
                 {jobStatusStr}
               </span>
             </div>
-            <h2 id="detail-modal-title" className="mt-1 font-display text-2xl font-semibold text-primary">
+            <h2 id="detail-modal-title" className="font-display text-2xl font-black text-slate-900">
               {categoryInfo.label}
             </h2>
           </div>
@@ -101,7 +109,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
               setIsConfirmingCancel(false);
               onClose();
             }}
-            className="focus-ring rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-primary transition-colors"
+            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
             aria-label="Close details"
           >
             <X className="h-5 w-5" />
@@ -109,7 +117,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
         </div>
 
         {cancelError && (
-          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-xs text-destructive">
+          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50/60 p-4 text-xs text-red-600">
             <ShieldAlert className="h-4 w-4 shrink-0" />
             <span>{cancelError}</span>
           </div>
@@ -119,51 +127,81 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
         <div className="mt-6 space-y-6">
           {/* Description */}
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Description</span>
-            <p className="mt-1.5 whitespace-pre-wrap rounded-2xl border border-border/80 bg-background p-4 text-sm leading-relaxed text-primary">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Description</span>
+            <p className="mt-2 whitespace-pre-wrap rounded-2xl border border-slate-100 bg-slate-50/50 p-4 text-xs sm:text-sm leading-relaxed text-slate-800 font-medium">
               {request.description}
             </p>
           </div>
 
           {/* Details Grid */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-border/60 bg-background/50 p-3.5">
-              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5 text-accent" /> Location
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200/80 hover:shadow-xs transition-all flex items-start gap-3">
+              <div className="h-9 w-9 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0">
+                <MapPin className="h-5 w-5" />
               </div>
-              <p className="mt-1 text-sm font-medium text-primary">{request.location}</p>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Location</span>
+                <p className="mt-0.5 text-sm font-extrabold text-slate-950">{request.location}</p>
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-border/60 bg-background/50 p-3.5">
-              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                <span className="font-mono text-xs font-bold text-accent">₹</span> Budget
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200/80 hover:shadow-xs transition-all flex items-start gap-3">
+              <div className="h-9 w-9 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0">
+                <IndianRupee className="h-4.5 w-4.5" />
               </div>
-              <p className="mt-1 text-base font-bold font-mono text-primary">₹{request.budget.toLocaleString()}</p>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Budget</span>
+                <p className="mt-0.5 text-base font-black text-emerald-700 font-mono">₹{request.budget.toLocaleString()}</p>
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-border/60 bg-background/50 p-3.5">
-              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                <Calendar className="h-3.5 w-3.5 text-accent" /> Preferred Time
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200/80 hover:shadow-xs transition-all flex items-start gap-3">
+              <div className="h-9 w-9 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0">
+                <Calendar className="h-5 w-5" />
               </div>
-              <p className="mt-1 text-xs font-medium text-primary">{formatDateTime(request.preferredTime)}</p>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Preferred Time</span>
+                <p className="mt-0.5 text-xs font-extrabold text-slate-950">{formatDateTime(request.preferredTime)}</p>
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-border/60 bg-background/50 p-3.5">
-              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                <Clock className="h-3.5 w-3.5 text-accent" /> Requested On
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200/80 hover:shadow-xs transition-all flex items-start gap-3">
+              <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-600 border border-slate-200/60 flex items-center justify-center shrink-0">
+                <Clock className="h-5 w-5" />
               </div>
-              <p className="mt-1 text-xs font-medium text-muted-foreground">{formatDateTime(request.createdAt)}</p>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Requested On</span>
+                <p className="mt-0.5 text-xs font-extrabold text-slate-950">{formatDateTime(request.createdAt)}</p>
+              </div>
             </div>
           </div>
 
+          {/* Assigned Worker Info Section */}
+          {request.workerName && (
+            <div className="rounded-2xl bg-emerald-50/60 border border-emerald-100/80 p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center shadow-sm">
+                  {request.workerName.substring(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">Assigned Worker</span>
+                  <span className="text-sm font-bold text-slate-900">{request.workerName}</span>
+                </div>
+              </div>
+              <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-800 border border-emerald-200">
+                Matched & Verified
+              </span>
+            </div>
+          )}
+
           {/* Confirmation Box when Cancelling */}
           {isConfirmingCancel && (
-            <div className="animate-rise-in rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-xs">
+            <div className="animate-rise-in rounded-2xl border border-red-200 bg-red-50/60 p-4 text-xs">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+                <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />
                 <div>
-                  <h4 className="font-bold text-destructive">Cancel this request?</h4>
-                  <p className="mt-1 text-destructive/80 leading-relaxed">
+                  <h4 className="font-bold text-red-800">Cancel this request?</h4>
+                  <p className="mt-1 text-red-700/80 leading-relaxed">
                     This request has not yet been assigned to a worker. Once cancelled, it will remain in your record as CANCELLED.
                   </p>
                 </div>
@@ -173,7 +211,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
                   type="button"
                   onClick={() => setIsConfirmingCancel(false)}
                   disabled={isCancelling}
-                  className="focus-ring rounded-xl border border-border bg-background px-4 py-2 font-bold text-primary hover:bg-secondary transition-colors text-xs"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 font-bold text-slate-700 hover:bg-slate-50 transition-colors text-xs"
                 >
                   Keep Request
                 </button>
@@ -181,7 +219,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
                   type="button"
                   onClick={handleCancel}
                   disabled={isCancelling}
-                  className="focus-ring inline-flex items-center gap-1.5 rounded-xl bg-destructive px-4 py-2 font-bold text-destructive-foreground hover:bg-destructive/90 transition-colors text-xs"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-4 py-2 font-bold text-white hover:bg-red-700 transition-colors text-xs shadow-sm"
                 >
                   {isCancelling ? (
                     <>
@@ -197,14 +235,14 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
         </div>
 
         {/* Modal Actions */}
-        <div className="mt-8 flex items-center justify-between border-t border-border/60 pt-4">
+        <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-4">
           <button
             type="button"
             onClick={() => {
               setIsConfirmingCancel(false);
               onClose();
             }}
-            className="focus-ring rounded-xl border border-border bg-background px-4 py-2 text-xs font-bold text-primary hover:bg-secondary transition-colors"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
           >
             Close
           </button>
@@ -213,7 +251,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
             <button
               type="button"
               onClick={() => setIsConfirmingCancel(true)}
-              className="focus-ring inline-flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-xs font-bold text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all"
+              className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-xs"
             >
               <Ban className="h-4 w-4" /> Cancel Request
             </button>

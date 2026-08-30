@@ -1577,25 +1577,27 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       {availableJobs.map((job) => (
                         <div
                           key={job.id}
-                          className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all space-y-4"
+                          className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all space-y-4 group"
                         >
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between gap-2">
                               <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
                                 {CATEGORY_LABELS[job.category]?.label || job.category}
                               </span>
-                              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-slate-700">
-                                OPEN
+                              <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2.5 py-0.5 text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">
+                                <Clock3 className="h-3 w-3 text-slate-600 animate-pulse" /> OPEN
                               </span>
                             </div>
 
-                            <h3 className="text-base font-bold text-slate-900 leading-snug">{job.description}</h3>
+                            <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">{job.description}</h3>
 
-                            <div className="flex items-center justify-between text-xs text-slate-600 pt-1">
-                              <span className="flex items-center gap-1">
+                            <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                              <span className="flex items-center gap-1 font-medium text-slate-600">
                                 <MapPin className="h-3.5 w-3.5 text-slate-400" /> {job.location || 'Goa'}
                               </span>
-                              <span className="font-bold text-slate-900 text-sm">₹{job.budget}</span>
+                              <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
+                                Budget: <strong className="text-emerald-800 font-extrabold font-mono text-sm">₹{job.budget}</strong>
+                              </span>
                             </div>
                           </div>
 
@@ -1603,18 +1605,24 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             <button
                               type="button"
                               onClick={() => handleOpenDetail(job)}
-                              className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1"
+                              className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
                             >
-                              <Eye className="h-3.5 w-3.5" /> View Details
+                              <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
                             </button>
 
                             <button
                               type="button"
                               onClick={() => handleAcceptJob(job.id)}
                               disabled={acceptingRequestId === job.id}
-                              className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+                              className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                             >
-                              {acceptingRequestId === job.id ? 'Accepting...' : 'Accept Job'}
+                              {acceptingRequestId === job.id ? (
+                                <>
+                                  <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Accepting...
+                                </>
+                              ) : (
+                                'Accept Job'
+                              )}
                             </button>
                           </div>
                         </div>
@@ -2065,37 +2073,46 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             {/* TAB: WORKER PROFILE */}
             {activeTab === 'profile' && (
               <div className="space-y-6 max-w-3xl mx-auto">
-                {/* PROFILE IDENTITY HEADER */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6">
-                  <div className="h-20 w-20 rounded-full bg-slate-900 text-white font-extrabold text-2xl flex items-center justify-center shadow-md shrink-0">
-                    {workerProfile?.workerName ? workerProfile.workerName.substring(0, 2).toUpperCase() : 'JW'}
+                 {/* PROFILE IDENTITY HEADER */}
+                <div className="rounded-3xl border border-slate-200/90 bg-gradient-to-br from-slate-50/65 via-white to-emerald-50/20 p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6 hover:shadow-sm transition-all">
+                  <div className="relative shrink-0">
+                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-950 text-white font-black text-2xl flex items-center justify-center shadow-md">
+                      {workerProfile?.workerName ? workerProfile.workerName.substring(0, 2).toUpperCase() : 'JW'}
+                    </div>
+                    <span className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white ${workerProfile?.available ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                   </div>
 
                   <div className="space-y-2 text-center sm:text-left flex-1">
                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                      <h2 className="text-2xl font-bold text-slate-900">{workerProfile?.workerName || 'Worker Profile'}</h2>
-                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-700">
-                        {workerProfile?.available ? 'AVAILABLE FOR WORK' : 'UNAVAILABLE'}
+                      <h2 className="text-2xl font-black text-slate-900">{workerProfile?.workerName || 'Worker Profile'}</h2>
+                      <span className={`rounded-lg border px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
+                        workerProfile?.available
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          : 'bg-slate-100 border-slate-200 text-slate-500'
+                      }`}>
+                        {workerProfile?.available ? 'Available' : 'Unavailable'}
                       </span>
                     </div>
 
                     <p className="text-xs text-slate-500">{user?.email || 'worker@example.com'}</p>
 
-                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-600">
+                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-600 font-medium">
                       <span className="flex items-center gap-1 text-amber-600 font-bold">
                         <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                         {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'} ({workerRatingSummary?.totalRatings || 0} reviews)
                       </span>
-                      <span>• {workerProfile?.serviceLocation || 'Goa'}</span>
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-slate-400" /> {workerProfile?.serviceLocation || 'Goa'}
+                      </span>
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setIsProfileModalOpen(true)}
-                    className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-xs"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
                   >
-                    Edit Profile
+                    <Edit className="h-3.5 w-3.5 text-slate-400" /> Edit Profile
                   </button>
                 </div>
 
