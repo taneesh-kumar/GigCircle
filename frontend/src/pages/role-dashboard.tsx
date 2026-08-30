@@ -40,6 +40,11 @@ import {
   Layers,
   Bell,
   ChevronRight,
+  Hammer,
+  Paintbrush,
+  Sprout,
+  Tv,
+  HelpCircle,
 } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi } from '@/hooks/use-api';
@@ -154,8 +159,16 @@ const getCategoryIcon = (category: string) => {
       return <Activity className="h-5 w-5 text-amber-600 animate-pulse" />;
     case 'CLEANING':
       return <Sparkles className="h-5 w-5 text-teal-600" />;
+    case 'CARPENTRY':
+      return <Hammer className="h-5 w-5 text-orange-600" />;
+    case 'PAINTING':
+      return <Paintbrush className="h-5 w-5 text-pink-600" />;
+    case 'GARDENING':
+      return <Sprout className="h-5 w-5 text-green-600" />;
+    case 'APPLIANCE_REPAIR':
+      return <Tv className="h-5 w-5 text-sky-600" />;
     default:
-      return <Briefcase className="h-5 w-5 text-blue-600" />;
+      return <HelpCircle className="h-5 w-5 text-slate-500" />;
   }
 };
 
@@ -1437,8 +1450,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:bg-white hover:border-emerald-200 hover:shadow-md hover:-translate-y-0.5 group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                             >
                               <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-                                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-blue-500/10 text-emerald-700 border border-emerald-200/50 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                                  <Briefcase className="h-5 w-5 text-emerald-600" />
+                                <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                  {getCategoryIcon(job.category)}
                                 </div>
                                 <div className="min-w-0 space-y-1">
                                   <div className="flex flex-wrap items-center gap-2">
@@ -1651,15 +1664,21 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               </span>
                             </div>
 
-                            <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">{job.description}</h3>
-
-                            <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                              <span className="flex items-center gap-1 font-medium text-slate-600">
-                                <MapPin className="h-3.5 w-3.5 text-slate-400" /> {job.location || 'Goa'}
-                              </span>
-                              <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
-                                Budget: <strong className="text-emerald-800 font-extrabold font-mono text-sm">₹{job.budget}</strong>
-                              </span>
+                            <div className="flex items-start gap-4">
+                              <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                {getCategoryIcon(job.category)}
+                              </div>
+                              <div className="flex-1 min-w-0 space-y-1.5">
+                                <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">{job.description}</h3>
+                                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-slate-500">
+                                  <span className="flex items-center gap-1 font-medium text-slate-600">
+                                    <MapPin className="h-3.5 w-3.5 text-slate-400" /> {job.location || 'Goa'}
+                                  </span>
+                                  <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
+                                    Budget: <strong className="text-emerald-800 font-extrabold font-mono text-sm">₹{job.budget.toLocaleString()}</strong>
+                                  </span>
+                                </div>
+                              </div>
                             </div>
                           </div>
 
@@ -1786,17 +1805,23 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 </span>
                               </div>
 
-                              <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">
-                                {job.description}
-                              </h3>
-
-                              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-                                <span className="flex items-center gap-1">
-                                  <User className="h-3.5 w-3.5 text-slate-400" /> Customer: <strong className="text-slate-800 font-semibold">{job.customerName || 'Customer'}</strong>
-                                </span>
-                                <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
-                                  Budget: <strong className="text-emerald-800 font-extrabold font-mono">₹{job.budget}</strong>
-                                </span>
+                              <div className="flex items-start gap-4">
+                                <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                  {getCategoryIcon(job.category)}
+                                </div>
+                                <div className="flex-1 min-w-0 space-y-1.5">
+                                  <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">
+                                    {job.description}
+                                  </h3>
+                                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-slate-500">
+                                    <span className="flex items-center gap-1">
+                                      <User className="h-3.5 w-3.5 text-slate-400" /> Customer: <strong className="text-slate-800 font-semibold">{job.customerName || 'Customer'}</strong>
+                                    </span>
+                                    <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
+                                      Budget: <strong className="text-emerald-800 font-extrabold font-mono text-sm">₹{job.budget.toLocaleString()}</strong>
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
 
                               {/* 3-STAGE WORKER EXECUTION PIPELINE LINE */}
