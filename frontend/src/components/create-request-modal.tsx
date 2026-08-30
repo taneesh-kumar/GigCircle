@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Calendar, Clock, DollarSign, MapPin, Wrench, X, AlertCircle, Loader2, Check, Sparkles, Activity, Briefcase, Hammer, Paintbrush, Sprout, Tv, HelpCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, Clock, ChevronDown, MapPin, Wrench, X, AlertCircle, Loader2, Check, Sparkles, Activity, Briefcase, Hammer, Paintbrush, Sprout, Tv, HelpCircle } from 'lucide-react';
 import { createServiceRequestApi } from '@/services/api';
 import { CATEGORY_LABELS, type ServiceCategory } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
@@ -41,12 +41,13 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
   const [budget, setBudget] = useState('');
   const [preferredTime, setPreferredTime] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
+  const [selectedTime, setSelectedTime] = useState('09:00');
   const [viewMonth, setViewMonth] = useState(() => {
     const initial = new Date();
     initial.setHours(0, 0, 0, 0);
     return new Date(initial.getFullYear(), initial.getMonth(), 1);
   });
+  const [isMonthMenuOpen, setIsMonthMenuOpen] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,9 +83,11 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
     });
   }
 
-  const hourOptions = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
-  const minuteOptions = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'));
-  const periodOptions = ['AM', 'PM'];
+  const timeSlots = Array.from({ length: 9 }, (_, index) => {
+    const hour = 9 + index;
+    return `${String(hour).padStart(2, '0')}:00`;
+  });
+
   const monthOptions = Array.from({ length: 3 }, (_, index) => {
     const monthDate = new Date(today.getFullYear(), today.getMonth() + index, 1);
     return {
@@ -93,18 +96,6 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
       label: monthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
     };
   });
-
-  const WHEEL_ITEM_HEIGHT = 42;
-  const timeColumnRefs = useRef<Record<'hour' | 'minute' | 'period', HTMLDivElement | null>>({
-    hour: null,
-    minute: null,
-    period: null,
-  });
-
-  const getWheelScrollTop = (index: number, container: HTMLDivElement) => {
-    const centerOffset = container.clientHeight / 2 - WHEEL_ITEM_HEIGHT / 2;
-    return Math.max(0, index * WHEEL_ITEM_HEIGHT - centerOffset);
-  };
 
   const updatePreferredTime = (nextDate: string, nextTime: string) => {
     const nextValue = nextDate && nextTime ? `${nextDate}T${nextTime}:00` : '';
@@ -132,67 +123,6 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
     setViewMonth(new Date(safeYear, clampedMonth, 1));
   };
 
-  const getDisplayTime = (timeValue: string) => {
-    if (!timeValue) {
-      return { hour: '09', minute: '00', period: 'AM' };
-    }
-
-    const [hourValue, minuteValue] = timeValue.split(':');
-    const hourNumber = Number(hourValue);
-    const hour12 = hourNumber % 12 || 12;
-
-    return {
-      hour: String(hour12).padStart(2, '0'),
-      minute: minuteValue,
-      period: hourNumber >= 12 ? 'PM' : 'AM',
-    };
-  };
-
-  const selectedDisplay = getDisplayTime(selectedTime || '09:00');
-
-  const updateDisplayedTime = (nextHour: string, nextMinute: string, nextPeriod: string) => {
-    let hour24 = Number(nextHour);
-    if (nextPeriod === 'AM' && hour24 === 12) {
-      hour24 = 0;
-    }
-    if (nextPeriod === 'PM' && hour24 !== 12) {
-      hour24 += 12;
-    }
-
-    const nextTime = `${String(hour24).padStart(2, '0')}:${nextMinute}`;
-    handleTimeSelect(nextTime);
-  };
-
-  const handleTimeColumnScroll = (
-    event: React.UIEvent<HTMLDivElement>,
-    options: string[],
-    currentValue: string,
-    onChange: (value: string) => void,
-  ) => {
-    const container = event.currentTarget;
-    const center = container.clientHeight / 2;
-    const rawIndex = (container.scrollTop + center - WHEEL_ITEM_HEIGHT / 2) / WHEEL_ITEM_HEIGHT;
-    const index = Math.min(options.length - 1, Math.max(0, Math.round(rawIndex)));
-    const nextValue = options[index];
-
-    if (nextValue !== currentValue) {
-      onChange(nextValue);
-    }
-  };
-
-  useEffect(() => {
-    const setScrollPosition = (column: 'hour' | 'minute' | 'period', value: string, options: string[]) => {
-      const container = timeColumnRefs.current[column];
-      if (!container) return;
-      const index = options.indexOf(value);
-      if (index === -1) return;
-      container.scrollTop = getWheelScrollTop(index, container);
-    };
-
-    setScrollPosition('hour', selectedDisplay.hour, hourOptions);
-    setScrollPosition('minute', selectedDisplay.minute, minuteOptions);
-    setScrollPosition('period', selectedDisplay.period, periodOptions);
-  }, [selectedDisplay.hour, selectedDisplay.minute, selectedDisplay.period]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -280,7 +210,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs animate-rise-in">
       <div
-        className="relative w-full max-w-2xl rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xl md:p-8"
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xl md:p-8"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
@@ -448,9 +378,43 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
               <div>
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Choose date</p>
-                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs font-semibold text-slate-700">
-                    <Calendar className="h-3.5 w-3.5 text-slate-500" />
-                    <span>{monthName}</span>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsMonthMenuOpen((prev) => !prev)}
+                      className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:bg-white"
+                      aria-label="Select month"
+                    >
+                      <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                      <span>{monthName}</span>
+                      <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                    </button>
+
+                    {isMonthMenuOpen && (
+                      <div className="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                        {monthOptions.map((option) => {
+                          const isActive = option.value === monthDate.getMonth() && option.year === monthDate.getFullYear();
+                          return (
+                            <button
+                              key={`${option.year}-${option.value}`}
+                              type="button"
+                              onClick={() => {
+                                setViewMonth(new Date(option.year, option.value, 1));
+                                setIsMonthMenuOpen(false);
+                              }}
+                              className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-medium transition ${
+                                isActive
+                                  ? 'bg-emerald-500 text-white shadow-sm'
+                                  : 'text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              <span>{option.label}</span>
+                              {isActive && <Check className="h-4 w-4" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -492,74 +456,26 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
               </div>
 
               <div>
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Choose time</p>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Choose time slot</p>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
-                  <div className="grid grid-cols-[1fr_1fr_90px] gap-3">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-2">
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Hour</label>
-                      <div
-                        ref={(node) => {
-                          timeColumnRefs.current.hour = node;
-                        }}
-                        className="h-28 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 px-2 py-1 scrollbar-none"
-                        onScroll={(event) => handleTimeColumnScroll(event, hourOptions, selectedDisplay.hour, (value) => updateDisplayedTime(value, selectedDisplay.minute, selectedDisplay.period))}
-                      >
-                        {hourOptions.map((hour) => (
-                          <div
-                            key={hour}
-                            className={`flex h-[42px] items-center justify-center rounded-lg text-sm font-bold transition-colors ${
-                              selectedDisplay.hour === hour ? 'bg-emerald-500 text-white' : 'text-slate-700 hover:bg-slate-100'
-                            }`}
-                          >
-                            {hour}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200 bg-white p-2">
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Minutes</label>
-                      <div
-                        ref={(node) => {
-                          timeColumnRefs.current.minute = node;
-                        }}
-                        className="h-28 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 px-2 py-1 scrollbar-none"
-                        onScroll={(event) => handleTimeColumnScroll(event, minuteOptions, selectedDisplay.minute, (value) => updateDisplayedTime(selectedDisplay.hour, value, selectedDisplay.period))}
-                      >
-                        {minuteOptions.map((minute) => (
-                          <div
-                            key={minute}
-                            className={`flex h-[42px] items-center justify-center rounded-lg text-sm font-bold transition-colors ${
-                              selectedDisplay.minute === minute ? 'bg-emerald-500 text-white' : 'text-slate-700 hover:bg-slate-100'
-                            }`}
-                          >
-                            {minute}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200 bg-white p-2">
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">AM/PM</label>
-                      <div
-                        ref={(node) => {
-                          timeColumnRefs.current.period = node;
-                        }}
-                        className="h-28 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 px-2 py-1 scrollbar-none"
-                        onScroll={(event) => handleTimeColumnScroll(event, periodOptions, selectedDisplay.period, (value) => updateDisplayedTime(selectedDisplay.hour, selectedDisplay.minute, value))}
-                      >
-                        {periodOptions.map((period) => (
-                          <div
-                            key={period}
-                            className={`flex h-[42px] items-center justify-center rounded-lg text-sm font-bold transition-colors ${
-                              selectedDisplay.period === period ? 'bg-emerald-500 text-white' : 'text-slate-700 hover:bg-slate-100'
-                            }`}
-                          >
-                            {period}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {timeSlots.map((slot) => {
+                      const isSelected = selectedTime === slot;
+                      return (
+                        <button
+                          key={slot}
+                          type="button"
+                          onClick={() => handleTimeSelect(slot)}
+                          className={`rounded-xl border px-3 py-2 text-sm font-semibold transition-all ${
+                            isSelected
+                              ? 'border-emerald-500 bg-emerald-500 text-white shadow-sm'
+                              : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50'
+                          }`}
+                        >
+                          {slot}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
