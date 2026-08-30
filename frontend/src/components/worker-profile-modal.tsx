@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Check, DollarSign, MapPin, Plus, ShieldCheck, Tag, User, X, AlertCircle, Loader2 } from 'lucide-react';
+import { Briefcase, Check, DollarSign, MapPin, Plus, ShieldCheck, Tag, User, X, AlertCircle, Loader2, Wrench, Activity, Sparkles, Hammer, Paintbrush, Sprout, Tv, HelpCircle } from 'lucide-react';
 import { createWorkerProfileApi, updateWorkerProfileApi } from '@/services/api';
 import { CATEGORY_LABELS, type ServiceCategory } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
@@ -11,6 +11,28 @@ interface WorkerProfileModalProps {
   onSuccess: (profile: WorkerProfile) => void;
   existingProfile: WorkerProfile | null;
 }
+
+const getCategoryIcon = (category: string) => {
+  const catUpper = (category || '').toUpperCase();
+  switch (catUpper) {
+    case 'PLUMBING':
+      return <Wrench className="h-5 w-5 text-emerald-600" />;
+    case 'ELECTRICAL':
+      return <Activity className="h-5 w-5 text-amber-600 animate-pulse" />;
+    case 'CLEANING':
+      return <Sparkles className="h-5 w-5 text-teal-600" />;
+    case 'CARPENTRY':
+      return <Hammer className="h-5 w-5 text-orange-600" />;
+    case 'PAINTING':
+      return <Paintbrush className="h-5 w-5 text-pink-600" />;
+    case 'GARDENING':
+      return <Sprout className="h-5 w-5 text-green-600" />;
+    case 'APPLIANCE_REPAIR':
+      return <Tv className="h-5 w-5 text-sky-600" />;
+    default:
+      return <HelpCircle className="h-5 w-5 text-slate-500" />;
+  }
+};
 
 export function WorkerProfileModal({ isOpen, onClose, onSuccess, existingProfile }: WorkerProfileModalProps) {
   const { toast } = useToast();
@@ -220,19 +242,24 @@ export function WorkerProfileModal({ isOpen, onClose, onSuccess, existingProfile
                     key={catKey}
                     type="button"
                     onClick={() => toggleCategory(catKey)}
-                    className={`focus-ring relative flex flex-col items-start justify-between rounded-2xl border p-3 text-left transition-all ${
+                    className={`relative flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5 shadow-2xs ${
                       isSelected
-                        ? 'border-accent bg-accent/10 text-accent font-semibold shadow-xs'
-                        : 'border-border/80 bg-background text-muted-foreground hover:border-accent/50 hover:text-primary'
+                        ? 'border-emerald-500 bg-emerald-50/60 font-semibold shadow-xs ring-1 ring-emerald-500/20 text-emerald-950'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:shadow-xs'
                     }`}
                   >
                     {isSelected && (
-                      <span className="absolute top-2.5 right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-accent-foreground text-[10px]">
-                        <Check className="h-2.5 w-2.5" />
+                      <span className="absolute top-3 right-3 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-white shadow-2xs">
+                        <Check className="h-2.5 w-2.5 stroke-[3]" />
                       </span>
                     )}
-                    <span className="text-xs font-bold">{CATEGORY_LABELS[catKey].label}</span>
-                    <span className="mt-1 line-clamp-1 text-[10px] text-muted-foreground">
+                    <div className={`h-8 w-8 rounded-xl flex items-center justify-center shadow-3xs ${
+                      isSelected ? 'bg-white text-emerald-600' : 'bg-slate-50 text-slate-600 border border-slate-100'
+                    }`}>
+                      {getCategoryIcon(catKey)}
+                    </div>
+                    <span className="text-xs font-black tracking-tight mt-1">{CATEGORY_LABELS[catKey].label}</span>
+                    <span className="line-clamp-1 text-[9px] text-slate-400 font-medium">
                       {CATEGORY_LABELS[catKey].description}
                     </span>
                   </button>

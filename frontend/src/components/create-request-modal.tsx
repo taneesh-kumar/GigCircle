@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Calendar, Clock, DollarSign, MapPin, Wrench, X, AlertCircle, Loader2, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, Clock, MapPin, Wrench, X, AlertCircle, Loader2, Check, Sparkles, Activity, Briefcase, Hammer, Paintbrush, Sprout, Tv, HelpCircle } from 'lucide-react';
 import { createServiceRequestApi } from '@/services/api';
 import { CATEGORY_LABELS, type ServiceCategory } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +9,28 @@ interface CreateRequestModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
+
+const getCategoryIcon = (category: string) => {
+  const catUpper = (category || '').toUpperCase();
+  switch (catUpper) {
+    case 'PLUMBING':
+      return <Wrench className="h-5 w-5 text-emerald-600" />;
+    case 'ELECTRICAL':
+      return <Activity className="h-5 w-5 text-amber-600 animate-pulse" />;
+    case 'CLEANING':
+      return <Sparkles className="h-5 w-5 text-teal-600" />;
+    case 'CARPENTRY':
+      return <Hammer className="h-5 w-5 text-orange-600" />;
+    case 'PAINTING':
+      return <Paintbrush className="h-5 w-5 text-pink-600" />;
+    case 'GARDENING':
+      return <Sprout className="h-5 w-5 text-green-600" />;
+    case 'APPLIANCE_REPAIR':
+      return <Tv className="h-5 w-5 text-sky-600" />;
+    default:
+      return <HelpCircle className="h-5 w-5 text-slate-500" />;
+  }
+};
 
 export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequestModalProps) {
   const { toast } = useToast();
@@ -258,29 +280,31 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs animate-rise-in">
       <div
-        className="relative w-full max-w-2xl rounded-3xl border border-border bg-card p-6 shadow-2xl md:p-8"
+        className="relative w-full max-w-2xl rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xl md:p-8"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
       >
         {/* Modal Header */}
-        <div className="flex items-start justify-between border-b border-border/60 pb-5">
-          <div>
-            <div className="flex items-center gap-2 text-accent">
-              <Wrench className="h-4 w-4" />
-              <span className="font-mono text-[11px] font-bold uppercase tracking-wider">New Customer Request</span>
+        <div className="flex items-start justify-between border-b border-slate-100 pb-5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                New Customer Request
+              </span>
             </div>
-            <h2 id="modal-title" className="mt-1 font-display text-2xl font-semibold text-primary">
+            <h2 id="modal-title" className="font-display text-2xl font-black text-slate-900">
               Request a Service
             </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Describe what your household needs and specify your location and preferred schedule.
             </p>
           </div>
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="focus-ring rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-primary transition-colors disabled:opacity-50"
+            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:opacity-50"
             aria-label="Close dialog"
           >
             <X className="h-5 w-5" />
@@ -288,7 +312,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
         </div>
 
         {submitError && (
-          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-xs text-destructive">
+          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50/60 p-4 text-xs text-red-600">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{submitError}</span>
           </div>
@@ -298,8 +322,8 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
         <form onSubmit={handleSubmit} className="mt-6 space-y-6">
           {/* Service Category */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-primary">
-              Service Category <span className="text-destructive">*</span>
+            <label className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
+              Service Category <span className="text-red-500">*</span>
             </label>
             <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               {(Object.keys(CATEGORY_LABELS) as ServiceCategory[]).map((catKey) => {
@@ -312,32 +336,37 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                       setCategory(catKey);
                       if (errors.category) setErrors((prev) => ({ ...prev, category: '' }));
                     }}
-                    className={`focus-ring relative flex flex-col items-start justify-between rounded-2xl border p-3 text-left transition-all ${
+                    className={`relative flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5 shadow-2xs ${
                       isSelected
-                        ? 'border-accent bg-accent/10 text-accent font-semibold shadow-xs'
-                        : 'border-border/80 bg-background text-muted-foreground hover:border-accent/50 hover:text-primary'
+                        ? 'border-emerald-500 bg-emerald-50/60 font-semibold shadow-xs ring-1 ring-emerald-500/20 text-emerald-950'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:shadow-xs'
                     }`}
                   >
                     {isSelected && (
-                      <span className="absolute top-2.5 right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-accent-foreground text-[10px]">
-                        <Check className="h-2.5 w-2.5" />
+                      <span className="absolute top-3 right-3 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-white shadow-2xs">
+                        <Check className="h-2.5 w-2.5 stroke-[3]" />
                       </span>
                     )}
-                    <span className="text-xs font-bold">{CATEGORY_LABELS[catKey].label}</span>
-                    <span className="mt-1 line-clamp-1 text-[10px] text-muted-foreground">
+                    <div className={`h-8 w-8 rounded-xl flex items-center justify-center shadow-3xs ${
+                      isSelected ? 'bg-white text-emerald-600' : 'bg-slate-50 text-slate-600 border border-slate-100'
+                    }`}>
+                      {getCategoryIcon(catKey)}
+                    </div>
+                    <span className="text-xs font-black tracking-tight mt-1">{CATEGORY_LABELS[catKey].label}</span>
+                    <span className="line-clamp-1 text-[9px] text-slate-400 font-medium">
                       {CATEGORY_LABELS[catKey].description}
                     </span>
                   </button>
                 );
               })}
             </div>
-            {errors.category && <p className="mt-1.5 text-xs text-destructive">{errors.category}</p>}
+            {errors.category && <p className="mt-1.5 text-xs text-red-600">{errors.category}</p>}
           </div>
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-xs font-bold uppercase tracking-wider text-primary">
-              Describe what you need <span className="text-destructive">*</span>
+            <label htmlFor="description" className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
+              Describe what you need <span className="text-red-500">*</span>
             </label>
             <div className="mt-2">
               <textarea
@@ -349,18 +378,18 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                   if (errors.description) setErrors((prev) => ({ ...prev, description: '' }));
                 }}
                 placeholder="e.g. Kitchen sink drain is completely blocked and water is leaking onto the floor..."
-                className={`focus-ring w-full rounded-2xl border bg-background p-3.5 text-sm text-primary placeholder:text-muted-foreground/60 transition-colors ${
-                  errors.description ? 'border-destructive' : 'border-border/80 hover:border-accent/40'
+                className={`w-full rounded-2xl border bg-white p-3.5 text-sm text-slate-900 placeholder:text-slate-400/80 hover:border-slate-300 hover:shadow-2xs transition-all ${
+                  errors.description ? 'border-red-500' : 'border-slate-200'
                 }`}
               />
             </div>
-            <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+            <div className="mt-1 flex justify-between text-[10px] text-slate-400">
               {errors.description ? (
-                <span className="text-xs text-destructive">{errors.description}</span>
+                <span className="text-xs text-red-600">{errors.description}</span>
               ) : (
-                <span>Provide specific details so workers understand the job scope</span>
+                <span className="font-medium">Provide specific details so workers understand the job scope</span>
               )}
-              <span>{description.length}/1000</span>
+              <span className="font-medium">{description.length}/1000</span>
             </div>
           </div>
 
@@ -368,11 +397,11 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
           <div className="grid gap-5 sm:grid-cols-2">
             {/* Location */}
             <div>
-              <label htmlFor="location" className="block text-xs font-bold uppercase tracking-wider text-primary">
-                Service Location <span className="text-destructive">*</span>
+              <label htmlFor="location" className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
+                Service Location <span className="text-red-500">*</span>
               </label>
               <div className="relative mt-2">
-                <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
+                <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
                 <input
                   id="location"
                   type="text"
@@ -382,21 +411,21 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                     if (errors.location) setErrors((prev) => ({ ...prev, location: '' }));
                   }}
                   placeholder="e.g. Indiranagar, Bengaluru"
-                  className={`focus-ring w-full rounded-2xl border bg-background pl-10 pr-3.5 py-3 text-sm text-primary placeholder:text-muted-foreground/60 transition-colors ${
-                    errors.location ? 'border-destructive' : 'border-border/80 hover:border-accent/40'
+                  className={`w-full rounded-2xl border bg-white pl-10 pr-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400/80 hover:border-slate-300 hover:shadow-2xs transition-all ${
+                    errors.location ? 'border-red-500' : 'border-slate-200'
                   }`}
                 />
               </div>
-              {errors.location && <p className="mt-1.5 text-xs text-destructive">{errors.location}</p>}
+              {errors.location && <p className="mt-1.5 text-xs text-red-600">{errors.location}</p>}
             </div>
 
             {/* Budget */}
             <div>
-              <label htmlFor="budget" className="block text-xs font-bold uppercase tracking-wider text-primary">
-                Estimated Budget (₹) <span className="text-destructive">*</span>
+              <label htmlFor="budget" className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
+                Estimated Budget (₹) <span className="text-red-500">*</span>
               </label>
               <div className="relative mt-2">
-                <span className="absolute left-3.5 top-3 h-4 w-4 font-mono font-bold text-muted-foreground">₹</span>
+                <span className="absolute left-3.5 top-3.5 h-4 w-4 font-mono font-bold text-slate-400">₹</span>
                 <input
                   id="budget"
                   type="number"
@@ -408,167 +437,53 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                     if (errors.budget) setErrors((prev) => ({ ...prev, budget: '' }));
                   }}
                   placeholder="700"
-                  className={`focus-ring w-full rounded-2xl border bg-background pl-9 pr-3.5 py-3 text-sm text-primary placeholder:text-muted-foreground/60 transition-colors ${
-                    errors.budget ? 'border-destructive' : 'border-border/80 hover:border-accent/40'
+                  className={`w-full rounded-2xl border bg-white pl-9 pr-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400/80 hover:border-slate-300 hover:shadow-2xs transition-all ${
+                    errors.budget ? 'border-red-500' : 'border-slate-200'
                   }`}
                 />
               </div>
-              {errors.budget && <p className="mt-1.5 text-xs text-destructive">{errors.budget}</p>}
+              {errors.budget && <p className="mt-1.5 text-xs text-red-600">{errors.budget}</p>}
             </div>
           </div>
 
           {/* Preferred Date & Time */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-primary">
-              Preferred Date & Time <span className="text-destructive">*</span>
+            <label htmlFor="preferredTime" className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
+              Preferred Date & Time <span className="text-red-500">*</span>
             </label>
-
-            <div className="mt-3 space-y-4">
-              <div>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Choose date</p>
-                  <select
-                    value={monthDate.getMonth()}
-                    onChange={(event) => handleMonthChange(Number(event.target.value), monthDate.getFullYear())}
-                    className="rounded-lg border border-border/80 bg-background px-2 py-1.5 text-xs font-semibold text-primary outline-none focus:border-accent"
-                    aria-label="Select month"
-                  >
-                    {monthOptions.map((month) => (
-                      <option key={`${month.year}-${month.value}`} value={month.value}>
-                        {month.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="rounded-2xl border border-border/80 bg-background p-2.5">
-                  <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-                      <span key={day} className="py-1">
-                        {day}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {monthDays.map((day, index) => {
-                      if (!day) {
-                        return <div key={`empty-${index}`} className="h-10" />;
-                      }
-
-                      const isSelected = selectedDate === day.value;
-
-                      return (
-                        <button
-                          key={day.value}
-                          type="button"
-                          disabled={day.disabled}
-                          onClick={() => handleDateSelect(day.value)}
-                          className={`h-10 rounded-xl border text-sm font-semibold transition-all ${
-                            isSelected
-                              ? 'border-accent bg-accent text-accent-foreground shadow-sm'
-                              : day.disabled
-                                ? 'border-transparent bg-muted/40 text-muted-foreground/60 cursor-not-allowed'
-                                : 'border-border/80 bg-background text-primary hover:border-accent/40 hover:bg-secondary/60'
-                          }`}
-                        >
-                          {day.day}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Choose time</p>
-                <div className="rounded-2xl border border-border/80 bg-background p-3">
-                  <div className="grid grid-cols-[1fr_1fr_90px] gap-3">
-                    <div className="rounded-2xl border border-border/80 bg-muted/10 p-2">
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Hour</label>
-                      <select
-                        value={selectedDisplay.hour}
-                        onChange={(event) => updateDisplayedTime(event.target.value, selectedDisplay.minute, selectedDisplay.period)}
-                        className="w-full appearance-none rounded-xl border border-border bg-background px-2 py-2.5 pr-8 text-lg font-bold text-primary outline-none focus:border-accent"
-                        aria-label="Select hour"
-                        style={{ backgroundImage: 'linear-gradient(45deg, transparent 50%, hsl(var(--muted-foreground)) 50%), linear-gradient(135deg, hsl(var(--muted-foreground)) 50%, transparent 50%)', backgroundPosition: 'calc(100% - 16px) calc(50% - 2px), calc(100% - 11px) calc(50% - 2px)', backgroundSize: '5px 5px, 5px 5px', backgroundRepeat: 'no-repeat' }}
-                      >
-                        {hourOptions.map((hour) => (
-                          <option key={hour} value={hour}>{hour}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="rounded-2xl border border-border/80 bg-muted/10 p-2">
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Minutes</label>
-                      <select
-                        value={selectedDisplay.minute}
-                        onChange={(event) => updateDisplayedTime(selectedDisplay.hour, event.target.value, selectedDisplay.period)}
-                        className="w-full appearance-none rounded-xl border border-border bg-background px-2 py-2.5 pr-8 text-lg font-bold text-primary outline-none focus:border-accent"
-                        aria-label="Select minute"
-                        style={{ backgroundImage: 'linear-gradient(45deg, transparent 50%, hsl(var(--muted-foreground)) 50%), linear-gradient(135deg, hsl(var(--muted-foreground)) 50%, transparent 50%)', backgroundPosition: 'calc(100% - 16px) calc(50% - 2px), calc(100% - 11px) calc(50% - 2px)', backgroundSize: '5px 5px, 5px 5px', backgroundRepeat: 'no-repeat' }}
-                      >
-                        {minuteOptions.map((minute) => (
-                          <option key={minute} value={minute}>{minute}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="rounded-2xl border border-border/80 bg-muted/10 p-2">
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">AM/PM</label>
-                      <select
-                        value={selectedDisplay.period}
-                        onChange={(event) => updateDisplayedTime(selectedDisplay.hour, selectedDisplay.minute, event.target.value)}
-                        className="w-full appearance-none rounded-xl border border-border bg-background px-2 py-2.5 pr-8 text-lg font-bold text-primary outline-none focus:border-accent"
-                        aria-label="Select period"
-                        style={{ backgroundImage: 'linear-gradient(45deg, transparent 50%, hsl(var(--muted-foreground)) 50%), linear-gradient(135deg, hsl(var(--muted-foreground)) 50%, transparent 50%)', backgroundPosition: 'calc(100% - 16px) calc(50% - 2px), calc(100% - 11px) calc(50% - 2px)', backgroundSize: '5px 5px, 5px 5px', backgroundRepeat: 'no-repeat' }}
-                      >
-                        {periodOptions.map((period) => (
-                          <option key={period} value={period}>{period}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {selectedDate && selectedTime && (
-                <div className="rounded-2xl border border-accent/20 bg-accent/5 px-3 py-2 text-sm text-primary">
-                  <div className="flex items-center gap-2 text-accent">
-                    <Calendar className="h-4 w-4" />
-                    <span className="font-semibold">
-                      {new Date(`${selectedDate}T${selectedTime}:00`).toLocaleString('en-IN', {
-                        weekday: 'short',
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true,
-                      })}
-                    </span>
-                  </div>
-                </div>
-              )}
+            <div className="relative mt-2">
+              <Calendar className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+              <input
+                id="preferredTime"
+                type="datetime-local"
+                min={nowStr}
+                value={preferredTime}
+                onChange={(e) => {
+                  setPreferredTime(e.target.value);
+                  if (errors.preferredTime) setErrors((prev) => ({ ...prev, preferredTime: '' }));
+                }}
+                className={`w-full rounded-2xl border bg-white pl-10 pr-3.5 py-3 text-sm text-slate-900 hover:border-slate-300 hover:shadow-2xs transition-all ${
+                  errors.preferredTime ? 'border-red-500' : 'border-slate-200'
+                }`}
+              />
             </div>
-
-            {errors.preferredTime && <p className="mt-1.5 text-xs text-destructive">{errors.preferredTime}</p>}
+            {errors.preferredTime && <p className="mt-1.5 text-xs text-red-600">{errors.preferredTime}</p>}
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-border/60 pt-5">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="focus-ring rounded-xl border border-border bg-background px-5 py-2.5 text-xs font-bold text-primary hover:bg-secondary transition-colors disabled:opacity-50"
+              className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 shadow-xs"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="focus-ring inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-2.5 text-xs font-bold text-accent-foreground shadow-md transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-700 transition-colors disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

@@ -40,6 +40,11 @@ import {
   Layers,
   Bell,
   ChevronRight,
+  Hammer,
+  Paintbrush,
+  Sprout,
+  Tv,
+  HelpCircle,
 } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi } from '@/hooks/use-api';
@@ -143,6 +148,28 @@ const roleContent: Record<
     statLabel: 'authenticated admin',
     icon: ShieldCheck,
   },
+};
+
+const getCategoryIcon = (category: string) => {
+  const catLower = (category || '').toUpperCase();
+  switch (catLower) {
+    case 'PLUMBING':
+      return <Wrench className="h-5 w-5 text-emerald-600" />;
+    case 'ELECTRICAL':
+      return <Activity className="h-5 w-5 text-amber-600 animate-pulse" />;
+    case 'CLEANING':
+      return <Sparkles className="h-5 w-5 text-teal-600" />;
+    case 'CARPENTRY':
+      return <Hammer className="h-5 w-5 text-orange-600" />;
+    case 'PAINTING':
+      return <Paintbrush className="h-5 w-5 text-pink-600" />;
+    case 'GARDENING':
+      return <Sprout className="h-5 w-5 text-green-600" />;
+    case 'APPLIANCE_REPAIR':
+      return <Tv className="h-5 w-5 text-sky-600" />;
+    default:
+      return <HelpCircle className="h-5 w-5 text-slate-500" />;
+  }
 };
 
 export default function RoleDashboard({ role }: { role: RoleKey }) {
@@ -794,67 +821,106 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   </div>
                 </div>
 
-                {/* RECENT SERVICE ACTIVITY SECTION */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                        RECENT ACTIVITY
-                      </span>
-                      <h3 className="text-xl font-bold text-slate-900 mt-0.5">Recent Service Activity</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Your latest requested services and current execution progress.</p>
+                {/* RECENT SERVICE ACTIVITY / ACTIVE EXECUTION SECTION */}
+                <div className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-5 transition-all">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100/80 pb-4">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                          ACTIVE EXECUTION
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900">Recent Service Activity</h3>
+                      <p className="text-xs text-slate-500">Your latest requested services and live execution progress.</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSearchParams({ tab: 'requests' })}
-                      className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-3.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-all shadow-2xs"
                     >
                       View all requests <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
 
-                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                  <div className="space-y-3">
                     {requests.length === 0 ? (
-                      <div className="py-10 text-center text-xs text-slate-400">
-                        No service requests created yet. Click "Request a Service" to create one.
+                      <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-8 text-center space-y-2">
+                        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                          <Wrench className="h-5 w-5" />
+                        </div>
+                        <p className="text-xs font-bold text-slate-800">No service requests created yet</p>
+                        <p className="text-[11px] text-slate-500">Click "Request a Service" above to match with verified local workers.</p>
                       </div>
                     ) : (
                       requests.slice(0, 4).map((req) => {
                         const statusStr = req.jobStatus || req.status;
+                        const categoryInfo = CATEGORY_LABELS[req.category] || { label: req.category, description: '' };
                         return (
-                          <div key={req.id} className="py-4 flex items-center justify-between gap-4 text-xs min-w-[500px]">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0 font-bold text-xs">
-                                {req.category.substring(0, 2).toUpperCase()}
+                          <div
+                            key={req.id}
+                            className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:bg-white hover:border-emerald-200 hover:shadow-md hover:-translate-y-0.5 group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                          >
+                            <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                              <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                {getCategoryIcon(req.category)}
                               </div>
-                              <div className="min-w-0">
-                                <p className="font-bold text-slate-900 truncate">{req.description}</p>
-                                <p className="text-slate-500 text-[11px] mt-0.5">
-                                  {req.location} • Budget: <strong className="text-slate-700">₹{req.budget}</strong>
-                                </p>
+                              <div className="min-w-0 space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-emerald-950 transition-colors truncate">
+                                    {req.description}
+                                  </span>
+                                  <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700">
+                                    {categoryInfo.label}
+                                  </span>
+                                  <span
+                                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
+                                      statusStr === 'COMPLETED'
+                                        ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                                        : statusStr === 'IN_PROGRESS'
+                                        ? 'bg-blue-50 border border-blue-200 text-blue-700'
+                                        : statusStr === 'ACCEPTED'
+                                        ? 'bg-amber-50 border border-amber-200 text-amber-700'
+                                        : statusStr === 'CANCELLED'
+                                        ? 'bg-red-50 border border-red-200 text-red-700'
+                                        : 'bg-slate-50 border border-slate-200 text-slate-700'
+                                    }`}
+                                  >
+                                    {statusStr === 'COMPLETED' ? (
+                                      <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                    ) : statusStr === 'IN_PROGRESS' ? (
+                                      <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
+                                    ) : (
+                                      <Clock3 className="h-3 w-3 text-amber-600" />
+                                    )}
+                                    {statusStr}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
+                                  {req.workerName ? (
+                                    <span className="flex items-center gap-1 font-medium text-slate-600">
+                                      <User className="h-3.5 w-3.5 text-slate-400" /> Assigned Worker: <strong className="text-slate-800 font-semibold">{req.workerName}</strong>
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1 text-slate-400 italic">
+                                      <Clock3 className="h-3.5 w-3.5 text-slate-400" /> Awaiting Worker Assignment
+                                    </span>
+                                  )}
+                                  {req.location && (
+                                    <span className="flex items-center gap-1 hidden sm:flex">
+                                      <MapPin className="h-3.5 w-3.5 text-slate-400" /> {req.location}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-3 shrink-0">
-                              {req.workerName && (
-                                <span className="text-slate-600 hidden sm:inline">
-                                  Worker: <strong className="text-slate-900">{req.workerName}</strong>
-                                </span>
-                              )}
-                              <span
-                                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
-                                  statusStr === 'COMPLETED'
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : statusStr === 'IN_PROGRESS'
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : statusStr === 'ACCEPTED'
-                                    ? 'bg-amber-100 text-amber-800'
-                                    : statusStr === 'CANCELLED'
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-slate-100 text-slate-800'
-                                }`}
-                              >
-                                {statusStr}
+                            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-4 py-2 text-right shrink-0 self-end sm:self-center hover:bg-emerald-100/50 transition-colors">
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">
+                                Budget
+                              </span>
+                              <span className="text-sm font-black text-emerald-700 font-mono">
+                                ₹{req.budget.toLocaleString()}
                               </span>
                             </div>
                           </div>
@@ -993,7 +1059,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           return (
                             <div
                               key={req.id}
-                              className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all space-y-4"
+                              className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all space-y-4 group"
                             >
                               <div className="space-y-4">
                                 <div className="flex items-center justify-between gap-2">
@@ -1001,66 +1067,95 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     {categoryInfo.label}
                                   </span>
                                   <span
-                                    className={`rounded-full px-3 py-0.5 text-[10px] font-extrabold uppercase ${
+                                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                                       statusStr === 'COMPLETED'
-                                        ? 'bg-emerald-100 text-emerald-800'
+                                        ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
                                         : statusStr === 'IN_PROGRESS'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : statusStr === 'ACCEPTED'
-                                        ? 'bg-amber-100 text-amber-800'
+                                        ? 'bg-blue-50 border border-blue-200 text-blue-700'
+                                        : statusStr === 'ACCEPTED' || req.workerName
+                                        ? 'bg-amber-50 border border-amber-200 text-amber-700'
                                         : statusStr === 'CANCELLED'
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-slate-100 text-slate-800'
+                                        ? 'bg-red-50 border border-red-200 text-red-700'
+                                        : 'bg-slate-50 border border-slate-200 text-slate-700'
                                     }`}
                                   >
-                                    [{statusStr}]
+                                    {statusStr === 'COMPLETED' ? (
+                                      <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                    ) : statusStr === 'IN_PROGRESS' ? (
+                                      <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
+                                    ) : (
+                                      <Clock3 className="h-3 w-3 text-amber-600" />
+                                    )}
+                                    {statusStr}
                                   </span>
                                 </div>
 
-                                <div>
-                                  <h3 className="text-base font-bold text-slate-900 leading-snug">{req.description}</h3>
-                                  <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-                                    <span>Budget: <strong className="text-slate-900 font-bold">₹{req.budget}</strong></span>
-                                    <span>Location: <strong className="text-slate-700">{req.location}</strong></span>
+                                <div className="flex items-start gap-4">
+                                  <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                    {getCategoryIcon(req.category)}
+                                  </div>
+                                  <div className="flex-1 min-w-0 space-y-1.5">
+                                    <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">
+                                      {req.description}
+                                    </h3>
+                                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-slate-500">
+                                      <span className="flex items-center gap-1 font-medium text-slate-600">
+                                        <MapPin className="h-3.5 w-3.5 text-slate-400" /> Location: <strong className="text-slate-800 font-semibold">{req.location}</strong>
+                                      </span>
+                                      <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
+                                        Budget: <strong className="text-emerald-800 font-extrabold font-mono text-sm">₹{req.budget.toLocaleString()}</strong>
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
 
                                 {statusStr !== 'CANCELLED' && (
-                                  <div className="pt-2">
-                                    <div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400 mb-1.5">
-                                      <span className={currentStage >= 1 ? 'text-emerald-700' : ''}>Requested</span>
-                                      <span className={currentStage >= 2 ? 'text-emerald-700' : ''}>Assigned</span>
-                                      <span className={currentStage >= 3 ? 'text-blue-700' : ''}>In Progress</span>
-                                      <span className={currentStage >= 4 ? 'text-emerald-700' : ''}>Completed</span>
+                                  <div className="pt-2.5 space-y-2">
+                                    <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
+                                      <span className={currentStage >= 1 ? 'text-emerald-700 flex items-center gap-1' : 'flex items-center gap-1'}>
+                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 1 ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Requested
+                                      </span>
+                                      <span className={currentStage >= 2 ? 'text-amber-700 flex items-center gap-1' : 'flex items-center gap-1'}>
+                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 2 ? 'bg-amber-500' : 'bg-slate-300'}`} /> Assigned
+                                      </span>
+                                      <span className={currentStage >= 3 ? 'text-blue-700 flex items-center gap-1' : 'flex items-center gap-1'}>
+                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 3 ? 'bg-blue-500' : 'bg-slate-300'}`} /> In Progress
+                                      </span>
+                                      <span className={currentStage >= 4 ? 'text-emerald-700 flex items-center gap-1' : 'flex items-center gap-1'}>
+                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 4 ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Completed
+                                      </span>
                                     </div>
-                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex p-0.5 border border-slate-200/40">
                                       <div
-                                        className={`h-full transition-all duration-500 ${
+                                        className={`h-full rounded-full transition-all duration-500 ${
                                           currentStage === 4
-                                            ? 'w-full bg-emerald-500'
+                                            ? 'w-full bg-gradient-to-r from-emerald-500 to-teal-500'
                                             : currentStage === 3
-                                            ? 'w-3/4 bg-blue-500'
+                                            ? 'w-3/4 bg-gradient-to-r from-blue-500 to-indigo-500'
                                             : currentStage === 2
-                                            ? 'w-1/2 bg-emerald-500'
-                                            : 'w-1/4 bg-slate-300'
+                                            ? 'w-1/2 bg-gradient-to-r from-amber-400 to-amber-500'
+                                            : 'w-1/4 bg-gradient-to-r from-emerald-400 to-emerald-500'
                                         }`}
                                       />
                                     </div>
                                   </div>
                                 )}
 
-                                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 flex items-center justify-between text-xs">
-                                  <div className="flex items-center gap-2">
-                                    <div className="h-7 w-7 rounded-full bg-slate-900 text-white font-bold text-[10px] flex items-center justify-center">
+                                <div className="rounded-2xl bg-slate-50/50 border border-slate-100 p-3.5 flex items-center justify-between text-xs transition-all hover:bg-white hover:border-slate-200">
+                                  <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded-full bg-slate-900 text-white font-extrabold text-[10px] flex items-center justify-center shadow-xs shrink-0">
                                       {req.workerName ? req.workerName.substring(0, 2).toUpperCase() : 'GC'}
                                     </div>
                                     <div>
-                                      <span className="text-[10px] text-slate-400 block font-semibold">Assigned Worker</span>
+                                      <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Assigned Worker</span>
                                       <span className="font-bold text-slate-900">
                                         {req.workerName || 'Awaiting Worker Match'}
                                       </span>
                                     </div>
                                   </div>
+                                  {!req.workerName && (
+                                    <span className="inline-flex h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" title="Searching for worker" />
+                                  )}
                                 </div>
                               </div>
 
@@ -1068,15 +1163,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenDetail(req)}
-                                  className="text-xs font-semibold text-slate-700 hover:text-emerald-600 flex items-center gap-1"
+                                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
                                 >
-                                  <Eye className="h-3.5 w-3.5" /> Details
+                                  <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
                                 </button>
-
                                 {statusStr === 'COMPLETED' && (
                                   req.isRated ? (
-                                    <span className="text-xs font-bold text-amber-600 flex items-center gap-1">
-                                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> Rated
+                                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200/80 px-3.5 py-2 text-xs font-extrabold text-amber-700">
+                                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> Rated
                                     </span>
                                   ) : (
                                     <button
@@ -1088,9 +1182,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                           setIsRatingModalOpen(true);
                                         }
                                       }}
-                                      className="rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-amber-600 shadow-xs"
+                                      className="rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5"
                                     >
-                                      Rate Service
+                                      <Star className="h-3.5 w-3.5" /> Rate Service
                                     </button>
                                   )
                                 )}
@@ -1110,68 +1204,86 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
             {/* TAB: PROFILE */}
             {activeTab === 'profile' && (
-              <div className="space-y-6 max-w-3xl">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6">
-                  <div className="h-20 w-20 rounded-full bg-slate-900 text-white font-extrabold text-2xl flex items-center justify-center shadow-md shrink-0">
-                    {user?.name ? user.name.substring(0, 2).toUpperCase() : 'JC'}
+              <div className="space-y-6 max-w-3xl mx-auto">
+                {/* PROFILE IDENTITY HEADER */}
+                <div className="rounded-3xl border border-slate-200/90 bg-gradient-to-br from-slate-50/65 via-white to-emerald-50/20 p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6 hover:shadow-sm transition-all">
+                  <div className="relative shrink-0">
+                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-950 text-white font-black text-2xl flex items-center justify-center shadow-md">
+                      {user?.name ? user.name.substring(0, 2).toUpperCase() : 'JC'}
+                    </div>
+                    <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500" />
                   </div>
 
                   <div className="space-y-2 text-center sm:text-left flex-1">
                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                      <h2 className="text-2xl font-bold text-slate-900">{user?.name || 'John customer'}</h2>
-                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-700">
-                        AUTHENTICATED CUSTOMER
+                      <h2 className="text-2xl font-black text-slate-900">{user?.name || 'Customer Account'}</h2>
+                      <span className="rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">
+                        Authenticated Customer
                       </span>
                     </div>
 
                     <p className="text-xs text-slate-500">{user?.email || 'customer@example.com'}</p>
 
-                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-600">
-                      <span className="flex items-center gap-1.5">
+                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-600 font-medium">
+                      <span className="flex items-center gap-1.5 text-emerald-700">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Account Active & Verified
                       </span>
                     </div>
                   </div>
                 </div>
 
+                {/* ACCOUNT INFORMATION CARD */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
-                  <h3 className="text-lg font-bold text-slate-900">Account Information</h3>
-                  <div className="divide-y divide-slate-100 text-xs">
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Full Name</span>
-                      <strong className="text-slate-900">{user?.name || 'John customer'}</strong>
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3.5 mb-2">
+                    <div className="h-7 w-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                      <User className="h-4 w-4" />
                     </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Email Address</span>
-                      <strong className="text-slate-900">{user?.email || 'customer@example.com'}</strong>
+                    <h3 className="text-base font-extrabold text-slate-900">Account Details</h3>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-2">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Full Name</span>
+                      <strong className="text-sm font-extrabold text-slate-900 block mt-1">{user?.name || 'John customer'}</strong>
                     </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Account Role</span>
-                      <strong className="text-emerald-700 font-bold uppercase">{user?.role || 'CUSTOMER'}</strong>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Email Address</span>
+                      <strong className="text-sm font-extrabold text-slate-900 block mt-1 truncate">{user?.email || 'customer@example.com'}</strong>
                     </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Authentication Method</span>
-                      <strong className="text-slate-900">JWT Token Secured</strong>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Role</span>
+                      <strong className="text-sm font-black text-emerald-700 font-mono block mt-1 uppercase">{user?.role || 'CUSTOMER'}</strong>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Security Status</span>
+                      <strong className="text-sm font-extrabold text-slate-900 block mt-1">JWT Secured</strong>
                     </div>
                   </div>
                 </div>
 
+                {/* CUSTOMER ACTIVITY SUMMARY */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
-                  <h3 className="text-lg font-bold text-slate-900">Customer Activity Summary</h3>
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/60 via-white to-blue-50/30 p-4">
-                      <span className="text-[11px] text-slate-500 font-medium block">Total Requests</span>
-                      <strong className="text-2xl font-bold text-slate-900 mt-1 block">{requests.length}</strong>
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3.5 mb-2">
+                    <div className="h-7 w-7 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                      <Activity className="h-4 w-4" />
                     </div>
-                    <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/60 via-white to-teal-50/30 p-4">
-                      <span className="text-[11px] text-slate-500 font-medium block">Completed Services</span>
-                      <strong className="text-2xl font-bold text-slate-900 mt-1 block">
+                    <h3 className="text-base font-extrabold text-slate-900">Activity Summary</h3>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-3 pt-2">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Requests</span>
+                      <strong className="text-lg font-black text-slate-900 font-mono block mt-1">{requests.length}</strong>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Completed Services</span>
+                      <strong className="text-lg font-black text-emerald-700 font-mono block mt-1">
                         {requests.filter((r) => r.jobStatus === 'COMPLETED').length}
                       </strong>
                     </div>
-                    <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/60 via-white to-slate-50/30 p-4">
-                      <span className="text-[11px] text-slate-500 font-medium block">Total Investment</span>
-                      <strong className="text-2xl font-bold text-slate-900 mt-1 block">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-indigo-200 hover:shadow-sm transition-all">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Investment</span>
+                      <strong className="text-lg font-black text-slate-900 font-mono block mt-1">
                         ₹{requests.reduce((acc, r) => acc + (r.budget || 0), 0).toLocaleString()}
                       </strong>
                     </div>
@@ -1298,43 +1410,97 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                 {/* OVERVIEW SUMMARY GRID: RECENT JOBS & EARNINGS / RATINGS COMPACT BOXES */}
                 <div className="grid gap-6 lg:grid-cols-3">
-                  {/* RECENT JOBS LIST */}
-                  <div className="lg:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                          ACTIVE EXECUTION
-                        </span>
-                        <h3 className="text-lg font-bold text-slate-900 mt-0.5">Recent Jobs Summary</h3>
+                  {/* RECENT JOBS LIST / ACTIVE EXECUTION CARD */}
+                  <div className="lg:col-span-2 rounded-3xl border border-slate-200/90 bg-white p-6 md:p-7 shadow-xs space-y-5 transition-all">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100/80 pb-4">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                            ACTIVE EXECUTION
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                          Recent Jobs Summary
+                        </h3>
                       </div>
                       <button
                         onClick={() => setSearchParams({ tab: 'assigned' })}
-                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-3.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-all shadow-2xs"
                       >
                         View all assigned <ArrowRight className="h-3.5 w-3.5" />
                       </button>
                     </div>
 
-                    <div className="divide-y divide-slate-100">
+                    <div className="space-y-3">
                       {assignedJobs.length === 0 && availableJobs.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-slate-400">
-                          No active or assigned jobs right now. Check "Available Jobs" to accept work.
+                        <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-8 text-center space-y-2">
+                          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                            <Briefcase className="h-5 w-5" />
+                          </div>
+                          <p className="text-xs font-bold text-slate-800">No active or assigned jobs</p>
+                          <p className="text-[11px] text-slate-500">Check "Available Jobs" to discover and accept work nearby.</p>
                         </div>
                       ) : (
-                        assignedJobs.slice(0, 3).map((job) => (
-                          <div key={job.id} className="py-3 flex items-center justify-between gap-3 text-xs">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-900">{job.description}</span>
-                                <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 uppercase">
-                                  {job.jobStatus}
+                        assignedJobs.slice(0, 3).map((job) => {
+                          const status = job.jobStatus || 'ASSIGNED';
+                          return (
+                            <div
+                              key={job.id}
+                              className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:bg-white hover:border-emerald-200 hover:shadow-md hover:-translate-y-0.5 group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                            >
+                              <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                                <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                  {getCategoryIcon(job.category)}
+                                </div>
+                                <div className="min-w-0 space-y-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-emerald-950 transition-colors truncate">
+                                      {job.description}
+                                    </span>
+                                    <span
+                                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
+                                        status === 'COMPLETED'
+                                          ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-200'
+                                          : status === 'IN_PROGRESS'
+                                          ? 'bg-blue-100/90 text-blue-800 border border-blue-200'
+                                          : 'bg-amber-100/90 text-amber-800 border border-amber-200'
+                                      }`}
+                                    >
+                                      {status === 'COMPLETED' ? (
+                                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                      ) : status === 'IN_PROGRESS' ? (
+                                        <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
+                                      ) : (
+                                        <Clock3 className="h-3 w-3 text-amber-600" />
+                                      )}
+                                      {status}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                                    <span className="flex items-center gap-1 font-medium text-slate-600">
+                                      <User className="h-3.5 w-3.5 text-slate-400" /> Customer: <strong className="text-slate-800 font-semibold">{job.customerName || 'Customer'}</strong>
+                                    </span>
+                                    {job.location && (
+                                      <span className="flex items-center gap-1 hidden sm:flex">
+                                        <MapPin className="h-3.5 w-3.5 text-slate-400" /> {job.location}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3.5 py-1.5 text-right shrink-0 self-end sm:self-center">
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-800 block">
+                                  Job Budget
+                                </span>
+                                <span className="text-sm font-black text-emerald-800 font-mono">
+                                  ₹{job.budget}
                                 </span>
                               </div>
-                              <p className="text-slate-500 mt-0.5">Customer: {job.customerName || 'Customer'}</p>
                             </div>
-                            <span className="font-bold text-slate-900">₹{job.budget}</span>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   </div>
@@ -1456,9 +1622,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <button
                       type="button"
                       onClick={fetchWorkerJobs}
-                      className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
+                      disabled={isLoadingJobs}
+                      className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50"
+                      title="Refresh available jobs"
                     >
-                      <RefreshCw className="h-4 w-4" />
+                      <RefreshCw className={`h-4 w-4 ${isLoadingJobs ? 'animate-spin' : ''}`} />
                     </button>
                   </div>
 
@@ -1484,25 +1652,33 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       {availableJobs.map((job) => (
                         <div
                           key={job.id}
-                          className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all space-y-4"
+                          className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all space-y-4 group"
                         >
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between gap-2">
                               <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
                                 {CATEGORY_LABELS[job.category]?.label || job.category}
                               </span>
-                              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-slate-700">
-                                OPEN
+                              <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2.5 py-0.5 text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">
+                                <Clock3 className="h-3 w-3 text-slate-600 animate-pulse" /> OPEN
                               </span>
                             </div>
 
-                            <h3 className="text-base font-bold text-slate-900 leading-snug">{job.description}</h3>
-
-                            <div className="flex items-center justify-between text-xs text-slate-600 pt-1">
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3.5 w-3.5 text-slate-400" /> {job.location || 'Goa'}
-                              </span>
-                              <span className="font-bold text-slate-900 text-sm">₹{job.budget}</span>
+                            <div className="flex items-start gap-4">
+                              <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                {getCategoryIcon(job.category)}
+                              </div>
+                              <div className="flex-1 min-w-0 space-y-1.5">
+                                <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">{job.description}</h3>
+                                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-slate-500">
+                                  <span className="flex items-center gap-1 font-medium text-slate-600">
+                                    <MapPin className="h-3.5 w-3.5 text-slate-400" /> {job.location || 'Goa'}
+                                  </span>
+                                  <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
+                                    Budget: <strong className="text-emerald-800 font-extrabold font-mono text-sm">₹{job.budget.toLocaleString()}</strong>
+                                  </span>
+                                </div>
+                              </div>
                             </div>
                           </div>
 
@@ -1510,18 +1686,24 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             <button
                               type="button"
                               onClick={() => handleOpenDetail(job)}
-                              className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1"
+                              className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
                             >
-                              <Eye className="h-3.5 w-3.5" /> View Details
+                              <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
                             </button>
 
                             <button
                               type="button"
                               onClick={() => handleAcceptJob(job.id)}
                               disabled={acceptingRequestId === job.id}
-                              className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+                              className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                             >
-                              {acceptingRequestId === job.id ? 'Accepting...' : 'Accept Job'}
+                              {acceptingRequestId === job.id ? (
+                                <>
+                                  <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Accepting...
+                                </>
+                              ) : (
+                                'Accept Job'
+                              )}
                             </button>
                           </div>
                         </div>
@@ -1568,9 +1750,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       <button
                         type="button"
                         onClick={fetchWorkerJobs}
-                        className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
+                        disabled={isLoadingJobs}
+                        className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50"
+                        title="Refresh assigned jobs"
                       >
-                        <RefreshCw className="h-4 w-4" />
+                        <RefreshCw className={`h-4 w-4 ${isLoadingJobs ? 'animate-spin' : ''}`} />
                       </button>
                     </div>
                   </div>
@@ -1589,67 +1773,126 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         const isCompleted = job.jobStatus === 'COMPLETED';
                         const isInProgress = job.jobStatus === 'IN_PROGRESS';
                         const isAccepted = job.jobStatus === 'ACCEPTED';
+                        const status = job.jobStatus || 'ASSIGNED';
 
                         return (
                           <div
                             key={job.id}
-                            className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all space-y-4"
+                            className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all space-y-4 group"
                           >
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between gap-2">
                                 <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
                                   {CATEGORY_LABELS[job.category]?.label || job.category}
                                 </span>
                                 <span
-                                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${
+                                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                                     isCompleted
-                                      ? 'bg-emerald-100 text-emerald-800'
+                                      ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-200'
                                       : isInProgress
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : 'bg-amber-100 text-amber-800'
+                                      ? 'bg-blue-100/90 text-blue-800 border border-blue-200'
+                                      : 'bg-amber-100/90 text-amber-800 border border-amber-200'
                                   }`}
                                 >
-                                  [{job.jobStatus}]
+                                  {isCompleted ? (
+                                    <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                  ) : isInProgress ? (
+                                    <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
+                                  ) : (
+                                    <Clock3 className="h-3 w-3 text-amber-600" />
+                                  )}
+                                  {status}
                                 </span>
                               </div>
 
-                              <h3 className="text-base font-bold text-slate-900 leading-snug">{job.description}</h3>
-
-                              <div className="flex items-center justify-between text-xs text-slate-600">
-                                <span>Customer: <strong className="text-slate-900">{job.customerName || 'Customer'}</strong></span>
-                                <span>Budget: <strong className="text-slate-900 font-bold">₹{job.budget}</strong></span>
+                              <div className="flex items-start gap-4">
+                                <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                  {getCategoryIcon(job.category)}
+                                </div>
+                                <div className="flex-1 min-w-0 space-y-1.5">
+                                  <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">
+                                    {job.description}
+                                  </h3>
+                                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-slate-500">
+                                    <span className="flex items-center gap-1">
+                                      <User className="h-3.5 w-3.5 text-slate-400" /> Customer: <strong className="text-slate-800 font-semibold">{job.customerName || 'Customer'}</strong>
+                                    </span>
+                                    <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
+                                      Budget: <strong className="text-emerald-800 font-extrabold font-mono text-sm">₹{job.budget.toLocaleString()}</strong>
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
 
                               {/* 3-STAGE WORKER EXECUTION PIPELINE LINE */}
-                              <div className="pt-2">
-                                <div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400 mb-1.5">
-                                  <span className="text-emerald-700">Assigned ✓</span>
-                                  <span className={isInProgress || isCompleted ? 'text-blue-700' : ''}>In Progress</span>
-                                  <span className={isCompleted ? 'text-emerald-700' : ''}>Completed</span>
+                              <div className="pt-2.5 space-y-2">
+                                <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wide">
+                                  <span className="text-emerald-700 flex items-center gap-1">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Assigned
+                                  </span>
+                                  <span className={isInProgress || isCompleted ? 'text-blue-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${isInProgress || isCompleted ? 'bg-blue-500' : 'bg-slate-300'}`} /> In Progress
+                                  </span>
+                                  <span className={isCompleted ? 'text-emerald-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Completed
+                                  </span>
                                 </div>
-                                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex p-0.5 border border-slate-200/40">
                                   <div
-                                    className={`h-full transition-all duration-500 ${
+                                    className={`h-full rounded-full transition-all duration-500 ${
                                       isCompleted
-                                        ? 'w-full bg-emerald-500'
+                                        ? 'w-full bg-gradient-to-r from-emerald-500 to-teal-500'
                                         : isInProgress
-                                        ? 'w-2/3 bg-blue-500'
-                                        : 'w-1/3 bg-emerald-500'
+                                        ? 'w-2/3 bg-gradient-to-r from-blue-500 to-indigo-500'
+                                        : 'w-1/3 bg-gradient-to-r from-emerald-400 to-emerald-500'
                                     }`}
                                   />
                                 </div>
                               </div>
                             </div>
 
-                            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                             <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDetail({
+                                  id: job.serviceRequestId,
+                                  category: job.category,
+                                  description: job.description,
+                                  location: job.location,
+                                  budget: job.budget,
+                                  preferredTime: job.preferredTime,
+                                  status: job.requestStatus || 'OPEN',
+                                  createdAt: job.createdAt,
+                                  updatedAt: job.createdAt,
+                                  customerId: job.customerId,
+                                  customerName: job.customerName,
+                                  assignmentStatus: 'ASSIGNED',
+                                  jobId: job.id,
+                                  workerId: job.workerId,
+                                  workerName: job.workerName,
+                                  jobStatus: job.jobStatus,
+                                  startedAt: job.startedAt,
+                                  completedAt: job.completedAt,
+                                })}
+                                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
+                              >
+                                <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
+                              </button>
+
                               {isAccepted && (
                                 <button
                                   type="button"
                                   onClick={() => handleStartJob(job.id)}
                                   disabled={operatingJobId === job.id}
-                                  className="w-full rounded-xl bg-blue-600 py-2.5 text-xs font-bold text-white hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+                                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 py-2.5 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50"
                                 >
-                                  {operatingJobId === job.id ? 'Starting...' : 'Start Job'}
+                                  {operatingJobId === job.id ? (
+                                    <>
+                                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Starting...
+                                    </>
+                                  ) : (
+                                    'Start Job Execution'
+                                  )}
                                 </button>
                               )}
 
@@ -1658,25 +1901,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   type="button"
                                   onClick={() => handleCompleteJob(job.id)}
                                   disabled={operatingJobId === job.id}
-                                  className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+                                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50"
                                 >
-                                  {operatingJobId === job.id ? 'Completing...' : 'Complete Job'}
+                                  {operatingJobId === job.id ? (
+                                    <>
+                                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Completing...
+                                    </>
+                                  ) : (
+                                    'Complete Job'
+                                  )}
                                 </button>
-                              )}
-
-                              {isCompleted && (
-                                <div className="w-full flex items-center justify-between">
-                                  <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-                                    <CheckCircle2 className="h-4 w-4 text-emerald-600" /> JOB COMPLETED
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setSearchParams({ tab: 'earnings' })}
-                                    className="text-xs font-semibold text-slate-600 hover:text-emerald-600"
-                                  >
-                                    View Ledger Payout →
-                                  </button>
-                                </div>
                               )}
                             </div>
                           </div>
@@ -1781,23 +2015,55 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
 
                 {/* COMPLETED JOBS EARNINGS LEDGER TABLE */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                  <h3 className="text-base font-bold text-slate-900">Completed Job Transactions</h3>
-                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                <div className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-5 transition-all">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3.5 mb-2">
+                    <div className="h-7 w-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                      <Receipt className="h-4 w-4" />
+                    </div>
+                    <h3 className="text-base font-extrabold text-slate-900">Completed Job Transactions</h3>
+                  </div>
+
+                  <div className="space-y-3">
                     {workerEarnings.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-slate-400">
-                        No earnings transactions recorded yet. Complete assigned jobs to generate payouts.
+                      <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-8 text-center space-y-2">
+                        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                          <Receipt className="h-5 w-5" />
+                        </div>
+                        <p className="text-xs font-bold text-slate-800">No earnings transactions recorded yet</p>
+                        <p className="text-[11px] text-slate-500">Complete assigned jobs to generate payouts and ledger entries.</p>
                       </div>
                     ) : (
                       workerEarnings.map((e) => (
-                        <div key={e.id} className="py-3 flex items-center justify-between text-xs min-w-[550px]">
-                          <div>
-                            <span className="font-bold text-slate-900 block">Job #{e.jobId}</span>
-                            <span className="text-slate-500 text-[11px]">Gross: ₹{e.grossAmount?.toFixed(2)}</span>
+                        <div
+                          key={e.id}
+                          className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:bg-white hover:border-emerald-200 hover:shadow-xs group flex items-center justify-between gap-4"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-700 border border-emerald-200/50 flex items-center justify-center font-bold text-xs shrink-0 group-hover:scale-105 transition-transform">
+                              #{e.jobId}
+                            </div>
+                            <div>
+                              <span className="font-bold text-slate-900 text-sm group-hover:text-emerald-950 block">
+                                Job Contract #{e.jobId}
+                              </span>
+                              <span className="text-slate-500 text-[11px] flex items-center gap-1 mt-0.5">
+                                Gross Amount: <strong className="text-slate-700 font-semibold">₹{e.grossAmount?.toFixed(2)}</strong>
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="text-emerald-700 font-bold block">+₹{e.workerEarning?.toFixed(2)} (90%)</span>
-                            <span className="text-slate-400 text-[10px]">Fee: ₹{e.platformFee?.toFixed(2)} (10%)</span>
+                          <div className="flex items-center gap-4 shrink-0">
+                            <div className="text-right">
+                              <span className="text-emerald-700 font-extrabold text-sm block leading-tight">
+                                +₹{e.workerEarning?.toFixed(2)}
+                              </span>
+                              <span className="text-slate-400 text-[10px]">Cooperative Payout (90%)</span>
+                            </div>
+                            <div className="rounded-xl bg-slate-100 border border-slate-200/60 px-3 py-1.5 text-right hidden sm:block">
+                              <span className="text-slate-600 font-extrabold text-[10px] block leading-none">Coop Fee</span>
+                              <span className="text-slate-500 text-[10px] font-medium block mt-0.5">
+                                ₹{e.platformFee?.toFixed(2)} (10%)
+                              </span>
+                            </div>
                           </div>
                         </div>
                       ))
@@ -1810,49 +2076,81 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             {/* TAB: RATINGS & REVIEWS */}
             {activeTab === 'ratings' && (
               <div className="space-y-6">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                      PUBLIC REPUTATION
-                    </span>
-                    <h2 className="text-2xl font-bold text-slate-900 mt-0.5">Ratings & Reviews</h2>
-                    <p className="text-xs text-slate-500 mt-1">Verified customer ratings for your completed service jobs.</p>
+                <div className="rounded-3xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 transition-all">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-700">
+                        PUBLIC REPUTATION
+                      </span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                      Ratings & Reviews
+                    </h2>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Verified customer ratings & feedback from completed community service jobs.
+                    </p>
                   </div>
 
-                  <div className="flex items-center gap-3 bg-gradient-to-br from-amber-50 to-orange-50/50 border border-amber-200 rounded-2xl px-5 py-3 shrink-0">
-                    <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
+                  <div className="flex items-center gap-4 bg-white/90 backdrop-blur-md border border-amber-200/80 rounded-2xl p-4 shrink-0 shadow-sm hover:shadow-md transition-all">
+                    <div className="h-11 w-11 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                      <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
+                    </div>
                     <div>
-                      <span className="text-2xl font-extrabold text-amber-950 block leading-none">
+                      <span className="text-2xl font-black text-amber-950 block leading-none">
                         {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
                       </span>
-                      <span className="text-[11px] font-semibold text-amber-800">
-                        {workerRatingSummary?.totalRatings || 0} reviews
+                      <span className="text-[11px] font-bold text-amber-700 block mt-1">
+                        {workerRatingSummary?.totalRatings || 0} verified reviews
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* REVIEWS LIST */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
-                  <h3 className="text-base font-bold text-slate-900">Customer Feedback</h3>
+                {/* REVIEWS LIST / CUSTOMER FEEDBACK */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-5">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-3">
+                    <div className="h-7 w-7 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    </div>
+                    <h3 className="text-base font-extrabold text-slate-900">Customer Feedback</h3>
+                  </div>
+
                   {workerRatings.length === 0 ? (
-                    <div className="py-10 text-center space-y-2">
-                      <Star className="mx-auto h-8 w-8 text-amber-300" />
-                      <h4 className="text-sm font-bold text-slate-900">No reviews received yet</h4>
-                      <p className="text-xs text-slate-500">Complete service jobs to start receiving customer ratings.</p>
+                    <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-10 text-center space-y-2.5">
+                      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100">
+                        <Star className="h-5.5 w-5.5 fill-amber-400 text-amber-400 animate-pulse" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800">No reviews received yet</h4>
+                      <p className="text-xs text-slate-500">Complete assigned community jobs to start receiving verified customer ratings.</p>
                     </div>
                   ) : (
                     <div className="grid gap-4 md:grid-cols-2">
                       {workerRatings.map((rating) => (
-                        <div key={rating.id} className="rounded-2xl border border-slate-200 bg-slate-50/50 p-5 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-900 text-xs">{rating.customerName || `Customer #${rating.customerId}`}</span>
-                            <div className="flex items-center gap-1 text-amber-600 font-bold text-xs">
-                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                        <div
+                          key={rating.id}
+                          className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 space-y-3.5 hover:bg-white hover:border-amber-300 hover:shadow-xs transition-all group relative overflow-hidden"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="h-8 w-8 rounded-full bg-slate-900 text-white font-extrabold text-[10px] flex items-center justify-center shadow-xs shrink-0">
+                                {(rating.customerName || 'Customer').substring(0, 2).toUpperCase()}
+                              </div>
+                              <span className="font-extrabold text-slate-900 text-xs truncate">
+                                {rating.customerName || `Customer #${rating.customerId}`}
+                              </span>
+                            </div>
+                            <div className="inline-flex items-center gap-1 rounded-xl bg-amber-50 border border-amber-200/80 px-2.5 py-1 text-amber-700 font-extrabold text-xs shrink-0 shadow-2xs">
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                               {rating.score?.toFixed(1)}
                             </div>
                           </div>
-                          <p className="text-xs text-slate-700 italic">"{rating.review || 'Great service quality!'}"</p>
+                          <div className="relative">
+                            <span className="absolute -top-3 -left-1 text-slate-200 text-3xl font-serif select-none pointer-events-none">“</span>
+                            <p className="text-xs text-slate-600 italic pl-3 relative z-10 leading-relaxed font-medium">
+                              {rating.review || 'Great service quality!'}
+                            </p>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1863,62 +2161,77 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
             {/* TAB: WORKER PROFILE */}
             {activeTab === 'profile' && (
-              <div className="space-y-6 max-w-3xl">
-                {/* PROFILE IDENTITY HEADER */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6">
-                  <div className="h-20 w-20 rounded-full bg-slate-900 text-white font-extrabold text-2xl flex items-center justify-center shadow-md shrink-0">
-                    {workerProfile?.workerName ? workerProfile.workerName.substring(0, 2).toUpperCase() : 'JW'}
+              <div className="space-y-6 max-w-3xl mx-auto">
+                 {/* PROFILE IDENTITY HEADER */}
+                <div className="rounded-3xl border border-slate-200/90 bg-gradient-to-br from-slate-50/65 via-white to-emerald-50/20 p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6 hover:shadow-sm transition-all">
+                  <div className="relative shrink-0">
+                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-950 text-white font-black text-2xl flex items-center justify-center shadow-md">
+                      {workerProfile?.workerName ? workerProfile.workerName.substring(0, 2).toUpperCase() : 'JW'}
+                    </div>
+                    <span className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white ${workerProfile?.available ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                   </div>
 
                   <div className="space-y-2 text-center sm:text-left flex-1">
                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                      <h2 className="text-2xl font-bold text-slate-900">{workerProfile?.workerName || 'Worker Profile'}</h2>
-                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-700">
-                        {workerProfile?.available ? 'AVAILABLE FOR WORK' : 'UNAVAILABLE'}
+                      <h2 className="text-2xl font-black text-slate-900">{workerProfile?.workerName || 'Worker Profile'}</h2>
+                      <span className={`rounded-lg border px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
+                        workerProfile?.available
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          : 'bg-slate-100 border-slate-200 text-slate-500'
+                      }`}>
+                        {workerProfile?.available ? 'Available' : 'Unavailable'}
                       </span>
                     </div>
 
                     <p className="text-xs text-slate-500">{user?.email || 'worker@example.com'}</p>
 
-                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-600">
+                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-600 font-medium">
                       <span className="flex items-center gap-1 text-amber-600 font-bold">
                         <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                         {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'} ({workerRatingSummary?.totalRatings || 0} reviews)
                       </span>
-                      <span>• {workerProfile?.serviceLocation || 'Goa'}</span>
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-slate-400" /> {workerProfile?.serviceLocation || 'Goa'}
+                      </span>
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setIsProfileModalOpen(true)}
-                    className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-xs"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
                   >
-                    Edit Profile
+                    <Edit className="h-3.5 w-3.5 text-slate-400" /> Edit Profile
                   </button>
                 </div>
 
                 {/* PROFESSIONAL INFORMATION CARD */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
-                  <h3 className="text-lg font-bold text-slate-900">Professional Information</h3>
-                  <div className="divide-y divide-slate-100 text-xs">
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Hourly Rate</span>
-                      <strong className="text-slate-900 font-bold">₹{workerProfile?.hourlyRate || 100}/hr</strong>
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3.5 mb-2">
+                    <div className="h-7 w-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                      <Wrench className="h-4 w-4" />
                     </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Experience</span>
-                      <strong className="text-slate-900">{workerProfile?.experienceYears || 2} Years</strong>
+                    <h3 className="text-base font-extrabold text-slate-900">Professional Information</h3>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-2">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Hourly Rate</span>
+                      <strong className="text-lg font-black text-emerald-700 font-mono block mt-1">₹{workerProfile?.hourlyRate || 100}/hr</strong>
                     </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Service Radius</span>
-                      <strong className="text-slate-900">{workerProfile?.serviceRadiusKm || 15} km</strong>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Experience</span>
+                      <strong className="text-lg font-extrabold text-slate-900 block mt-1">{workerProfile?.experienceYears || 2} Years</strong>
                     </div>
-                    <div className="flex justify-between py-3">
-                      <span className="text-slate-500 font-medium">Skills & Categories</span>
-                      <div className="flex flex-wrap gap-1">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Service Radius</span>
+                      <strong className="text-lg font-extrabold text-slate-900 block mt-1">{workerProfile?.serviceRadiusKm || 15} km</strong>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">Skills & Categories</span>
+                      <div className="flex flex-wrap gap-1.5">
                         {workerProfile?.serviceCategories?.map((c) => (
-                          <span key={c} className="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                          <span key={c} className="rounded-lg bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 text-[10px] font-extrabold text-emerald-700 uppercase tracking-wide">
                             {CATEGORY_LABELS[c]?.label || c}
                           </span>
                         ))}
