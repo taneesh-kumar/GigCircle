@@ -58,6 +58,9 @@ public class WorkerProfileIntegrationTest {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
     private String workerAToken;
     private String workerBToken;
     private String customerToken;
@@ -65,6 +68,7 @@ public class WorkerProfileIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         notificationRepository.deleteAll();
+        paymentRepository.deleteAll();
         ratingRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();

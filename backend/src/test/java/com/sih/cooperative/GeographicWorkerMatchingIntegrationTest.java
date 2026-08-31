@@ -59,11 +59,15 @@ public class GeographicWorkerMatchingIntegrationTest {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
     private String customerToken;
 
     @BeforeEach
     void setUp() throws Exception {
         notificationRepository.deleteAll();
+        paymentRepository.deleteAll();
         ratingRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();

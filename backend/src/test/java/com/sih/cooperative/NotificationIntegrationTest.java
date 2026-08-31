@@ -58,6 +58,9 @@ public class NotificationIntegrationTest {
     private NotificationRepository notificationRepository;
 
     @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String customerToken1;
@@ -69,6 +72,7 @@ public class NotificationIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         notificationRepository.deleteAll();
+        paymentRepository.deleteAll();
         ratingRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();
