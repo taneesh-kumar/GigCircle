@@ -11,6 +11,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import com.sih.cooperative.dto.NearbyWorkerSearchResult;
+import com.sih.cooperative.entity.ServiceCategory;
+
 import java.util.List;
 
 @RestController
@@ -39,6 +42,27 @@ public class CustomerServiceRequestController {
     ) {
         List<ServiceRequestResponse> requests = serviceRequestService.getServiceRequestsForCustomer(userDetails.getUsername());
         return ResponseEntity.ok(requests);
+    }
+
+    @GetMapping("/nearby-workers")
+    public ResponseEntity<NearbyWorkerSearchResult> getNearbyWorkers(
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
+            @RequestParam(required = false) ServiceCategory category,
+            @RequestParam(required = false) Integer radiusKm,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        NearbyWorkerSearchResult result = serviceRequestService.findNearbyWorkers(latitude, longitude, category, radiusKm, userDetails.getUsername());
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{id}/nearby-workers")
+    public ResponseEntity<NearbyWorkerSearchResult> getNearbyWorkersForRequest(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        NearbyWorkerSearchResult result = serviceRequestService.findNearbyWorkersForRequest(id, userDetails.getUsername());
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")

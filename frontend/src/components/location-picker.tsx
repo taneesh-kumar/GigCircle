@@ -18,6 +18,7 @@ export interface LocationPickerProps {
   onChange: (value: LocationPickerValue) => void;
   readOnly?: boolean;
   label?: string;
+  searchRadiusKm?: number | null;
 }
 
 // Default center: Vijayawada (16.5062, 80.6480)
@@ -64,10 +65,12 @@ export function LocationPicker({
   onChange,
   readOnly = false,
   label = 'Service Location Map',
+  searchRadiusKm,
 }: LocationPickerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerInstanceRef = useRef<L.Marker | null>(null);
+  const circleInstanceRef = useRef<L.Circle | null>(null);
 
   const [lat, setLat] = useState<number | null>(initialLatitude ?? null);
   const [lng, setLng] = useState<number | null>(initialLongitude ?? null);
@@ -207,12 +210,36 @@ export function LocationPicker({
       const currentPos = markerInstanceRef.current.getLatLng();
       if (currentPos.lat !== initialLatitude || currentPos.lng !== initialLongitude) {
         markerInstanceRef.current.setLatLng([initialLatitude, initialLongitude]);
-        mapInstanceRef.current.setView([initialLatitude, initialLongitude], 15);
+        mapInstanceRef.current.panTo([initialLatitude, initialLongitude]);
         setLat(initialLatitude);
         setLng(initialLongitude);
       }
     }
   }, [initialLatitude, initialLongitude]);
+
+  // Update visual search radius circle
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    if (circleInstanceRef.current) {
+      circleInstanceRef.current.remove();
+      circleInstanceRef.current = null;
+    }
+
+    if (searchRadiusKm && searchRadiusKm > 0 && lat != null && lng != null) {
+      const radiusMeters = searchRadiusKm * 1000;
+      const circle = L.circle([lat, lng], {
+        color: '#059669',
+        fillColor: '#10b981',
+        fillOpacity: 0.12,
+        weight: 2,
+        dashArray: '6, 6',
+        radius: radiusMeters,
+      }).addTo(mapInstanceRef.current);
+
+      circleInstanceRef.current = circle;
+    }
+  }, [searchRadiusKm, lat, lng, mapLoaded]);
 
   // Request Current Location via Browser Geolocation API
   const handleUseCurrentLocation = () => {

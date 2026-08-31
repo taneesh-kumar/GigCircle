@@ -1,5 +1,6 @@
 package com.sih.cooperative.service;
 
+import com.sih.cooperative.dto.NearbyWorkerSearchResult;
 import com.sih.cooperative.dto.CreateServiceRequestRequest;
 import com.sih.cooperative.dto.ServiceRequestResponse;
 import com.sih.cooperative.dto.WorkerRatingSummary;
@@ -26,17 +27,20 @@ public class ServiceRequestService {
     private final JobRepository jobRepository;
     private final RatingRepository ratingRepository;
     private final NotificationService notificationService;
+    private final WorkerMatchingService workerMatchingService;
 
     public ServiceRequestService(ServiceRequestRepository serviceRequestRepository,
                                  UserRepository userRepository,
                                  JobRepository jobRepository,
                                  RatingRepository ratingRepository,
-                                 NotificationService notificationService) {
+                                 NotificationService notificationService,
+                                 WorkerMatchingService workerMatchingService) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.ratingRepository = ratingRepository;
         this.notificationService = notificationService;
+        this.workerMatchingService = workerMatchingService;
     }
 
     private User getAuthenticatedCustomer(String email) {
@@ -171,5 +175,25 @@ public class ServiceRequestService {
         );
 
         return ServiceRequestResponse.fromEntity(updatedRequest);
+    }
+
+    @Transactional(readOnly = true)
+    public NearbyWorkerSearchResult findNearbyWorkers(Double latitude, Double longitude, ServiceCategory category, Integer radiusKm, String customerEmail) {
+        getAuthenticatedCustomer(customerEmail);
+        return workerMatchingService.findNearbyWorkers(latitude, longitude, category, radiusKm);
+    }
+
+    @Transactional(readOnly = true)
+    public NearbyWorkerSearchResult findNearbyWorkersForRequest(Long requestId, String customerEmail) {
+        User customer = getAuthenticatedCustomer(customerEmail);
+
+        ServiceRequest request = serviceRequestRepository.findById(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service request not found"));
+
+        if (!request.getCustomer().getId().equals(customer.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to requested service request");
+        }
+
+        return workerMatchingService.findNearbyWorkers(request.getLatitude(), request.getLongitude(), request.getCategory(), null);
     }
 }

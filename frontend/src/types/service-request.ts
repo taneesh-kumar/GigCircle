@@ -63,3 +63,24 @@ export const CATEGORY_LABELS: Record<ServiceCategory, { label: string; descripti
   GARDENING: { label: 'Gardening', description: 'Lawn care, pruning, and plant maintenance' },
   OTHER: { label: 'Other', description: 'General household tasks and custom requests' },
 };
+
+export interface NearbyWorker {
+  workerId: number;
+  name: string;
+  distanceKm: number;
+  rating: number;
+  totalRatings: number;
+  available: boolean;
+  experienceYears?: number;
+  hourlyRate?: number;
+  serviceCategories?: ServiceCategory[];
+  skills?: string[];
+  matchedSearchRadiusKm?: number;
+}
+
+export interface NearbyWorkerSearchResult {
+  workers: NearbyWorker[];
+  effectiveRadiusKm: number;
+  tierMessage: string;
+}
+

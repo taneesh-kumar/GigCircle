@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Calendar, Clock, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert, IndianRupee, Clock3, Activity, User } from 'lucide-react';
-import { cancelServiceRequestApi } from '@/services/api';
-import { CATEGORY_LABELS, type ServiceRequest } from '@/types/service-request';
+import { AlertTriangle, Calendar, Clock, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert, IndianRupee, Clock3, Activity, User, Compass } from 'lucide-react';
+import { cancelServiceRequestApi, getNearbyWorkersForRequestApi } from '@/services/api';
+import { CATEGORY_LABELS, type ServiceRequest, type NearbyWorkerSearchResult } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
+import { NearbyWorkersList } from '@/components/nearby-workers-list';
 
 interface RequestDetailModalProps {
   request: ServiceRequest | null;
@@ -18,11 +19,24 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
 
+  const [nearbyResult, setNearbyResult] = useState<NearbyWorkerSearchResult | null>(null);
+  const [isLoadingNearby, setIsLoadingNearby] = useState(false);
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && request) {
       setIsConfirmingCancel(false);
       setIsCancelling(false);
       setCancelError(null);
+
+      if (request.status === 'OPEN' && !request.workerId) {
+        setIsLoadingNearby(true);
+        getNearbyWorkersForRequestApi(request.id)
+          .then((res) => setNearbyResult(res))
+          .catch(() => setNearbyResult(null))
+          .finally(() => setIsLoadingNearby(false));
+      } else {
+        setNearbyResult(null);
+      }
     }
   }, [isOpen, request]);
 
@@ -200,6 +214,19 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
               <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-800 border border-emerald-200">
                 Matched & Verified
               </span>
+            </div>
+          )}
+
+          {/* Nearby Workers Geographic Matching Section */}
+          {request.status === 'OPEN' && !request.workerId && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2">
+                <Compass className="h-4 w-4 text-emerald-600 animate-spin-slow" />
+                <h3 className="font-display text-sm font-bold text-slate-900">
+                  Nearby Eligible Workers
+                </h3>
+              </div>
+              <NearbyWorkersList searchResult={nearbyResult} isLoading={isLoadingNearby} />
             </div>
           )}
 
