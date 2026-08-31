@@ -347,8 +347,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       ]);
       setWorkerEarnings(earningsList);
       setWorkerEarningsSummary(summary);
-    } catch {
-      // Non-critical fallback
+    } catch (err: any) {
+      console.error('Error loading worker earnings:', err);
+      toast({
+        title: 'Error loading earnings',
+        description: err?.response?.data?.message || 'Failed to load earnings ledger.',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoadingWorkerEarnings(false);
     }
@@ -1645,6 +1650,25 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                         <button
                           type="button"
+                          onClick={() => {
+                            fetchWorkerProfile();
+                            fetchWorkerJobs();
+                            fetchWorkerRatings();
+                            fetchWorkerEarnings();
+                            toast({
+                              title: 'Dashboard Refreshed',
+                              description: 'Worker profile, jobs, and earnings updated.',
+                            });
+                          }}
+                          disabled={isLoadingProfile || isLoadingJobs || isLoadingWorkerEarnings}
+                          className="p-2.5 rounded-xl border border-slate-700 bg-slate-800/80 text-slate-300 hover:text-white transition-colors disabled:opacity-50"
+                          title="Refresh worker workspace"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${(isLoadingProfile || isLoadingJobs || isLoadingWorkerEarnings) ? 'animate-spin' : ''}`} />
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => setIsProfileModalOpen(true)}
                           className="rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-700"
                         >
@@ -2316,10 +2340,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   </div>
                   <button
                     type="button"
-                    onClick={fetchWorkerEarnings}
-                    className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
+                    onClick={async () => {
+                      await Promise.all([fetchWorkerEarnings(), fetchWorkerJobs()]);
+                      toast({
+                        title: 'Earnings Refreshed',
+                        description: 'Your cooperative earnings ledger has been updated.',
+                      });
+                    }}
+                    disabled={isLoadingWorkerEarnings}
+                    className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50"
+                    title="Refresh Earnings Ledger"
                   >
-                    <RefreshCw className="h-4 w-4" />
+                    <RefreshCw className={`h-4 w-4 ${isLoadingWorkerEarnings ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
 
@@ -2471,17 +2503,35 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-4 bg-white/90 backdrop-blur-md border border-amber-200/80 rounded-2xl p-4 shrink-0 shadow-sm hover:shadow-md transition-all">
-                    <div className="h-11 w-11 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                      <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
-                    </div>
-                    <div>
-                      <span className="text-2xl font-black text-amber-950 block leading-none">
-                        {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
-                      </span>
-                      <span className="text-[11px] font-bold text-amber-700 block mt-1">
-                        {workerRatingSummary?.totalRatings || 0} verified reviews
-                      </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await fetchWorkerRatings();
+                        toast({
+                          title: 'Ratings Refreshed',
+                          description: 'Customer ratings and review summaries updated.',
+                        });
+                      }}
+                      disabled={isLoadingWorkerRatings}
+                      className="p-2.5 rounded-xl border border-amber-200 bg-white text-amber-700 hover:text-amber-900 transition-colors disabled:opacity-50"
+                      title="Refresh reviews"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoadingWorkerRatings ? 'animate-spin' : ''}`} />
+                    </button>
+
+                    <div className="flex items-center gap-4 bg-white/90 backdrop-blur-md border border-amber-200/80 rounded-2xl p-4 shrink-0 shadow-sm hover:shadow-md transition-all">
+                      <div className="h-11 w-11 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                        <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
+                      </div>
+                      <div>
+                        <span className="text-2xl font-black text-amber-950 block leading-none">
+                          {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
+                        </span>
+                        <span className="text-[11px] font-bold text-amber-700 block mt-1">
+                          {workerRatingSummary?.totalRatings || 0} verified reviews
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

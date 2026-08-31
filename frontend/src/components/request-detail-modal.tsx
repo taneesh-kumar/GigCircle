@@ -89,7 +89,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs animate-rise-in">
       <div
-        className="relative w-full max-w-xl rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xl md:p-8"
+        className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xl md:p-8 my-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="detail-modal-title"
