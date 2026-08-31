@@ -3,6 +3,7 @@ import { Calendar, Clock, ChevronDown, MapPin, Wrench, X, AlertCircle, Loader2, 
 import { createServiceRequestApi } from '@/services/api';
 import { CATEGORY_LABELS, type ServiceCategory } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
+import { LocationPicker, type LocationPickerValue } from '@/components/location-picker';
 
 interface CreateRequestModalProps {
   isOpen: boolean;
@@ -38,6 +39,10 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
   const [category, setCategory] = useState<ServiceCategory | ''>('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [address, setAddress] = useState<string>('');
+  const [city, setCity] = useState<string>('');
   const [budget, setBudget] = useState('');
   const [preferredTime, setPreferredTime] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -168,10 +173,15 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
     setIsSubmitting(true);
 
     try {
+      const locText = location.trim() || address.trim() || city.trim() || 'Selected Map Location';
       await createServiceRequestApi({
         category: category as ServiceCategory,
         description: description.trim(),
-        location: location.trim(),
+        location: locText,
+        latitude,
+        longitude,
+        address: address.trim() || undefined,
+        city: city.trim() || undefined,
         budget: parseFloat(budget),
         preferredTime: new Date(preferredTime).toISOString().slice(0, 19),
       });
@@ -184,6 +194,10 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
       setCategory('');
       setDescription('');
       setLocation('');
+      setLatitude(null);
+      setLongitude(null);
+      setAddress('');
+      setCity('');
       setBudget('');
       setPreferredTime('');
       setSelectedDate('');
@@ -319,46 +333,66 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
             </div>
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div>
-              <label htmlFor="location" className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
-                Service Location <span className="text-red-500">*</span>
-              </label>
-              <div className="relative mt-2">
-                <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
-                <input
-                  id="location"
-                  type="text"
-                  value={location}
-                  onChange={(e) => {
-                    setLocation(e.target.value);
-                    if (errors.location) setErrors((prev) => ({ ...prev, location: '' }));
-                  }}
-                  placeholder="e.g. Indiranagar, Bengaluru"
-                  className={`w-full rounded-2xl border bg-white pl-10 pr-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400/80 hover:border-slate-300 hover:shadow-2xs transition-all ${
-                    errors.location ? 'border-red-500' : 'border-slate-200'
-                  }`}
-                />
-              </div>
-              {errors.location && <p className="mt-1.5 text-xs text-red-600">{errors.location}</p>}
-            </div>
+          {/* Map Location Selector */}
+          <div className="rounded-2xl border border-slate-200/90 bg-slate-50/50 p-4 space-y-4">
+            <LocationPicker
+              label="Select Service Location on Map"
+              initialLatitude={latitude}
+              initialLongitude={longitude}
+              initialAddress={address}
+              initialCity={city}
+              onChange={(val: LocationPickerValue) => {
+                setLatitude(val.latitude);
+                setLongitude(val.longitude);
+                setAddress(val.address);
+                setCity(val.city);
+                if (val.address || val.city) {
+                  setLocation(val.address ? (val.city ? `${val.address}, ${val.city}` : val.address) : val.city);
+                }
+                if (errors.location) setErrors((prev) => ({ ...prev, location: '' }));
+              }}
+            />
 
-            <div>
-              <label htmlFor="budget" className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
-                Estimated Budget (₹) <span className="text-red-500">*</span>
-              </label>
-              <div className="relative mt-2">
-                <span className="absolute left-3.5 top-3.5 h-4 w-4 font-mono font-bold text-slate-400">₹</span>
-                <input
-                  id="budget"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={budget}
-                  onChange={(e) => {
-                    setBudget(e.target.value);
-                    if (errors.budget) setErrors((prev) => ({ ...prev, budget: '' }));
-                  }}
+            <div className="grid gap-5 sm:grid-cols-2 pt-2">
+              <div>
+                <label htmlFor="location" className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
+                  Address / City Details <span className="text-red-500">*</span>
+                </label>
+                <div className="relative mt-2">
+                  <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                  <input
+                    id="location"
+                    type="text"
+                    value={location}
+                    onChange={(e) => {
+                      setLocation(e.target.value);
+                      if (errors.location) setErrors((prev) => ({ ...prev, location: '' }));
+                    }}
+                    placeholder="e.g. MG Road, Vijayawada"
+                    className={`w-full rounded-2xl border bg-white pl-10 pr-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400/80 hover:border-slate-300 hover:shadow-2xs transition-all ${
+                      errors.location ? 'border-red-500' : 'border-slate-200'
+                    }`}
+                  />
+                </div>
+                {errors.location && <p className="mt-1.5 text-xs text-red-600">{errors.location}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="budget" className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
+                  Estimated Budget (₹) <span className="text-red-500">*</span>
+                </label>
+                <div className="relative mt-2">
+                  <span className="absolute left-3.5 top-3.5 h-4 w-4 font-mono font-bold text-slate-400">₹</span>
+                  <input
+                    id="budget"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={budget}
+                    onChange={(e) => {
+                      setBudget(e.target.value);
+                      if (errors.budget) setErrors((prev) => ({ ...prev, budget: '' }));
+                    }}
                   placeholder="700"
                   className={`w-full rounded-2xl border bg-white pl-9 pr-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400/80 hover:border-slate-300 hover:shadow-2xs transition-all ${
                     errors.budget ? 'border-red-500' : 'border-slate-200'
@@ -368,6 +402,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
               {errors.budget && <p className="mt-1.5 text-xs text-red-600">{errors.budget}</p>}
             </div>
           </div>
+        </div>
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-primary">

@@ -15,6 +15,10 @@ public class ServiceRequestResponse {
     private ServiceCategory category;
     private String description;
     private String location;
+    private Double latitude;
+    private Double longitude;
+    private String address;
+    private String city;
     private BigDecimal budget;
     private LocalDateTime preferredTime;
     private ServiceRequestStatus status;
@@ -41,10 +45,18 @@ public class ServiceRequestResponse {
     }
 
     public ServiceRequestResponse(Long id, ServiceCategory category, String description, String location, BigDecimal budget, LocalDateTime preferredTime, ServiceRequestStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Long customerId, String customerName, String assignmentStatus, Long jobId, Long workerId, String workerName, JobStatus jobStatus, LocalDateTime startedAt, LocalDateTime completedAt, Double workerAverageRating, Long workerTotalRatings, Boolean isRated) {
+        this(id, category, description, location, null, null, null, null, budget, preferredTime, status, createdAt, updatedAt, customerId, customerName, assignmentStatus, jobId, workerId, workerName, jobStatus, startedAt, completedAt, workerAverageRating, workerTotalRatings, isRated);
+    }
+
+    public ServiceRequestResponse(Long id, ServiceCategory category, String description, String location, Double latitude, Double longitude, String address, String city, BigDecimal budget, LocalDateTime preferredTime, ServiceRequestStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Long customerId, String customerName, String assignmentStatus, Long jobId, Long workerId, String workerName, JobStatus jobStatus, LocalDateTime startedAt, LocalDateTime completedAt, Double workerAverageRating, Long workerTotalRatings, Boolean isRated) {
         this.id = id;
         this.category = category;
         this.description = description;
         this.location = location;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.address = address;
+        this.city = city;
         this.budget = budget;
         this.preferredTime = preferredTime;
         this.status = status;
@@ -79,6 +91,10 @@ public class ServiceRequestResponse {
                 request.getCategory(),
                 request.getDescription(),
                 request.getLocation(),
+                request.getLatitude(),
+                request.getLongitude(),
+                request.getAddress(),
+                request.getCity(),
                 request.getBudget(),
                 request.getPreferredTime(),
                 request.getStatus(),
@@ -129,6 +145,38 @@ public class ServiceRequestResponse {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public BigDecimal getBudget() {
