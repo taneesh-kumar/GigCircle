@@ -345,14 +345,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         getWorkerEarningsApi(),
         getWorkerEarningsSummaryApi(),
       ]);
-      setWorkerEarnings(earningsList);
-      setWorkerEarningsSummary(summary);
+      setWorkerEarnings(earningsList || []);
+      setWorkerEarningsSummary(summary || null);
     } catch (err: any) {
-      console.error('Error loading worker earnings:', err);
-      toast({
-        title: 'Error loading earnings',
-        description: err?.response?.data?.message || 'Failed to load earnings ledger.',
-        variant: 'destructive',
+      console.warn('Unable to load worker earnings ledger:', err?.message);
+      setWorkerEarnings([]);
+      setWorkerEarningsSummary({
+        workerId: 0,
+        totalGross: 0,
+        totalPlatformFees: 0,
+        totalWorkerEarnings: 0,
+        availableEarnings: 0,
+        totalJobs: 0,
       });
     } finally {
       setIsLoadingWorkerEarnings(false);
@@ -428,9 +432,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     } else if (role === 'admin') {
       fetchAdminData();
     }
+  }, [role]);
 
+  useEffect(() => {
     if (activeTab === 'notifications') {
       fetchNotificationsPage();
+    } else if (activeTab === 'earnings' && role === 'worker') {
+      fetchWorkerEarnings();
     }
 
     const handleSync = () => {

@@ -89,9 +89,13 @@ public class AdminOperationsService {
                 BigDecimal.valueOf(avgRatingDouble).setScale(2, RoundingMode.HALF_UP) :
                 BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal totalGross = earningRepository.sumAllGrossAmount().setScale(2, RoundingMode.HALF_UP);
-        BigDecimal totalFees = earningRepository.sumAllPlatformFee().setScale(2, RoundingMode.HALF_UP);
-        BigDecimal totalWorkerEarnings = earningRepository.sumAllWorkerEarning().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal grossRaw = earningRepository.sumAllGrossAmount();
+        BigDecimal feesRaw = earningRepository.sumAllPlatformFee();
+        BigDecimal workerRaw = earningRepository.sumAllWorkerEarning();
+
+        BigDecimal totalGross = (grossRaw != null ? grossRaw : BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalFees = (feesRaw != null ? feesRaw : BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalWorkerEarnings = (workerRaw != null ? workerRaw : BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
 
         return new PlatformOverviewSummary(
                 totalUsers,
