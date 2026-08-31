@@ -4,6 +4,7 @@ import { cancelServiceRequestApi, getWorkerRecommendationsForRequestApi } from '
 import { CATEGORY_LABELS, type ServiceRequest, type WorkerRecommendationResult } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
 import { RecommendedWorkerCard } from '@/components/recommended-worker-card';
+import { PaymentModal } from '@/components/payment-modal';
 
 interface RequestDetailModalProps {
   request: ServiceRequest | null;
@@ -18,6 +19,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
   const [recommendationResult, setRecommendationResult] = useState<WorkerRecommendationResult | null>(null);
   const [isLoadingRecs, setIsLoadingRecs] = useState(false);
@@ -87,7 +89,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs animate-rise-in">
       <div
-        className="relative w-full max-w-xl rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xl md:p-8"
+        className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xl md:p-8 my-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="detail-modal-title"
@@ -199,21 +201,34 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
             </div>
           </div>
 
-          {/* Assigned Worker Info Section */}
+          {/* Assigned Worker Info & Payment Action Section */}
           {request.workerName && (
-            <div className="rounded-2xl bg-emerald-50/60 border border-emerald-100/80 p-4 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center shadow-sm">
-                  {request.workerName.substring(0, 2).toUpperCase()}
+            <div className="rounded-2xl bg-emerald-50/60 border border-emerald-100/80 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center shadow-sm">
+                    {request.workerName.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">Assigned Worker</span>
+                    <span className="text-sm font-bold text-slate-900">{request.workerName}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">Assigned Worker</span>
-                  <span className="text-sm font-bold text-slate-900">{request.workerName}</span>
-                </div>
+                <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-800 border border-emerald-200">
+                  Matched & Verified
+                </span>
               </div>
-              <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-800 border border-emerald-200">
-                Matched & Verified
-              </span>
+
+              {request.jobId && (
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentOpen(true)}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white hover:bg-emerald-600 transition-colors shadow-sm"
+                >
+                  <IndianRupee className="h-4 w-4" />
+                  Simulate Payment / View Receipt
+                </button>
+              )}
             </div>
           )}
 
@@ -294,6 +309,18 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
           )}
         </div>
       </div>
+
+      {/* Payment Checkout Modal */}
+      {request && request.jobId && (
+        <PaymentModal
+          jobId={request.jobId}
+          isOpen={isPaymentOpen}
+          onClose={() => setIsPaymentOpen(false)}
+          onPaymentSuccess={() => {
+            onStatusChange();
+          }}
+        />
+      )}
     </div>
   );
 }

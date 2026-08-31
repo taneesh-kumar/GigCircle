@@ -58,6 +58,9 @@ public class AdminOperationsIntegrationTest {
     private NotificationRepository notificationRepository;
 
     @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
+    @Autowired
     private AdminActivityRepository adminActivityRepository;
 
     @Autowired
@@ -75,6 +78,7 @@ public class AdminOperationsIntegrationTest {
     void setUp() throws Exception {
         adminActivityRepository.deleteAll();
         notificationRepository.deleteAll();
+        paymentRepository.deleteAll();
         ratingRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();

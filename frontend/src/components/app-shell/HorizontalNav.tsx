@@ -11,6 +11,7 @@ import {
   UsersRound,
   HandHeart,
   Activity,
+  Receipt,
   LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -24,6 +25,7 @@ interface NavItem {
 const customerNav: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'requests', label: 'My Requests', icon: FileText },
+  { id: 'payments', label: 'Payments', icon: Receipt },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'profile', label: 'Profile', icon: User },
 ];
@@ -44,6 +46,7 @@ const adminNav: NavItem[] = [
   { id: 'workers', label: 'Workers', icon: HandHeart },
   { id: 'requests', label: 'Requests', icon: FileText },
   { id: 'jobs', label: 'Jobs', icon: Briefcase },
+  { id: 'payments', label: 'Payments', icon: Receipt },
   { id: 'ratings', label: 'Ratings', icon: Star },
   { id: 'activity', label: 'Activity', icon: Activity },
   { id: 'notifications', label: 'Notifications', icon: Bell },

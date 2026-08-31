@@ -83,6 +83,8 @@ import {
   markWorkerNotificationReadApi,
   markAdminNotificationReadApi,
   markAllAdminNotificationsReadApi,
+  getAdminPaymentsApi,
+  getAdminPaymentSummaryApi,
 } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { PlatformShell } from '@/components/platform-shell';
@@ -93,11 +95,14 @@ import { CreateRequestModal } from '@/components/create-request-modal';
 import { RequestDetailModal } from '@/components/request-detail-modal';
 import { WorkerProfileModal } from '@/components/worker-profile-modal';
 import { RatingModal } from '@/components/rating-modal';
+import { PaymentModal } from '@/components/payment-modal';
+import { CustomerPaymentHistoryModal } from '@/components/customer-payment-history-modal';
 import { CATEGORY_LABELS, type ServiceRequest } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
 import type { JobResponse } from '@/types/worker-job';
 import type { Rating, WorkerRatingSummary } from '@/types/rating';
 import type { Earning, PlatformRevenueSummary, WorkerEarningsSummary } from '@/types/earning';
+import type { PaymentResponse, AdminPaymentSummary } from '@/types/payment';
 import type {
   AdminActivity,
   AdminJob,
@@ -202,6 +207,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [ratingWorkerName, setRatingWorkerName] = useState<string | null>(null);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
 
+  // Customer Payment Simulation State
+  const [paymentJobId, setPaymentJobId] = useState<number | null>(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false);
+
   // Worker State
   const [workerProfile, setWorkerProfile] = useState<WorkerProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(role === 'worker');
@@ -243,6 +253,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [adminJobs, setAdminJobs] = useState<AdminJob[]>([]);
   const [adminRatings, setAdminRatings] = useState<AdminRating[]>([]);
   const [adminActivity, setAdminActivity] = useState<AdminActivity[]>([]);
+  const [adminPayments, setAdminPayments] = useState<PaymentResponse[]>([]);
+  const [adminPaymentSummary, setAdminPaymentSummary] = useState<AdminPaymentSummary | null>(null);
   const [isLoadingAdminData, setIsLoadingAdminData] = useState<boolean>(role === 'admin');
   const [adminUserFilter, setAdminUserFilter] = useState<'ALL' | 'CUSTOMER' | 'WORKER' | 'ADMIN'>('ALL');
   const [adminNotifFilter, setAdminNotifFilter] = useState<'all' | 'unread' | 'alerts'>('all');
@@ -335,8 +347,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       ]);
       setWorkerEarnings(earningsList);
       setWorkerEarningsSummary(summary);
-    } catch {
-      // Non-critical fallback
+    } catch (err: any) {
+      console.error('Error loading worker earnings:', err);
+      toast({
+        title: 'Error loading earnings',
+        description: err?.response?.data?.message || 'Failed to load earnings ledger.',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoadingWorkerEarnings(false);
     }
@@ -365,7 +382,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     if (role !== 'admin') return;
     setIsLoadingAdminData(true);
     try {
-      const [overview, users, workers, reqs, jobs, ratings, activity, revenueSummary, revenueLedger] = await Promise.all([
+      const [overview, users, workers, reqs, jobs, ratings, activity, revenueSummary, revenueLedger, payments, paymentSummary] = await Promise.all([
         getAdminOverviewApi(),
         getAdminUsersApi(),
         getAdminWorkersApi(),
@@ -375,6 +392,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         getAdminActivityApi(),
         getAdminRevenueSummaryApi(),
         getAdminEarningsApi(),
+        getAdminPaymentsApi(),
+        getAdminPaymentSummaryApi(),
       ]);
       setAdminOverview(overview);
       setAdminUsers(users);
@@ -385,6 +404,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       setAdminActivity(activity);
       setAdminRevenueSummary(revenueSummary);
       setAdminEarningsLedger(revenueLedger);
+      setAdminPayments(payments);
+      setAdminPaymentSummary(paymentSummary);
     } catch (err: any) {
       toast({
         title: 'Failed to load Admin Operations data',
@@ -1246,6 +1267,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                       <button
                         type="button"
+                        onClick={() => setIsPaymentHistoryModalOpen(true)}
+                        className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                      >
+                        <Receipt className="h-4 w-4 text-emerald-600" /> Payment History
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => setIsCreateModalOpen(true)}
                         className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors"
                       >
@@ -1391,14 +1420,29 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 </div>
                               </div>
 
-                              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenDetail(req)}
-                                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
-                                >
-                                  <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
-                                </button>
+                              <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenDetail(req)}
+                                    className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
+                                  >
+                                    <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
+                                  </button>
+
+                                  {req.jobId && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setPaymentJobId(req.jobId!);
+                                        setIsPaymentModalOpen(true);
+                                      }}
+                                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
+                                    >
+                                      <IndianRupee className="h-3.5 w-3.5 text-emerald-600" /> Pay / Receipt
+                                    </button>
+                                  )}
+                                </div>
                                 {statusStr === 'COMPLETED' && (
                                   req.isRated ? (
                                     <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200/80 px-3.5 py-2 text-xs font-extrabold text-amber-700">
@@ -1414,7 +1458,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                           setIsRatingModalOpen(true);
                                         }
                                       }}
-                                      className="rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5"
+                                      className="rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5"
                                     >
                                       <Star className="h-3.5 w-3.5" /> Rate Service
                                     </button>
@@ -1426,6 +1470,48 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         })}
                       </div>
                     )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: PAYMENTS */}
+            {activeTab === 'payments' && (
+              <div className="space-y-6">
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                        <Receipt className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-slate-900">Payment Receipts & History</h2>
+                        <p className="text-xs text-slate-500">Track simulated payments and cooperative service invoices</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsPaymentHistoryModalOpen(true)}
+                      className="rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors"
+                    >
+                      Open Receipts Manager
+                    </button>
+                  </div>
+
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center space-y-3">
+                    <Receipt className="mx-auto h-8 w-8 text-slate-400" />
+                    <p className="text-sm font-bold text-slate-800">Simulated Job Receipts Available</p>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">
+                      All simulated transactions are stored with transparent platform fee breakdowns and refund support.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsPaymentHistoryModalOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                    >
+                      <Receipt className="h-4 w-4 text-emerald-600" /> View Payment Receipts
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1560,6 +1646,25 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           }`}
                         >
                           {workerProfile.available ? 'Status: Available' : 'Status: Unavailable'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            fetchWorkerProfile();
+                            fetchWorkerJobs();
+                            fetchWorkerRatings();
+                            fetchWorkerEarnings();
+                            toast({
+                              title: 'Dashboard Refreshed',
+                              description: 'Worker profile, jobs, and earnings updated.',
+                            });
+                          }}
+                          disabled={isLoadingProfile || isLoadingJobs || isLoadingWorkerEarnings}
+                          className="p-2.5 rounded-xl border border-slate-700 bg-slate-800/80 text-slate-300 hover:text-white transition-colors disabled:opacity-50"
+                          title="Refresh worker workspace"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${(isLoadingProfile || isLoadingJobs || isLoadingWorkerEarnings) ? 'animate-spin' : ''}`} />
                         </button>
 
                         <button
@@ -2235,10 +2340,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   </div>
                   <button
                     type="button"
-                    onClick={fetchWorkerEarnings}
-                    className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
+                    onClick={async () => {
+                      await Promise.all([fetchWorkerEarnings(), fetchWorkerJobs()]);
+                      toast({
+                        title: 'Earnings Refreshed',
+                        description: 'Your cooperative earnings ledger has been updated.',
+                      });
+                    }}
+                    disabled={isLoadingWorkerEarnings}
+                    className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50"
+                    title="Refresh Earnings Ledger"
                   >
-                    <RefreshCw className="h-4 w-4" />
+                    <RefreshCw className={`h-4 w-4 ${isLoadingWorkerEarnings ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
 
@@ -2390,17 +2503,35 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-4 bg-white/90 backdrop-blur-md border border-amber-200/80 rounded-2xl p-4 shrink-0 shadow-sm hover:shadow-md transition-all">
-                    <div className="h-11 w-11 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                      <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
-                    </div>
-                    <div>
-                      <span className="text-2xl font-black text-amber-950 block leading-none">
-                        {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
-                      </span>
-                      <span className="text-[11px] font-bold text-amber-700 block mt-1">
-                        {workerRatingSummary?.totalRatings || 0} verified reviews
-                      </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await fetchWorkerRatings();
+                        toast({
+                          title: 'Ratings Refreshed',
+                          description: 'Customer ratings and review summaries updated.',
+                        });
+                      }}
+                      disabled={isLoadingWorkerRatings}
+                      className="p-2.5 rounded-xl border border-amber-200 bg-white text-amber-700 hover:text-amber-900 transition-colors disabled:opacity-50"
+                      title="Refresh reviews"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoadingWorkerRatings ? 'animate-spin' : ''}`} />
+                    </button>
+
+                    <div className="flex items-center gap-4 bg-white/90 backdrop-blur-md border border-amber-200/80 rounded-2xl p-4 shrink-0 shadow-sm hover:shadow-md transition-all">
+                      <div className="h-11 w-11 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                        <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
+                      </div>
+                      <div>
+                        <span className="text-2xl font-black text-amber-950 block leading-none">
+                          {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
+                        </span>
+                        <span className="text-[11px] font-bold text-amber-700 block mt-1">
+                          {workerRatingSummary?.totalRatings || 0} verified reviews
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3047,8 +3178,103 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
               )}
 
-              {activeTab === 'ratings' && (
-                <div className="rounded-[28px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm space-y-4">
+              {/* PAYMENTS & TRANSACTIONS DIRECTORY */}
+              {(activeTab === 'payments' || activeTab === 'overview') && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-slate-900">Payments & Transactions Ledger</h3>
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-200">
+                          Simulated
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">Live platform payment simulation transactions and cooperative platform fee ledger</p>
+                    </div>
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'payments' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Payments →
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Summary Metrics */}
+                  {adminPaymentSummary && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5 space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Volume</span>
+                        <p className="font-mono text-base font-black text-slate-900">₹{adminPaymentSummary.totalSimulatedVolume?.toFixed(2) || '0.00'}</p>
+                      </div>
+                      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-3.5 space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block">Platform Fees</span>
+                        <p className="font-mono text-base font-black text-emerald-800">₹{adminPaymentSummary.totalSimulatedPlatformFees?.toFixed(2) || '0.00'}</p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5 space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Successful</span>
+                        <p className="font-mono text-base font-black text-emerald-700">{adminPaymentSummary.successfulTransactions}</p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5 space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Refunded / Failed</span>
+                        <p className="font-mono text-base font-black text-slate-700">
+                          {adminPaymentSummary.refundedTransactions} / {adminPaymentSummary.failedTransactions}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                    {adminPayments.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-6 text-center">No payment transactions recorded yet.</p>
+                    ) : (
+                      (activeTab === 'overview' ? adminPayments.slice(0, 5) : adminPayments).map((p) => (
+                        <div key={p.id} className="py-3 px-2 flex flex-wrap items-center justify-between text-xs gap-4 min-w-[650px] hover:bg-slate-50/60 rounded-2xl transition-all">
+                          <div className="flex items-center gap-3 flex-1 min-w-[180px]">
+                            <div className="h-9 w-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 text-emerald-600">
+                              <Receipt className="h-4.5 w-4.5" />
+                            </div>
+                            <div>
+                              <strong className="text-slate-800 font-extrabold text-xs block">{p.serviceCategory}</strong>
+                              <span className="font-mono text-[11px] text-slate-400 font-semibold">{p.transactionReference}</span>
+                            </div>
+                          </div>
+                          <div className="w-[120px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Amount & Fee</span>
+                            <div className="mt-0.5">
+                              <strong className="text-slate-900 font-extrabold font-mono">₹{p.amount.toFixed(2)}</strong>
+                              <span className="text-[10px] text-slate-400 block font-mono font-medium">(Fee: ₹{p.platformFee.toFixed(2)})</span>
+                            </div>
+                          </div>
+                          <div className="w-[130px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer</span>
+                            <span className="font-bold text-slate-700 block mt-0.5 truncate">{p.customerName}</span>
+                          </div>
+                          <div className="w-[110px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Method</span>
+                            <span className="font-bold text-slate-600 block mt-0.5">{p.paymentMethod}</span>
+                          </div>
+                          <div className="w-[90px] shrink-0 flex justify-end">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase border ${
+                              p.status === 'SUCCESS' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                              p.status === 'REFUNDED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                              'bg-red-50 text-red-700 border-red-200'
+                            }`}>
+                              {p.status === 'SUCCESS' ? 'Paid' : p.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* RATINGS & REVIEWS DIRECTORY */}
+              {(activeTab === 'ratings' || activeTab === 'overview') && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                       <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">
@@ -3204,6 +3430,21 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             jobId={ratingJobId}
             workerName={ratingWorkerName}
             onSuccess={fetchCustomerRequests}
+          />
+          <PaymentModal
+            isOpen={isPaymentModalOpen}
+            jobId={paymentJobId}
+            onClose={() => {
+              setIsPaymentModalOpen(false);
+              setPaymentJobId(null);
+            }}
+            onPaymentSuccess={() => {
+              fetchCustomerRequests();
+            }}
+          />
+          <CustomerPaymentHistoryModal
+            isOpen={isPaymentHistoryModalOpen}
+            onClose={() => setIsPaymentHistoryModalOpen(false)}
           />
         </>
       )}
