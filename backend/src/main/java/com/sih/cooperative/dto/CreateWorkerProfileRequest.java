@@ -33,10 +33,28 @@ public class CreateWorkerProfileRequest {
     @Min(value = 1, message = "Service radius must be at least 1 km")
     private Integer serviceRadiusKm;
 
+    @DecimalMin(value = "-90.0", message = "Latitude must be greater than or equal to -90")
+    @DecimalMax(value = "90.0", message = "Latitude must be less than or equal to 90")
+    private Double latitude;
+
+    @DecimalMin(value = "-180.0", message = "Longitude must be greater than or equal to -180")
+    @DecimalMax(value = "180.0", message = "Longitude must be less than or equal to 180")
+    private Double longitude;
+
+    @Size(max = 500, message = "Address must not exceed 500 characters")
+    private String address;
+
+    @Size(max = 100, message = "City must not exceed 100 characters")
+    private String city;
+
     public CreateWorkerProfileRequest() {
     }
 
     public CreateWorkerProfileRequest(String bio, Integer experienceYears, BigDecimal hourlyRate, Set<String> skills, Set<ServiceCategory> serviceCategories, Boolean isAvailable, String serviceLocation, Integer serviceRadiusKm) {
+        this(bio, experienceYears, hourlyRate, skills, serviceCategories, isAvailable, serviceLocation, serviceRadiusKm, null, null, null, null);
+    }
+
+    public CreateWorkerProfileRequest(String bio, Integer experienceYears, BigDecimal hourlyRate, Set<String> skills, Set<ServiceCategory> serviceCategories, Boolean isAvailable, String serviceLocation, Integer serviceRadiusKm, Double latitude, Double longitude, String address, String city) {
         this.bio = bio;
         this.experienceYears = experienceYears;
         this.hourlyRate = hourlyRate;
@@ -45,6 +63,10 @@ public class CreateWorkerProfileRequest {
         this.isAvailable = isAvailable;
         this.serviceLocation = serviceLocation;
         this.serviceRadiusKm = serviceRadiusKm;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.address = address;
+        this.city = city;
     }
 
     public String getBio() {
@@ -109,5 +131,37 @@ public class CreateWorkerProfileRequest {
 
     public void setServiceRadiusKm(Integer serviceRadiusKm) {
         this.serviceRadiusKm = serviceRadiusKm;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 }

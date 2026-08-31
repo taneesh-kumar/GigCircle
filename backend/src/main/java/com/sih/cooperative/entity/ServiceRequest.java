@@ -26,6 +26,18 @@ public class ServiceRequest {
     @Column(nullable = false, length = 255)
     private String location;
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
+    @Column(name = "address", length = 500)
+    private String address;
+
+    @Column(name = "city", length = 100)
+    private String city;
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal budget;
 
@@ -46,12 +58,20 @@ public class ServiceRequest {
     }
 
     public ServiceRequest(User customer, ServiceCategory category, String description, String location, BigDecimal budget, LocalDateTime preferredTime) {
+        this(customer, category, description, location, budget, preferredTime, null, null, null, null);
+    }
+
+    public ServiceRequest(User customer, ServiceCategory category, String description, String location, BigDecimal budget, LocalDateTime preferredTime, Double latitude, Double longitude, String address, String city) {
         this.customer = customer;
         this.category = category;
         this.description = description;
         this.location = location;
         this.budget = budget;
         this.preferredTime = preferredTime;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.address = address;
+        this.city = city;
         this.status = ServiceRequestStatus.OPEN;
     }
 
@@ -108,6 +128,38 @@ public class ServiceRequest {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public BigDecimal getBudget() {

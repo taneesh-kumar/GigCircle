@@ -22,6 +22,10 @@ public class WorkerProfileResponse {
     private boolean isAvailable;
     private String serviceLocation;
     private Integer serviceRadiusKm;
+    private Double latitude;
+    private Double longitude;
+    private String address;
+    private String city;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -29,6 +33,10 @@ public class WorkerProfileResponse {
     }
 
     public WorkerProfileResponse(Long id, Long workerId, String workerName, String workerEmail, String workerPhone, String bio, Integer experienceYears, BigDecimal hourlyRate, Set<String> skills, Set<ServiceCategory> serviceCategories, boolean isAvailable, String serviceLocation, Integer serviceRadiusKm, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this(id, workerId, workerName, workerEmail, workerPhone, bio, experienceYears, hourlyRate, skills, serviceCategories, isAvailable, serviceLocation, serviceRadiusKm, null, null, null, null, createdAt, updatedAt);
+    }
+
+    public WorkerProfileResponse(Long id, Long workerId, String workerName, String workerEmail, String workerPhone, String bio, Integer experienceYears, BigDecimal hourlyRate, Set<String> skills, Set<ServiceCategory> serviceCategories, boolean isAvailable, String serviceLocation, Integer serviceRadiusKm, Double latitude, Double longitude, String address, String city, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.workerId = workerId;
         this.workerName = workerName;
@@ -42,6 +50,10 @@ public class WorkerProfileResponse {
         this.isAvailable = isAvailable;
         this.serviceLocation = serviceLocation;
         this.serviceRadiusKm = serviceRadiusKm;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.address = address;
+        this.city = city;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -61,6 +73,10 @@ public class WorkerProfileResponse {
                 profile.isAvailable(),
                 profile.getServiceLocation(),
                 profile.getServiceRadiusKm(),
+                profile.getLatitude(),
+                profile.getLongitude(),
+                profile.getAddress(),
+                profile.getCity(),
                 profile.getCreatedAt(),
                 profile.getUpdatedAt()
         );
@@ -168,6 +184,38 @@ public class WorkerProfileResponse {
 
     public void setServiceRadiusKm(Integer serviceRadiusKm) {
         this.serviceRadiusKm = serviceRadiusKm;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public LocalDateTime getCreatedAt() {

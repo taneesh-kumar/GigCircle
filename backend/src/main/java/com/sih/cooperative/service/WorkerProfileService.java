@@ -84,7 +84,11 @@ public class WorkerProfileService {
                 request.getServiceCategories(),
                 available,
                 request.getServiceLocation() != null ? request.getServiceLocation().trim() : null,
-                request.getServiceRadiusKm()
+                request.getServiceRadiusKm(),
+                request.getLatitude(),
+                request.getLongitude(),
+                request.getAddress() != null ? request.getAddress().trim() : null,
+                request.getCity() != null ? request.getCity().trim() : null
         );
 
         WorkerProfile savedProfile = workerProfileRepository.save(profile);
@@ -122,6 +126,10 @@ public class WorkerProfileService {
         }
         profile.setServiceLocation(request.getServiceLocation() != null ? request.getServiceLocation().trim() : null);
         profile.setServiceRadiusKm(request.getServiceRadiusKm());
+        profile.setLatitude(request.getLatitude());
+        profile.setLongitude(request.getLongitude());
+        profile.setAddress(request.getAddress() != null ? request.getAddress().trim() : null);
+        profile.setCity(request.getCity() != null ? request.getCity().trim() : null);
 
         WorkerProfile updatedProfile = workerProfileRepository.save(profile);
         return WorkerProfileResponse.fromEntity(updatedProfile);

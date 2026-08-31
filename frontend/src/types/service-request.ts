@@ -18,6 +18,10 @@ export interface ServiceRequest {
   category: ServiceCategory;
   description: string;
   location: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+  city?: string | null;
   budget: number;
   preferredTime: string;
   status: ServiceRequestStatus;
@@ -41,6 +45,10 @@ export interface CreateServiceRequestInput {
   category: ServiceCategory;
   description: string;
   location: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string;
+  city?: string;
   budget: number;
   preferredTime: string;
 }

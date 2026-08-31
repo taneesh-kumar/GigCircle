@@ -293,4 +293,50 @@ public class WorkerProfileIntegrationTest {
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void testWorkerProfileLocationCoordinatesPersistenceAndValidation() throws Exception {
+        // 1. Create Profile with valid coordinates & address
+        CreateWorkerProfileRequest validReq = new CreateWorkerProfileRequest(
+                "Geographic service provider",
+                4,
+                new BigDecimal("450.00"),
+                Set.of("Plumbing"),
+                Set.of(ServiceCategory.PLUMBING),
+                true,
+                "Vijayawada",
+                10,
+                16.5062,
+                80.6480,
+                "MG Road, Labbipet",
+                "Vijayawada"
+        );
+
+        mockMvc.perform(post("/api/worker/profile")
+                        .header("Authorization", "Bearer " + workerAToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.latitude").value(16.5062))
+                .andExpect(jsonPath("$.longitude").value(80.6480))
+                .andExpect(jsonPath("$.address").value("MG Road, Labbipet"))
+                .andExpect(jsonPath("$.city").value("Vijayawada"));
+
+        // 2. Fetch Profile & verify coordinates persist
+        mockMvc.perform(get("/api/worker/profile")
+                        .header("Authorization", "Bearer " + workerAToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.latitude").value(16.5062))
+                .andExpect(jsonPath("$.longitude").value(80.6480));
+
+        // 3. Test Invalid Latitude (> 90) -> 400 Bad Request
+        CreateWorkerProfileRequest invalidLat = new CreateWorkerProfileRequest(
+                "Bio", 2, new BigDecimal("200.00"), Set.of("Skill"), Set.of(ServiceCategory.OTHER), true, "Loc", 5, 95.0, 80.0, "Addr", "City"
+        );
+        mockMvc.perform(put("/api/worker/profile")
+                        .header("Authorization", "Bearer " + workerAToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidLat)))
+                .andExpect(status().isBadRequest());
+    }
 }

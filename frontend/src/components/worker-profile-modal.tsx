@@ -4,6 +4,7 @@ import { createWorkerProfileApi, updateWorkerProfileApi } from '@/services/api';
 import { CATEGORY_LABELS, type ServiceCategory } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
 import { useToast } from '@/hooks/use-toast';
+import { LocationPicker, type LocationPickerValue } from '@/components/location-picker';
 
 interface WorkerProfileModalProps {
   isOpen: boolean;
@@ -45,6 +46,10 @@ export function WorkerProfileModal({ isOpen, onClose, onSuccess, existingProfile
   const [experienceYears, setExperienceYears] = useState('0');
   const [hourlyRate, setHourlyRate] = useState('');
   const [serviceLocation, setServiceLocation] = useState('');
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [address, setAddress] = useState<string>('');
+  const [city, setCity] = useState<string>('');
   const [serviceRadiusKm, setServiceRadiusKm] = useState('10');
   const [isAvailable, setIsAvailable] = useState(true);
 
@@ -60,6 +65,10 @@ export function WorkerProfileModal({ isOpen, onClose, onSuccess, existingProfile
       setExperienceYears(String(existingProfile.experienceYears ?? 0));
       setHourlyRate(String(existingProfile.hourlyRate ?? ''));
       setServiceLocation(existingProfile.serviceLocation || '');
+      setLatitude(existingProfile.latitude ?? null);
+      setLongitude(existingProfile.longitude ?? null);
+      setAddress(existingProfile.address || '');
+      setCity(existingProfile.city || '');
       setServiceRadiusKm(String(existingProfile.serviceRadiusKm ?? 10));
       setIsAvailable(existingProfile.available ?? true);
     } else {
@@ -69,6 +78,10 @@ export function WorkerProfileModal({ isOpen, onClose, onSuccess, existingProfile
       setExperienceYears('0');
       setHourlyRate('');
       setServiceLocation('');
+      setLatitude(null);
+      setLongitude(null);
+      setAddress('');
+      setCity('');
       setServiceRadiusKm('10');
       setIsAvailable(true);
     }
@@ -143,6 +156,7 @@ export function WorkerProfileModal({ isOpen, onClose, onSuccess, existingProfile
 
     setIsSubmitting(true);
 
+    const locText = serviceLocation.trim() || address.trim() || city.trim() || undefined;
     const payload = {
       bio: bio.trim() || undefined,
       experienceYears: parseInt(experienceYears, 10),
@@ -150,8 +164,12 @@ export function WorkerProfileModal({ isOpen, onClose, onSuccess, existingProfile
       skills,
       serviceCategories: selectedCategories,
       isAvailable,
-      serviceLocation: serviceLocation.trim() || undefined,
+      serviceLocation: locText,
       serviceRadiusKm: serviceRadiusKm ? parseInt(serviceRadiusKm, 10) : undefined,
+      latitude,
+      longitude,
+      address: address.trim() || undefined,
+      city: city.trim() || undefined,
     };
 
     try {
@@ -368,40 +386,59 @@ export function WorkerProfileModal({ isOpen, onClose, onSuccess, existingProfile
           </div>
 
           {/* Location & Service Radius */}
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div>
-              <label htmlFor="serviceLocation" className="block text-xs font-bold uppercase tracking-wider text-primary">
-                Primary Location
-              </label>
-              <div className="relative mt-2">
-                <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
-                <input
-                  id="serviceLocation"
-                  type="text"
-                  value={serviceLocation}
-                  onChange={(e) => setServiceLocation(e.target.value)}
-                  placeholder="e.g. Indiranagar, Bengaluru"
-                  className="focus-ring w-full rounded-2xl border border-border/80 bg-background pl-10 pr-3.5 py-3 text-sm text-primary transition-colors hover:border-accent/40"
-                />
-              </div>
-            </div>
+          <div className="rounded-2xl border border-border/80 bg-slate-50/50 p-4 space-y-4">
+            <LocationPicker
+              label="Set Base Service Location on Map"
+              initialLatitude={latitude}
+              initialLongitude={longitude}
+              initialAddress={address}
+              initialCity={city}
+              onChange={(val: LocationPickerValue) => {
+                setLatitude(val.latitude);
+                setLongitude(val.longitude);
+                setAddress(val.address);
+                setCity(val.city);
+                if (val.address || val.city) {
+                  setServiceLocation(val.address ? (val.city ? `${val.address}, ${val.city}` : val.address) : val.city);
+                }
+              }}
+            />
 
-            <div>
-              <label htmlFor="serviceRadiusKm" className="block text-xs font-bold uppercase tracking-wider text-primary">
-                Service Radius (km)
-              </label>
-              <input
-                id="serviceRadiusKm"
-                type="number"
-                min="1"
-                value={serviceRadiusKm}
-                onChange={(e) => setServiceRadiusKm(e.target.value)}
-                placeholder="10"
-                className={`focus-ring mt-2 w-full rounded-2xl border bg-background px-3.5 py-3 text-sm text-primary transition-colors ${
-                  errors.serviceRadiusKm ? 'border-destructive' : 'border-border/80 hover:border-accent/40'
-                }`}
-              />
-              {errors.serviceRadiusKm && <p className="mt-1.5 text-xs text-destructive">{errors.serviceRadiusKm}</p>}
+            <div className="grid gap-5 sm:grid-cols-2 pt-2">
+              <div>
+                <label htmlFor="serviceLocation" className="block text-xs font-bold uppercase tracking-wider text-primary">
+                  Address / City Name
+                </label>
+                <div className="relative mt-2">
+                  <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
+                  <input
+                    id="serviceLocation"
+                    type="text"
+                    value={serviceLocation}
+                    onChange={(e) => setServiceLocation(e.target.value)}
+                    placeholder="e.g. MG Road, Vijayawada"
+                    className="focus-ring w-full rounded-2xl border border-border/80 bg-background pl-10 pr-3.5 py-3 text-sm text-primary transition-colors hover:border-accent/40"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="serviceRadiusKm" className="block text-xs font-bold uppercase tracking-wider text-primary">
+                  Service Radius (km)
+                </label>
+                <input
+                  id="serviceRadiusKm"
+                  type="number"
+                  min="1"
+                  value={serviceRadiusKm}
+                  onChange={(e) => setServiceRadiusKm(e.target.value)}
+                  placeholder="10"
+                  className={`focus-ring mt-2 w-full rounded-2xl border bg-background px-3.5 py-3 text-sm text-primary transition-colors ${
+                    errors.serviceRadiusKm ? 'border-destructive' : 'border-border/80 hover:border-accent/40'
+                  }`}
+                />
+                {errors.serviceRadiusKm && <p className="mt-1.5 text-xs text-destructive">{errors.serviceRadiusKm}</p>}
+              </div>
             </div>
           </div>
 

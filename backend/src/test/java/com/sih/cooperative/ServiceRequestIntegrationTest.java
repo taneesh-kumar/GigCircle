@@ -300,4 +300,42 @@ public class ServiceRequestIntegrationTest {
                         .content(objectMapper.writeValueAsString(createReq)))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void testCreateServiceRequestLocationCoordinatesPersistence() throws Exception {
+        LocalDateTime futureTime = LocalDateTime.now().plusDays(2);
+        CreateServiceRequestRequest req = new CreateServiceRequestRequest(
+                ServiceCategory.PLUMBING,
+                "Geographic plumbing request",
+                "Vijayawada",
+                new BigDecimal("800.00"),
+                futureTime,
+                16.5062,
+                80.6480,
+                "Bandar Road",
+                "Vijayawada"
+        );
+
+        MvcResult res = mockMvc.perform(post("/api/customer/requests")
+                        .header("Authorization", "Bearer " + customerAToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.latitude").value(16.5062))
+                .andExpect(jsonPath("$.longitude").value(80.6480))
+                .andExpect(jsonPath("$.address").value("Bandar Road"))
+                .andExpect(jsonPath("$.city").value("Vijayawada"))
+                .andReturn();
+
+        Long reqId = objectMapper.readTree(res.getResponse().getContentAsString()).get("id").asLong();
+
+        // Fetch detail and verify persisted coordinates
+        mockMvc.perform(get("/api/customer/requests/" + reqId)
+                        .header("Authorization", "Bearer " + customerAToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.latitude").value(16.5062))
+                .andExpect(jsonPath("$.longitude").value(80.6480))
+                .andExpect(jsonPath("$.address").value("Bandar Road"))
+                .andExpect(jsonPath("$.city").value("Vijayawada"));
+    }
 }

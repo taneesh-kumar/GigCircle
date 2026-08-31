@@ -75,13 +75,21 @@ public class ServiceRequestService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Preferred time must be in the future");
         }
 
+        String locationStr = request.getLocation() != null ? request.getLocation().trim() : "";
+        String addressStr = request.getAddress() != null ? request.getAddress().trim() : locationStr;
+        String cityStr = request.getCity() != null ? request.getCity().trim() : null;
+
         ServiceRequest serviceRequest = new ServiceRequest(
                 customer,
                 request.getCategory(),
                 request.getDescription().trim(),
-                request.getLocation().trim(),
+                locationStr,
                 request.getBudget(),
-                request.getPreferredTime()
+                request.getPreferredTime(),
+                request.getLatitude(),
+                request.getLongitude(),
+                addressStr,
+                cityStr
         );
 
         ServiceRequest savedRequest = serviceRequestRepository.save(serviceRequest);
