@@ -223,7 +223,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                 </span>
               </div>
 
-              {request.jobId && (
+              {request.jobId && (jobStatusStr === 'PAYMENT_REQUIRED' || jobStatusStr === 'COMPLETED') && (
                 <button
                   type="button"
                   onClick={() => setIsPaymentOpen(true)}
@@ -234,7 +234,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                   }`}
                 >
                   <IndianRupee className="h-4 w-4" />
-                  {jobStatusStr === 'PAYMENT_REQUIRED' ? `Pay Now (₹${request.budget.toLocaleString()})` : 'Simulate Payment / View Receipt'}
+                  {jobStatusStr === 'PAYMENT_REQUIRED' ? `Pay Now (₹${request.budget.toLocaleString()})` : 'View Payment Receipt'}
                 </button>
               )}
             </div>

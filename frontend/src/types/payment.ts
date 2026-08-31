@@ -1,4 +1,5 @@
 import { ServiceCategory } from './service-request';
+import type { JobStatus } from './worker-job';
 
 export type PaymentMethod = 'UPI' | 'CARD' | 'CASH';
 
@@ -6,6 +7,7 @@ export type PaymentStatus = 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED' | 'C
 
 export interface PaymentSummary {
   jobId: number;
+  jobStatus: JobStatus;
   serviceCategory: ServiceCategory;
   serviceDescription: string;
   workerName?: string;
@@ -14,7 +16,7 @@ export interface PaymentSummary {
   feePercentage: number;
   totalAmount: number;
   currency: string;
-  isAlreadyPaid: boolean;
+  alreadyPaid: boolean;
   existingPaymentStatus?: PaymentStatus;
   existingTransactionReference?: string;
 }

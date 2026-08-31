@@ -1,6 +1,7 @@
 package com.sih.cooperative.dto;
 
 import com.sih.cooperative.entity.PaymentStatus;
+import com.sih.cooperative.entity.JobStatus;
 import com.sih.cooperative.entity.ServiceCategory;
 
 import java.math.BigDecimal;
@@ -8,6 +9,7 @@ import java.math.BigDecimal;
 public class PaymentSummaryResponse {
 
     private Long jobId;
+    private JobStatus jobStatus;
     private ServiceCategory serviceCategory;
     private String serviceDescription;
     private String workerName;
@@ -29,6 +31,14 @@ public class PaymentSummaryResponse {
 
     public void setJobId(Long jobId) {
         this.jobId = jobId;
+    }
+
+    public JobStatus getJobStatus() {
+        return jobStatus;
+    }
+
+    public void setJobStatus(JobStatus jobStatus) {
+        this.jobStatus = jobStatus;
     }
 
     public ServiceCategory getServiceCategory() {

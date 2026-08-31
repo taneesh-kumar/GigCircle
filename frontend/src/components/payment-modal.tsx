@@ -65,7 +65,7 @@ export function PaymentModal({ jobId, isOpen, onClose, onPaymentSuccess }: Payme
       getPaymentSummaryApi(jobId)
         .then((res) => {
           setSummary(res);
-          if (res.isAlreadyPaid) {
+          if (res.alreadyPaid) {
             setSimulationStep('SUCCESS');
           }
         })
@@ -183,6 +183,33 @@ export function PaymentModal({ jobId, isOpen, onClose, onPaymentSuccess }: Payme
               </div>
               <p>{summaryError}</p>
             </div>
+          ) : summary && summary.jobStatus !== 'PAYMENT_REQUIRED' && !summary.alreadyPaid ? (
+            <div className="space-y-6 animate-rise-in">
+              <div className="text-center space-y-2">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-100 text-amber-700 shadow-inner">
+                  <AlertCircle className="h-9 w-9" />
+                </div>
+                <h3 className="font-display text-xl font-black text-slate-900">
+                  Payment Not Available Yet
+                </h3>
+                <p className="text-xs text-slate-600 font-semibold">
+                  Payment opens after the worker requests job completion.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900 space-y-1.5">
+                <p className="font-bold">Current job status: {summary.jobStatus}</p>
+                <p>The job must be PAYMENT_REQUIRED before checkout can begin.</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full rounded-2xl bg-slate-900 py-3.5 text-xs font-black text-white shadow-md hover:bg-slate-800 transition-colors"
+              >
+                Back to Job
+              </button>
+            </div>
           ) : simulationStep === 'VALIDATING' || simulationStep === 'PROCESSING' || simulationStep === 'CONFIRMING' ? (
             <div className="py-12 text-center space-y-6">
               <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-600 border border-emerald-200">
@@ -218,7 +245,7 @@ export function PaymentModal({ jobId, isOpen, onClose, onPaymentSuccess }: Payme
                   Payment Successful ✓
                 </h3>
                 <p className="text-xs text-slate-500 font-semibold">
-                  Simulated transaction confirmed. Job can now proceed.
+                  This job has been paid for and is marked completed.
                 </p>
               </div>
 

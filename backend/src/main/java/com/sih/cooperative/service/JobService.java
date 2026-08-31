@@ -27,6 +27,7 @@ public class JobService {
     private final WorkerMatchingService workerMatchingService;
     private final EarningService earningService;
     private final NotificationService notificationService;
+    private final PaymentService paymentService;
 
     public JobService(JobRepository jobRepository,
                       ServiceRequestRepository serviceRequestRepository,
@@ -34,7 +35,8 @@ public class JobService {
                       UserRepository userRepository,
                       WorkerMatchingService workerMatchingService,
                       EarningService earningService,
-                      NotificationService notificationService) {
+                      NotificationService notificationService,
+                      PaymentService paymentService) {
         this.jobRepository = jobRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.workerProfileRepository = workerProfileRepository;
@@ -42,6 +44,7 @@ public class JobService {
         this.workerMatchingService = workerMatchingService;
         this.earningService = earningService;
         this.notificationService = notificationService;
+        this.paymentService = paymentService;
     }
 
     private User getAuthenticatedWorker(String email) {
@@ -221,6 +224,7 @@ public class JobService {
             job.setStatus(JobStatus.PAYMENT_REQUIRED);
 
             savedJob = jobRepository.save(job);
+            paymentService.ensurePendingPaymentForJob(savedJob);
         } catch (ResponseStatusException ex) {
             throw ex;
         } catch (Exception ex) {

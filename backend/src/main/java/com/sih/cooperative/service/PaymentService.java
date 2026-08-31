@@ -70,6 +70,69 @@ public class PaymentService {
         return "SIM-TXN-" + randomSuffix;
     }
 
+    private String generatePendingPaymentRef() {
+        String randomSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        return "SIM-PENDING-" + randomSuffix;
+    }
+
+    private PaymentAmounts calculatePaymentAmounts(Job job) {
+        ServiceRequest request = job.getServiceRequest();
+        if (request == null || request.getBudget() == null || request.getBudget().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Job must have a valid service amount");
+        }
+
+        BigDecimal serviceAmount = request.getBudget().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal feePercentage = earningsConfig.getPlatformFeePercentage();
+        BigDecimal platformFee = serviceAmount
+                .multiply(feePercentage)
+                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        BigDecimal totalAmount = serviceAmount.add(platformFee).setScale(2, RoundingMode.HALF_UP);
+
+        return new PaymentAmounts(serviceAmount, feePercentage, platformFee, totalAmount);
+    }
+
+    @Transactional
+    public Payment ensurePendingPaymentForJob(Job job) {
+        if (job == null || job.getId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Valid job is required to create payment");
+        }
+
+        if (job.getStatus() != JobStatus.PAYMENT_REQUIRED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Payment can only be prepared for PAYMENT_REQUIRED jobs");
+        }
+
+        paymentRepository.findFirstByJobIdAndStatusOrderByCreatedAtDesc(job.getId(), PaymentStatus.SUCCESS)
+                .ifPresent(payment -> {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "This job has already been paid.");
+                });
+
+        Optional<Payment> existingPending = paymentRepository.findFirstByJobIdAndStatusOrderByCreatedAtDesc(job.getId(), PaymentStatus.PENDING);
+        if (existingPending.isPresent()) {
+            return existingPending.get();
+        }
+
+        User customer = job.getServiceRequest().getCustomer();
+        if (customer == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Job must be associated with a customer");
+        }
+
+        PaymentAmounts amounts = calculatePaymentAmounts(job);
+
+        Payment payment = new Payment(
+                job,
+                customer,
+                amounts.serviceAmount(),
+                amounts.platformFee(),
+                amounts.totalAmount(),
+                PaymentMethod.CASH,
+                "Awaiting customer payment",
+                PaymentStatus.PENDING,
+                generatePendingPaymentRef()
+        );
+
+        return paymentRepository.save(payment);
+    }
+
     @Transactional(readOnly = true)
     public PaymentSummaryResponse getPaymentSummary(Long jobId, String customerEmail) {
         User customer = getAuthenticatedCustomer(customerEmail);
@@ -82,32 +145,31 @@ public class PaymentService {
         }
 
         ServiceRequest request = job.getServiceRequest();
-        BigDecimal serviceAmount = request.getBudget().setScale(2, RoundingMode.HALF_UP);
-        BigDecimal feePercentage = earningsConfig.getPlatformFeePercentage();
-        BigDecimal platformFee = serviceAmount
-                .multiply(feePercentage)
-                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-
-        BigDecimal totalAmount = serviceAmount.add(platformFee).setScale(2, RoundingMode.HALF_UP);
+        PaymentAmounts amounts = calculatePaymentAmounts(job);
 
         Optional<Payment> existingSuccessPayment = paymentRepository.findFirstByJobIdAndStatusOrderByCreatedAtDesc(jobId, PaymentStatus.SUCCESS);
+        Optional<Payment> latestPayment = paymentRepository.findFirstByJobIdOrderByCreatedAtDesc(jobId);
 
         PaymentSummaryResponse summary = new PaymentSummaryResponse();
         summary.setJobId(jobId);
+        summary.setJobStatus(job.getStatus());
         summary.setServiceCategory(request.getCategory());
         summary.setServiceDescription(request.getDescription());
         if (job.getWorker() != null) {
             summary.setWorkerName(job.getWorker().getName());
         }
-        summary.setServiceAmount(serviceAmount);
-        summary.setPlatformFee(platformFee);
-        summary.setFeePercentage(feePercentage);
-        summary.setTotalAmount(totalAmount);
+        summary.setServiceAmount(amounts.serviceAmount());
+        summary.setPlatformFee(amounts.platformFee());
+        summary.setFeePercentage(amounts.feePercentage());
+        summary.setTotalAmount(amounts.totalAmount());
         summary.setCurrency("INR");
         summary.setAlreadyPaid(existingSuccessPayment.isPresent());
         if (existingSuccessPayment.isPresent()) {
             summary.setExistingPaymentStatus(existingSuccessPayment.get().getStatus());
             summary.setExistingTransactionReference(existingSuccessPayment.get().getTransactionReference());
+        } else if (latestPayment.isPresent()) {
+            summary.setExistingPaymentStatus(latestPayment.get().getStatus());
+            summary.setExistingTransactionReference(latestPayment.get().getTransactionReference());
         }
 
         return summary;
@@ -129,18 +191,11 @@ public class PaymentService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This job has already been paid.");
         }
 
-        // Job must be in payable status (PAYMENT_REQUIRED, IN_PROGRESS, ACCEPTED)
-        if (job.getStatus() != JobStatus.PAYMENT_REQUIRED && job.getStatus() != JobStatus.IN_PROGRESS && job.getStatus() != JobStatus.ACCEPTED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payment is not available for this job state.");
+        if (job.getStatus() != JobStatus.PAYMENT_REQUIRED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Payment is only available after the worker requests completion.");
         }
 
-        // Determine Authoritative Amounts
-        BigDecimal serviceAmount = job.getServiceRequest().getBudget().setScale(2, RoundingMode.HALF_UP);
-        BigDecimal feePercentage = earningsConfig.getPlatformFeePercentage();
-        BigDecimal platformFee = serviceAmount
-                .multiply(feePercentage)
-                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-        BigDecimal totalAmount = serviceAmount.add(platformFee).setScale(2, RoundingMode.HALF_UP);
+        PaymentAmounts amounts = calculatePaymentAmounts(job);
 
         String txnRef = generateSimulatedTxnRef();
         PaymentMethod method = request.getPaymentMethod();
@@ -172,17 +227,18 @@ public class PaymentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid payment method");
         }
 
-        Payment payment = new Payment(
-                job,
-                customer,
-                serviceAmount,
-                platformFee,
-                totalAmount,
-                method,
-                methodDetails,
-                status,
-                txnRef
-        );
+        Payment payment = paymentRepository.findFirstByJobIdAndStatusOrderByCreatedAtDesc(job.getId(), PaymentStatus.PENDING)
+                .orElseGet(Payment::new);
+        payment.setJob(job);
+        payment.setCustomer(customer);
+        payment.setServiceAmount(amounts.serviceAmount());
+        payment.setPlatformFee(amounts.platformFee());
+        payment.setAmount(amounts.totalAmount());
+        payment.setCurrency("INR");
+        payment.setPaymentMethod(method);
+        payment.setPaymentMethodDetails(methodDetails);
+        payment.setStatus(status);
+        payment.setTransactionReference(txnRef);
         payment.setFailureReason(failureReason);
 
         Payment savedPayment = paymentRepository.save(payment);
@@ -211,7 +267,7 @@ public class PaymentService {
                     customer,
                     NotificationType.PAYMENT_SUCCESS,
                     "Payment Successful",
-                    "Payment of ₹" + totalAmount + " was successful for Job #" + job.getId() + " (" + txnRef + "). The job is now completed.",
+                    "Payment of Rs. " + amounts.totalAmount() + " was successful for Job #" + job.getId() + " (" + txnRef + "). The job is now completed.",
                     "PAYMENT",
                     savedPayment.getId()
             );
@@ -221,7 +277,7 @@ public class PaymentService {
                         job.getWorker(),
                         NotificationType.PAYMENT_SUCCESS,
                         "Payment Received",
-                        "Customer payment of ₹" + totalAmount + " confirmed for Job #" + job.getId() + ". Job completed successfully.",
+                        "Customer payment of Rs. " + amounts.totalAmount() + " confirmed for Job #" + job.getId() + ". Job completed successfully.",
                         "JOB",
                         job.getId()
                 );
@@ -231,7 +287,7 @@ public class PaymentService {
                     customer,
                     NotificationType.PAYMENT_FAILED,
                     "Payment Failed",
-                    "Simulated payment of ₹" + totalAmount + " for Job #" + job.getId() + " failed (" + failureReason + "). You can retry anytime.",
+                    "Simulated payment of Rs. " + amounts.totalAmount() + " for Job #" + job.getId() + " failed (" + failureReason + "). You can retry anytime.",
                     "PAYMENT",
                     savedPayment.getId()
             );
@@ -287,7 +343,7 @@ public class PaymentService {
                 customer,
                 NotificationType.PAYMENT_REFUNDED,
                 "Simulated Payment Refunded",
-                "Your simulated payment of ₹" + saved.getRefundAmount() + " for Job #" + payment.getJob().getId() + " has been refunded.",
+                "Your simulated payment of Rs. " + saved.getRefundAmount() + " for Job #" + payment.getJob().getId() + " has been refunded.",
                 "PAYMENT",
                 saved.getId()
         );
@@ -344,5 +400,13 @@ public class PaymentService {
                 volume,
                 platformFees
         );
+    }
+
+    private record PaymentAmounts(
+            BigDecimal serviceAmount,
+            BigDecimal feePercentage,
+            BigDecimal platformFee,
+            BigDecimal totalAmount
+    ) {
     }
 }

@@ -227,7 +227,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [jobsError, setJobsError] = useState<string | null>(null);
   const [acceptingRequestId, setAcceptingRequestId] = useState<number | null>(null);
   const [operatingJobId, setOperatingJobId] = useState<number | null>(null);
-  const [assignedFilterStatus, setAssignedFilterStatus] = useState<'ALL' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
+  const [assignedFilterStatus, setAssignedFilterStatus] = useState<'ALL' | 'ACCEPTED' | 'IN_PROGRESS' | 'PAYMENT_REQUIRED' | 'COMPLETED'>('ALL');
 
   // Worker Ratings State
   const [workerRatings, setWorkerRatings] = useState<Rating[]>([]);
@@ -1456,7 +1456,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     >
                                       <IndianRupee className="h-4 w-4 text-emerald-200" /> Pay Now (₹{req.budget.toLocaleString()})
                                     </button>
-                                  ) : req.jobId ? (
+                                  ) : req.jobId && statusStr === 'COMPLETED' ? (
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -1465,7 +1465,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                       }}
                                       className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
                                     >
-                                      <IndianRupee className="h-3.5 w-3.5 text-emerald-600" /> Pay / Receipt
+                                      <Receipt className="h-3.5 w-3.5 text-emerald-600" /> View Receipt
                                     </button>
                                   ) : null}
                                 </div>
@@ -2140,7 +2140,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                     <div className="flex flex-wrap items-center gap-3">
                       <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
-                        {(['ALL', 'ACCEPTED', 'IN_PROGRESS', 'COMPLETED'] as const).map((st) => (
+                        {(['ALL', 'ACCEPTED', 'IN_PROGRESS', 'PAYMENT_REQUIRED', 'COMPLETED'] as const).map((st) => (
                           <button
                             key={st}
                             type="button"
@@ -2151,7 +2151,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 : 'text-slate-600 hover:text-slate-900'
                             }`}
                           >
-                            {st}
+                            {st === 'PAYMENT_REQUIRED' ? 'AWAITING PAYMENT' : st}
                           </button>
                         ))}
                       </div>
