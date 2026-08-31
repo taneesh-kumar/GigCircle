@@ -38,6 +38,12 @@ import {
   Search,
   FileText,
   Layers,
+  QrCode,
+  CreditCard,
+  Banknote,
+  RotateCcw,
+  XCircle,
+  Loader2,
   Bell,
   ChevronRight,
   Hammer,
@@ -85,6 +91,8 @@ import {
   markAllAdminNotificationsReadApi,
   getAdminPaymentsApi,
   getAdminPaymentSummaryApi,
+  getCustomerPaymentsApi,
+  refundPaymentApi,
 } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { PlatformShell } from '@/components/platform-shell';
@@ -211,6 +219,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [paymentJobId, setPaymentJobId] = useState<number | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false);
+  const [customerPayments, setCustomerPayments] = useState<PaymentResponse[]>([]);
+  const [isLoadingCustomerPayments, setIsLoadingCustomerPayments] = useState(false);
+  const [customerPaymentsError, setCustomerPaymentsError] = useState<string | null>(null);
+  const [refundingPaymentId, setRefundingPaymentId] = useState<number | null>(null);
 
   // Worker State
   const [workerProfile, setWorkerProfile] = useState<WorkerProfile | null>(null);
@@ -282,6 +294,40 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       setRequestError(err?.response?.data?.message || 'Failed to load your service requests.');
     } finally {
       setIsLoadingRequests(false);
+    }
+  };
+
+  const fetchCustomerPayments = async () => {
+    if (role !== 'customer') return;
+    setIsLoadingCustomerPayments(true);
+    setCustomerPaymentsError(null);
+    try {
+      const data = await getCustomerPaymentsApi();
+      setCustomerPayments(data);
+    } catch (err: any) {
+      setCustomerPaymentsError(err?.response?.data?.message || 'Failed to load payment history.');
+    } finally {
+      setIsLoadingCustomerPayments(false);
+    }
+  };
+
+  const handleCustomerRefund = async (paymentId: number) => {
+    setRefundingPaymentId(paymentId);
+    try {
+      const updated = await refundPaymentApi(paymentId);
+      toast({
+        title: 'Simulated Refund Processed',
+        description: `Simulated refund of ₹${updated.refundAmount} initiated.`,
+      });
+      fetchCustomerPayments();
+    } catch (err: any) {
+      toast({
+        title: 'Refund Failed',
+        description: err?.response?.data?.message || 'Failed to process refund.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRefundingPaymentId(null);
     }
   };
 
@@ -424,6 +470,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   useEffect(() => {
     if (role === 'customer') {
       fetchCustomerRequests();
+      fetchCustomerPayments();
     } else if (role === 'worker') {
       fetchWorkerProfile();
       fetchWorkerJobs();
@@ -439,11 +486,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       fetchNotificationsPage();
     } else if (activeTab === 'earnings' && role === 'worker') {
       fetchWorkerEarnings();
+    } else if (activeTab === 'payments' && role === 'customer') {
+      fetchCustomerPayments();
     }
 
     const handleSync = () => {
       fetchNotificationsPage();
-      if (role === 'customer') fetchCustomerRequests();
+      if (role === 'customer') {
+        fetchCustomerRequests();
+        fetchCustomerPayments();
+      }
       if (role === 'worker') {
         fetchWorkerJobs();
         fetchWorkerEarnings();
@@ -1525,20 +1577,105 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     </button>
                   </div>
 
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center space-y-3">
-                    <Receipt className="mx-auto h-8 w-8 text-slate-400" />
-                    <p className="text-sm font-bold text-slate-800">Simulated Job Receipts Available</p>
-                    <p className="text-xs text-slate-500 max-w-md mx-auto">
-                      All simulated transactions are stored with transparent platform fee breakdowns and refund support.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setIsPaymentHistoryModalOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
-                    >
-                      <Receipt className="h-4 w-4 text-emerald-600" /> View Payment Receipts
-                    </button>
-                  </div>
+                  {isLoadingCustomerPayments ? (
+                    <div className="py-12 text-center space-y-3">
+                      <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mx-auto" />
+                      <p className="text-xs font-bold text-slate-500">Loading your transactions...</p>
+                    </div>
+                  ) : customerPaymentsError ? (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs text-red-800">
+                      {customerPaymentsError}
+                    </div>
+                  ) : customerPayments.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center space-y-3">
+                      <Receipt className="mx-auto h-8 w-8 text-slate-400" />
+                      <p className="text-sm font-bold text-slate-800">No payment records found</p>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto">
+                        Payments made for completed or assigned service jobs will appear here with transparent transaction receipts.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {customerPayments.map((p) => {
+                        const categoryLabel = p.serviceCategory ? CATEGORY_LABELS[p.serviceCategory]?.label : 'Service';
+                        return (
+                          <div
+                            key={p.id}
+                            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-display text-sm font-black text-slate-900">
+                                    {categoryLabel}
+                                  </span>
+                                  <span className="font-mono text-[11px] font-bold text-slate-400">
+                                    • Job #{p.jobId}
+                                  </span>
+                                </div>
+                                <p className="font-mono text-xs text-slate-500 mt-0.5 font-semibold">
+                                  Txn: {p.transactionReference}
+                                </p>
+                              </div>
+
+                              <div className="text-right">
+                                <span className="font-display text-base font-black text-slate-900">
+                                  ₹{p.amount.toFixed(2)}
+                                </span>
+                                <div>
+                                  {p.status === 'SUCCESS' ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-200">
+                                      <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                      Paid
+                                    </span>
+                                  ) : p.status === 'REFUNDED' ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-extrabold text-purple-700 border border-purple-200">
+                                      <RotateCcw className="h-3 w-3 text-purple-600" />
+                                      Refunded
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-extrabold text-red-700 border border-red-200">
+                                      <XCircle className="h-3 w-3 text-red-600" />
+                                      {p.status}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs text-slate-500 font-medium">
+                              <div className="flex items-center gap-2">
+                                {p.paymentMethod === 'UPI' ? (
+                                  <QrCode className="h-3.5 w-3.5 text-emerald-600" />
+                                ) : p.paymentMethod === 'CARD' ? (
+                                  <CreditCard className="h-3.5 w-3.5 text-emerald-600" />
+                                ) : (
+                                  <Banknote className="h-3.5 w-3.5 text-emerald-600" />
+                                )}
+                                <span>{p.paymentMethodDetails || p.paymentMethod}</span>
+                              </div>
+
+                              {p.status === 'SUCCESS' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCustomerRefund(p.id)}
+                                  disabled={refundingPaymentId === p.id}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                                >
+                                  {refundingPaymentId === p.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <RotateCcw className="h-3 w-3" />
+                                  )}
+                                  Simulate Refund
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

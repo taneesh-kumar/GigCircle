@@ -5,6 +5,7 @@ import { CATEGORY_LABELS, type ServiceRequest, type WorkerRecommendationResult }
 import { useToast } from '@/hooks/use-toast';
 import { RecommendedWorkerCard } from '@/components/recommended-worker-card';
 import { PaymentModal } from '@/components/payment-modal';
+import { useAuth } from '@/context/AuthContext';
 
 interface RequestDetailModalProps {
   request: ServiceRequest | null;
@@ -16,6 +17,7 @@ interface RequestDetailModalProps {
 
 export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, showCancelButton = false }: RequestDetailModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -224,18 +226,32 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
               </div>
 
               {request.jobId && (jobStatusStr === 'PAYMENT_REQUIRED' || jobStatusStr === 'COMPLETED') && (
-                <button
-                  type="button"
-                  onClick={() => setIsPaymentOpen(true)}
-                  className={`w-full inline-flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold text-white transition-all shadow-sm ${
-                    jobStatusStr === 'PAYMENT_REQUIRED'
-                      ? 'bg-emerald-600 hover:bg-emerald-700 font-extrabold animate-pulse'
-                      : 'bg-slate-900 hover:bg-emerald-600'
-                  }`}
-                >
-                  <IndianRupee className="h-4 w-4" />
-                  {jobStatusStr === 'PAYMENT_REQUIRED' ? `Pay Now (₹${request.budget.toLocaleString()})` : 'View Payment Receipt'}
-                </button>
+                user?.role === 'CUSTOMER' ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsPaymentOpen(true)}
+                    className={`w-full inline-flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold text-white transition-all shadow-sm ${
+                      jobStatusStr === 'PAYMENT_REQUIRED'
+                        ? 'bg-emerald-600 hover:bg-emerald-700 font-extrabold animate-pulse'
+                        : 'bg-slate-900 hover:bg-emerald-600'
+                    }`}
+                  >
+                    <IndianRupee className="h-4 w-4" />
+                    {jobStatusStr === 'PAYMENT_REQUIRED' ? `Pay Now (₹${request.budget.toLocaleString()})` : 'View Payment Receipt'}
+                  </button>
+                ) : (
+                  jobStatusStr === 'PAYMENT_REQUIRED' ? (
+                    <div className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-50 border border-amber-200 py-2.5 text-xs font-bold text-amber-800">
+                      <Clock3 className="h-4 w-4 text-amber-600 animate-pulse" />
+                      Awaiting Customer Payment (₹{request.budget.toLocaleString()})
+                    </div>
+                  ) : (
+                    <div className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 py-2.5 text-xs font-bold text-emerald-800">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      Payment Completed & Payout Logged
+                    </div>
+                  )
+                )
               )}
             </div>
           )}
