@@ -2551,80 +2551,221 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             <div className="space-y-6">
               {activeTab === 'overview' && (
                 <>
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-slate-900">Cooperative Operations Dashboard</h2>
-                    <button
-                      type="button"
-                      onClick={fetchAdminData}
-                      className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </button>
+                  <div className="rounded-[28px] border border-slate-200/80 bg-gradient-to-br from-slate-900 via-indigo-950 to-emerald-950 p-6 md:p-8 text-white shadow-[0_20px_60px_-25px_rgba(15,23,42,0.75)] relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(52,211,153,0.26),transparent_25%),radial-gradient(circle_at_bottom_left,_rgba(96,165,250,0.18),transparent_30%)]" />
+                    <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+                      <div className="max-w-2xl space-y-4">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-200">
+                          <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.8)]" />
+                          Admin Ops Summary
+                        </div>
+                        <div className="space-y-3">
+                          <h2 className="text-3xl font-black tracking-tight text-white md:text-4xl">
+                            Platform overview
+                          </h2>
+                          <p className="max-w-xl text-sm text-slate-200 md:text-base">
+                            A quick snapshot of platform health, participation, and work flow without repeating the detailed views below.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 self-start xl:self-auto">
+                        <button
+                          type="button"
+                          onClick={fetchAdminData}
+                          className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-xs font-bold text-white/90 backdrop-blur-sm transition hover:bg-white/15"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Refresh
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* METRIC CARDS WITH GRADIENT STYLING */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-blue-300 transition-all">
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-3xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-white to-green-50 p-5 shadow-[0_14px_30px_-22px_rgba(16,185,129,0.45)] flex flex-col justify-between h-36 hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-20px_rgba(16,185,129,0.6)] transition-all">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Total Users</span>
-                        <div className="h-9 w-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 leading-tight">Total users</span>
+                        <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md">
                           <UsersRound className="h-4.5 w-4.5" />
                         </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 select-none leading-none">
+                      <div className="space-y-2">
+                        <div className="text-3xl font-black text-slate-900 leading-none">
                           {adminUsers.length}
                         </div>
-                        <span className="inline-block text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-100/70 rounded-full px-2.5 py-0.5">
-                          Platform Accounts
+                        <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+                          Platform accounts
                         </span>
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-emerald-300 transition-all">
+                    <div className="rounded-3xl border border-teal-200/70 bg-gradient-to-br from-teal-50 via-white to-cyan-50 p-5 shadow-[0_14px_30px_-22px_rgba(20,184,166,0.45)] flex flex-col justify-between h-36 hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-20px_rgba(20,184,166,0.6)] transition-all">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Active Workers</span>
-                        <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 leading-tight">Active workers</span>
+                        <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white flex items-center justify-center shadow-md">
                           <UserCheck className="h-4.5 w-4.5" />
                         </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 select-none leading-none">
+                      <div className="space-y-2">
+                        <div className="text-3xl font-black text-slate-900 leading-none">
                           {adminWorkers.length}
                         </div>
-                        <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100/70 rounded-full px-2.5 py-0.5">
-                          Verified Profiles
+                        <span className="inline-flex items-center rounded-full border border-teal-100 bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-700">
+                          Verified profiles
                         </span>
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-indigo-300 transition-all">
+                    <div className="rounded-3xl border border-amber-200/70 bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-5 shadow-[0_14px_30px_-22px_rgba(245,158,11,0.45)] flex flex-col justify-between h-36 hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-20px_rgba(245,158,11,0.6)] transition-all">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Total Service Requests</span>
-                        <div className="h-9 w-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 leading-tight">Open requests</span>
+                        <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md">
                           <FileText className="h-4.5 w-4.5" />
                         </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-blue-500 select-none leading-none">
-                          {adminRequests.length}
+                      <div className="space-y-2">
+                        <div className="text-3xl font-black text-slate-900 leading-none">
+                          {adminRequests.filter((request) => request.status === 'OPEN').length}
                         </div>
-                        <span className="inline-block text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100/70 rounded-full px-2.5 py-0.5">
-                          Lifetime Postings
+                        <span className="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">
+                          Active demand
                         </span>
+                      </div>
+                    </div>
+
+                    <div className="rounded-3xl border border-lime-200/70 bg-gradient-to-br from-lime-50 via-white to-emerald-50 p-5 shadow-[0_14px_30px_-22px_rgba(132,204,22,0.45)] flex flex-col justify-between h-36 hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-20px_rgba(132,204,22,0.6)] transition-all">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 leading-tight">Completed jobs</span>
+                        <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-lime-500 to-emerald-600 text-white flex items-center justify-center shadow-md">
+                          <CheckCheck className="h-4.5 w-4.5" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-3xl font-black text-slate-900 leading-none">
+                          {adminJobs.filter((job) => job.status === 'COMPLETED').length}
+                        </div>
+                        <span className="inline-flex items-center rounded-full border border-lime-100 bg-lime-50 px-2.5 py-1 text-[10px] font-bold text-lime-700">
+                          Quality delivered
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-3">
+                    <div className="rounded-[28px] border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-5 shadow-[0_16px_40px_-28px_rgba(139,92,246,0.42)]">
+                      <div className="mb-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Recent requests</p>
+                          <h3 className="mt-1 text-lg font-black text-slate-900">Live demand</h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSearchParams({ tab: 'requests' })}
+                          className="text-xs font-bold text-violet-600 hover:text-violet-700 transition-colors"
+                        >
+                          View all
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {adminRequests.slice(0, 3).map((request) => (
+                          <div key={request.id} className="rounded-2xl border border-violet-100 bg-white/80 p-3 shadow-[0_10px_20px_-18px_rgba(139,92,246,0.35)]">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-bold text-slate-800">{request.category}</span>
+                              <span className="rounded-full border border-violet-100 bg-violet-50 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-violet-700">
+                                {request.status}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-xs text-slate-600 line-clamp-2">{request.description}</p>
+                            <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+                              <span>{request.customerName}</span>
+                              <span>₹{request.budget}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[28px] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-green-50 p-5 shadow-[0_16px_40px_-28px_rgba(16,185,129,0.42)]">
+                      <div className="mb-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Worker health</p>
+                          <h3 className="mt-1 text-lg font-black text-slate-900">Active profiles</h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSearchParams({ tab: 'workers' })}
+                          className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                        >
+                          View all
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {adminWorkers.slice(0, 3).map((worker) => (
+                          <div key={worker.workerId} className="rounded-2xl border border-emerald-100 bg-white/80 p-3 shadow-[0_10px_20px_-18px_rgba(16,185,129,0.35)]">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-bold text-slate-800">{worker.name}</span>
+                              <span className={`rounded-full border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
+                                worker.active ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700'
+                              }`}>
+                                {worker.active ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {worker.serviceCategories?.slice(0, 2).map((category) => (
+                                <span key={category} className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-bold text-slate-600">
+                                  {category}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[28px] border border-slate-200/80 bg-gradient-to-br from-slate-50 via-white to-slate-100 p-5 shadow-[0_16px_40px_-28px_rgba(148,163,184,0.35)]">
+                      <div className="mb-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Audit trail</p>
+                          <h3 className="mt-1 text-lg font-black text-slate-900">Latest activity</h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSearchParams({ tab: 'activity' })}
+                          className="text-xs font-bold text-slate-600 hover:text-slate-700 transition-colors"
+                        >
+                          View all
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {adminActivity.slice(0, 3).map((activity) => (
+                          <div key={activity.id} className="rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-[0_10px_20px_-18px_rgba(148,163,184,0.35)]">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-slate-800">{activity.actionType}</span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">{activity.actorRole}</span>
+                            </div>
+                            <p className="mt-2 text-xs text-slate-600">{activity.description}</p>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
                 </>
               )}
 
-              {/* USERS DIRECTORY TABLE / LIST */}
-              {(activeTab === 'users' || activeTab === 'overview') && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+              {activeTab === 'users' && (
+                <div className="rounded-[28px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">User Directory</h3>
-                      <p className="text-xs text-slate-500">System user registrations and active roles</p>
+                      <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
+                        <UsersRound className="h-3.5 w-3.5" />
+                        User directory
+                      </div>
+                      <h3 className="text-lg font-black text-slate-900">Platform users</h3>
+                      <p className="text-xs text-slate-500">System registrations and active roles across the cooperative</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                       {activeTab === 'overview' && (
@@ -2633,18 +2774,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           onClick={() => setSearchParams({ tab: 'users' })}
                           className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors mr-2"
                         >
-                          View All Users →
+                          View all users →
                         </button>
                       )}
-                      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
+                      <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-100 p-1 text-xs">
                         {(['ALL', 'CUSTOMER', 'WORKER', 'ADMIN'] as const).map((r) => (
                           <button
                             key={r}
                             type="button"
                             onClick={() => setAdminUserFilter(r)}
-                            className={`rounded-lg px-3 py-1.5 font-bold transition-all ${
+                            className={`rounded-xl px-3 py-1.5 font-bold transition-all ${
                               adminUserFilter === r
-                                ? 'bg-emerald-600 text-white shadow-xs'
+                                ? 'bg-slate-900 text-white shadow-sm'
                                 : 'text-slate-600 hover:text-slate-900'
                             }`}
                           >
@@ -2687,13 +2828,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
               )}
 
-              {/* WORKERS GOVERNANCE DIRECTORY */}
-              {(activeTab === 'workers' || activeTab === 'overview') && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+              {activeTab === 'workers' && (
+                <div className="rounded-[28px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Worker Governance & Activation</h3>
-                      <p className="text-xs text-slate-500">Worker professional status and activation control</p>
+                      <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
+                        <UserCheck className="h-3.5 w-3.5" />
+                        Worker governance
+                      </div>
+                      <h3 className="text-lg font-black text-slate-900">Worker activation & oversight</h3>
+                      <p className="text-xs text-slate-500">Professional status and verification control for worker profiles</p>
                     </div>
                     {activeTab === 'overview' && (
                       <button
@@ -2701,7 +2845,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'workers' })}
                         className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                       >
-                        View All Workers →
+                        View all workers →
                       </button>
                     )}
                   </div>
@@ -2754,13 +2898,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
               )}
 
-              {/* SERVICE REQUESTS DIRECTORY */}
-              {(activeTab === 'requests' || activeTab === 'overview') && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+              {activeTab === 'requests' && (
+                <div className="rounded-[28px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Service Requests</h3>
-                      <p className="text-xs text-slate-500">Service request postings and assignment status</p>
+                      <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-100 bg-violet-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-700">
+                        <FileText className="h-3.5 w-3.5" />
+                        Service flow
+                      </div>
+                      <h3 className="text-lg font-black text-slate-900">Service requests</h3>
+                      <p className="text-xs text-slate-500">Current request volume and live assignment status</p>
                     </div>
                     {activeTab === 'overview' && (
                       <button
@@ -2768,7 +2915,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'requests' })}
                         className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                       >
-                        View All Requests →
+                        View all requests →
                       </button>
                     )}
                   </div>
@@ -2788,7 +2935,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             </div>
                           </div>
                           <div className="w-[120px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Budget & Location</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Budget & location</span>
                             <div className="mt-0.5">
                               <strong className="text-slate-800 font-extrabold font-mono">₹{r.budget}</strong>
                               <span className="text-slate-400 mx-1">•</span>
@@ -2803,7 +2950,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             </span>
                           </div>
                           <div className="w-[140px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Worker Match</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Worker match</span>
                             {r.assignmentStatus === 'ASSIGNED' ? (
                               <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-2.5 py-0.5">
                                 <Wrench className="h-3 w-3 text-emerald-500 shrink-0" />
@@ -2832,12 +2979,15 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
               )}
 
-              {/* JOBS TRACKING DIRECTORY */}
-              {(activeTab === 'jobs' || activeTab === 'overview') && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+              {activeTab === 'jobs' && (
+                <div className="rounded-[28px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Job Executions</h3>
+                      <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-teal-100 bg-teal-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-teal-700">
+                        <Activity className="h-3.5 w-3.5" />
+                        Job execution
+                      </div>
+                      <h3 className="text-lg font-black text-slate-900">Job executions</h3>
                       <p className="text-xs text-slate-500">Live worker performance and contract tracking</p>
                     </div>
                     {activeTab === 'overview' && (
@@ -2846,7 +2996,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'jobs' })}
                         className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                       >
-                        View All Jobs →
+                        View all jobs →
                       </button>
                     )}
                   </div>
@@ -2873,7 +3023,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             </span>
                           </div>
                           <div className="w-[150px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Assigned Worker</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Assigned worker</span>
                             <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-0.5">
                               <Wrench className="h-3 w-3 text-slate-400 shrink-0" />
                               {j.workerName}
@@ -2897,12 +3047,15 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
               )}
 
-              {/* RATINGS & REVIEWS DIRECTORY */}
-              {(activeTab === 'ratings' || activeTab === 'overview') && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+              {activeTab === 'ratings' && (
+                <div className="rounded-[28px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Ratings & Customer Reviews</h3>
+                      <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">
+                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                        Reviews
+                      </div>
+                      <h3 className="text-lg font-black text-slate-900">Ratings & customer reviews</h3>
                       <p className="text-xs text-slate-500">Star ratings and qualitative feedback submitted by customers</p>
                     </div>
                     {activeTab === 'overview' && (
@@ -2911,7 +3064,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'ratings' })}
                         className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                       >
-                        View All Ratings →
+                        View all ratings →
                       </button>
                     )}
                   </div>
@@ -2926,7 +3079,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               <Star className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
                             </div>
                             <div>
-                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer ➔ Worker</span>
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer ➔ worker</span>
                               <div className="mt-0.5 leading-snug">
                                 <span className="text-slate-800 font-extrabold">{r.customerName}</span>
                                 <span className="text-slate-400 mx-1">to</span>
@@ -2942,7 +3095,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             </div>
                           </div>
                           <div className="flex-1 min-w-[200px]">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Review Comment</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Review comment</span>
                             <p className="text-slate-600 font-medium italic mt-1 bg-slate-50 border border-slate-100/70 rounded-2xl px-3 py-2 leading-relaxed">
                               "{r.review || "No qualitative feedback left."}"
                             </p>
@@ -2954,13 +3107,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
               )}
 
-              {/* ACTIVITY LOGS DIRECTORY */}
-              {(activeTab === 'activity' || activeTab === 'overview') && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+              {activeTab === 'activity' && (
+                <div className="rounded-[28px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">System Activity Audit Log</h3>
-                      <p className="text-xs text-slate-500">Audit trail trace logs generated from cooperative activities</p>
+                      <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        Audit stream
+                      </div>
+                      <h3 className="text-lg font-black text-slate-900">System activity audit log</h3>
+                      <p className="text-xs text-slate-500">Operational trace events generated from cooperative activity</p>
                     </div>
                     {activeTab === 'overview' && (
                       <button
@@ -2968,7 +3124,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'activity' })}
                         className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                       >
-                        View All Logs →
+                        View all logs →
                       </button>
                     )}
                   </div>
@@ -3018,7 +3174,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
               )}
 
-              {/* ADMIN NOTIFICATIONS */}
               {activeTab === 'notifications' && renderNotificationsView()}
             </div>
           </div>
