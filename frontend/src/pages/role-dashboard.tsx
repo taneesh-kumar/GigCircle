@@ -3272,67 +3272,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
               )}
 
-              {/* RATINGS & REVIEWS DIRECTORY */}
-              {(activeTab === 'ratings' || activeTab === 'overview') && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                      <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">
-                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                        Reviews
-                      </div>
-                      <h3 className="text-lg font-black text-slate-900">Ratings & customer reviews</h3>
-                      <p className="text-xs text-slate-500">Star ratings and qualitative feedback submitted by customers</p>
-                    </div>
-                    {activeTab === 'overview' && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchParams({ tab: 'ratings' })}
-                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
-                      >
-                        View all ratings →
-                      </button>
-                    )}
-                  </div>
-                  <div className="divide-y divide-slate-100 overflow-x-auto">
-                    {displayRatings.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-4 text-center">No customer reviews found.</p>
-                    ) : (
-                      displayRatings.map((r) => (
-                        <div key={r.id} className="py-3.5 px-2 flex flex-wrap items-start justify-between text-xs gap-4 min-w-[600px] hover:bg-slate-50/60 rounded-2xl transition-all">
-                          <div className="flex items-start gap-3 w-[220px] shrink-0">
-                            <div className="h-9 w-9 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0 text-amber-600">
-                              <Star className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
-                            </div>
-                            <div>
-                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer ➔ worker</span>
-                              <div className="mt-0.5 leading-snug">
-                                <span className="text-slate-800 font-extrabold">{r.customerName}</span>
-                                <span className="text-slate-400 mx-1">to</span>
-                                <span className="text-slate-700 font-bold">{r.workerName}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="w-[100px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Score</span>
-                            <div className="flex items-center gap-1.5 mt-1 text-amber-500 bg-amber-50 border border-amber-100/70 rounded-xl px-2.5 py-0.5 w-max">
-                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                              <strong className="text-slate-800 text-xs font-black">{r.score}.0</strong>
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-[200px]">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Review comment</span>
-                            <p className="text-slate-600 font-medium italic mt-1 bg-slate-50 border border-slate-100/70 rounded-2xl px-3 py-2 leading-relaxed">
-                              "{r.review || "No qualitative feedback left."}"
-                            </p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-
               {activeTab === 'activity' && (
                 <div className="rounded-[28px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.55)] backdrop-blur-sm space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
