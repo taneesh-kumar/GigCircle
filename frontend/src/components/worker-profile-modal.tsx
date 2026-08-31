@@ -421,24 +421,6 @@ export function WorkerProfileModal({ isOpen, onClose, onSuccess, existingProfile
                   />
                 </div>
               </div>
-
-              <div>
-                <label htmlFor="serviceRadiusKm" className="block text-xs font-bold uppercase tracking-wider text-primary">
-                  Service Radius (km)
-                </label>
-                <input
-                  id="serviceRadiusKm"
-                  type="number"
-                  min="1"
-                  value={serviceRadiusKm}
-                  onChange={(e) => setServiceRadiusKm(e.target.value)}
-                  placeholder="10"
-                  className={`focus-ring mt-2 w-full rounded-2xl border bg-background px-3.5 py-3 text-sm text-primary transition-colors ${
-                    errors.serviceRadiusKm ? 'border-destructive' : 'border-border/80 hover:border-accent/40'
-                  }`}
-                />
-                {errors.serviceRadiusKm && <p className="mt-1.5 text-xs text-destructive">{errors.serviceRadiusKm}</p>}
-              </div>
             </div>
           </div>
 

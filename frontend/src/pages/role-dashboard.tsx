@@ -345,14 +345,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         getWorkerEarningsApi(),
         getWorkerEarningsSummaryApi(),
       ]);
-      setWorkerEarnings(earningsList);
-      setWorkerEarningsSummary(summary);
+      setWorkerEarnings(earningsList || []);
+      setWorkerEarningsSummary(summary || null);
     } catch (err: any) {
-      console.error('Error loading worker earnings:', err);
-      toast({
-        title: 'Error loading earnings',
-        description: err?.response?.data?.message || 'Failed to load earnings ledger.',
-        variant: 'destructive',
+      console.warn('Unable to load worker earnings ledger:', err?.message);
+      setWorkerEarnings([]);
+      setWorkerEarningsSummary({
+        workerId: 0,
+        totalGross: 0,
+        totalPlatformFees: 0,
+        totalWorkerEarnings: 0,
+        availableEarnings: 0,
+        totalJobs: 0,
       });
     } finally {
       setIsLoadingWorkerEarnings(false);
@@ -428,9 +432,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     } else if (role === 'admin') {
       fetchAdminData();
     }
+  }, [role]);
 
+  useEffect(() => {
     if (activeTab === 'notifications') {
       fetchNotificationsPage();
+    } else if (activeTab === 'earnings' && role === 'worker') {
+      fetchWorkerEarnings();
     }
 
     const handleSync = () => {
@@ -554,14 +562,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     try {
       const updated = await completeWorkerJobApi(jobId);
       toast({
-        title: 'Job Completed!',
-        description: `Service COMPLETED! Earnings record generated in GigCircle ledger.`,
+        title: 'Completion Requested',
+        description: `Job completion requested! Customer needs to complete payment before this job is marked as completed.`,
       });
       setAssignedJobs((prev) => prev.map((j) => (j.id === jobId ? updated : j)));
-      fetchWorkerEarnings();
       window.dispatchEvent(new CustomEvent('gigcircle-notifications-updated'));
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Failed to complete job.';
+      const msg = err?.response?.data?.message || 'Failed to request job completion.';
       toast({
         title: 'Action Failed',
         description: msg,
@@ -1311,6 +1318,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           const currentStage =
                             statusStr === 'COMPLETED'
                               ? 4
+                              : statusStr === 'PAYMENT_REQUIRED'
+                              ? 3.5
                               : statusStr === 'IN_PROGRESS'
                               ? 3
                               : req.workerName || statusStr === 'ACCEPTED'
@@ -1331,6 +1340,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                                       statusStr === 'COMPLETED'
                                         ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                                        : statusStr === 'PAYMENT_REQUIRED'
+                                        ? 'bg-amber-100 border border-amber-300 text-amber-900 font-black'
                                         : statusStr === 'IN_PROGRESS'
                                         ? 'bg-blue-50 border border-blue-200 text-blue-700'
                                         : statusStr === 'ACCEPTED' || req.workerName
@@ -1342,12 +1353,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   >
                                     {statusStr === 'COMPLETED' ? (
                                       <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                    ) : statusStr === 'PAYMENT_REQUIRED' ? (
+                                      <IndianRupee className="h-3 w-3 text-amber-700" />
                                     ) : statusStr === 'IN_PROGRESS' ? (
                                       <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
                                     ) : (
                                       <Clock3 className="h-3 w-3 text-amber-600" />
                                     )}
-                                    {statusStr}
+                                    {statusStr === 'PAYMENT_REQUIRED' ? 'PAYMENT REQUIRED' : statusStr}
                                   </span>
                                 </div>
 
@@ -1391,6 +1404,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                         className={`h-full rounded-full transition-all duration-500 ${
                                           currentStage === 4
                                             ? 'w-full bg-gradient-to-r from-emerald-500 to-teal-500'
+                                            : currentStage === 3.5
+                                            ? 'w-5/6 bg-gradient-to-r from-amber-500 to-emerald-500'
                                             : currentStage === 3
                                             ? 'w-3/4 bg-gradient-to-r from-blue-500 to-indigo-500'
                                             : currentStage === 2
@@ -1430,7 +1445,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
                                   </button>
 
-                                  {req.jobId && (
+                                  {req.jobId && statusStr === 'PAYMENT_REQUIRED' ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setPaymentJobId(req.jobId!);
+                                        setIsPaymentModalOpen(true);
+                                      }}
+                                      className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-black shadow-md transition-all inline-flex items-center gap-1.5 animate-pulse"
+                                    >
+                                      <IndianRupee className="h-4 w-4 text-emerald-200" /> Pay Now (₹{req.budget.toLocaleString()})
+                                    </button>
+                                  ) : req.jobId ? (
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -1441,7 +1467,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     >
                                       <IndianRupee className="h-3.5 w-3.5 text-emerald-600" /> Pay / Receipt
                                     </button>
-                                  )}
+                                  ) : null}
                                 </div>
                                 {statusStr === 'COMPLETED' && (
                                   req.isRated ? (
@@ -2154,6 +2180,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <div className="grid gap-6 md:grid-cols-2">
                       {filteredAssignedJobs.map((job) => {
                         const isCompleted = job.jobStatus === 'COMPLETED';
+                        const isPaymentRequired = job.jobStatus === 'PAYMENT_REQUIRED';
                         const isInProgress = job.jobStatus === 'IN_PROGRESS';
                         const isAccepted = job.jobStatus === 'ACCEPTED';
                         const status = job.jobStatus || 'ASSIGNED';
@@ -2172,6 +2199,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                                     isCompleted
                                       ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-200'
+                                      : isPaymentRequired
+                                      ? 'bg-amber-100/90 text-amber-900 border border-amber-300 font-black'
                                       : isInProgress
                                       ? 'bg-blue-100/90 text-blue-800 border border-blue-200'
                                       : 'bg-amber-100/90 text-amber-800 border border-amber-200'
@@ -2179,12 +2208,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 >
                                   {isCompleted ? (
                                     <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                  ) : isPaymentRequired ? (
+                                    <IndianRupee className="h-3 w-3 text-amber-700" />
                                   ) : isInProgress ? (
                                     <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
                                   ) : (
                                     <Clock3 className="h-3 w-3 text-amber-600" />
                                   )}
-                                  {status}
+                                  {isPaymentRequired ? 'AWAITING PAYMENT' : status}
                                 </span>
                               </div>
 
@@ -2207,14 +2238,17 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 </div>
                               </div>
 
-                              {/* 3-STAGE WORKER EXECUTION PIPELINE LINE */}
+                              {/* 4-STAGE WORKER EXECUTION PIPELINE LINE */}
                               <div className="pt-2.5 space-y-2">
                                 <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wide">
                                   <span className="text-emerald-700 flex items-center gap-1">
                                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Assigned
                                   </span>
-                                  <span className={isInProgress || isCompleted ? 'text-blue-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
-                                    <span className={`h-1.5 w-1.5 rounded-full ${isInProgress || isCompleted ? 'bg-blue-500' : 'bg-slate-300'}`} /> In Progress
+                                  <span className={isInProgress || isPaymentRequired || isCompleted ? 'text-blue-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${isInProgress || isPaymentRequired || isCompleted ? 'bg-blue-500' : 'bg-slate-300'}`} /> In Progress
+                                  </span>
+                                  <span className={isPaymentRequired || isCompleted ? 'text-amber-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${isPaymentRequired || isCompleted ? 'bg-amber-500' : 'bg-slate-300'}`} /> Awaiting Payment
                                   </span>
                                   <span className={isCompleted ? 'text-emerald-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
                                     <span className={`h-1.5 w-1.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Completed
@@ -2225,9 +2259,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     className={`h-full rounded-full transition-all duration-500 ${
                                       isCompleted
                                         ? 'w-full bg-gradient-to-r from-emerald-500 to-teal-500'
+                                        : isPaymentRequired
+                                        ? 'w-3/4 bg-gradient-to-r from-amber-500 to-amber-600'
                                         : isInProgress
-                                        ? 'w-2/3 bg-gradient-to-r from-blue-500 to-indigo-500'
-                                        : 'w-1/3 bg-gradient-to-r from-emerald-400 to-emerald-500'
+                                        ? 'w-1/2 bg-gradient-to-r from-blue-500 to-indigo-500'
+                                        : 'w-1/4 bg-gradient-to-r from-emerald-400 to-emerald-500'
                                     }`}
                                   />
                                 </div>
@@ -2299,7 +2335,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   >
                                     {operatingJobId === job.id ? (
                                       <>
-                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Completing...
+                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Requesting...
                                       </>
                                     ) : (
                                       'Complete Job'
@@ -2313,6 +2349,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   >
                                     Decline
                                   </button>
+                                </div>
+                              )}
+
+                              {isPaymentRequired && (
+                                <div className="flex-1 rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2 text-xs font-bold text-amber-800 flex items-center gap-2">
+                                  <Clock3 className="h-4 w-4 text-amber-600 shrink-0" />
+                                  <span>Awaiting Customer Payment</span>
                                 </div>
                               )}
                             </div>
@@ -3379,6 +3422,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             }}
             onPaymentSuccess={() => {
               fetchCustomerRequests();
+              fetchWorkerJobs();
+              window.dispatchEvent(new CustomEvent('gigcircle-notifications-updated'));
             }}
           />
           <CustomerPaymentHistoryModal

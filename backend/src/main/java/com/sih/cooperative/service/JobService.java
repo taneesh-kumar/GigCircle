@@ -215,13 +215,10 @@ public class JobService {
             }
 
             if (job.getStatus() != JobStatus.IN_PROGRESS) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Only IN_PROGRESS jobs can be completed");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Only IN_PROGRESS jobs can request completion");
             }
 
-            job.setStatus(JobStatus.COMPLETED);
-            if (job.getCompletedAt() == null) {
-                job.setCompletedAt(LocalDateTime.now());
-            }
+            job.setStatus(JobStatus.PAYMENT_REQUIRED);
 
             savedJob = jobRepository.save(job);
         } catch (ResponseStatusException ex) {
@@ -237,36 +234,21 @@ public class JobService {
             throw ex;
         }
 
-        // Ledger calculation execution
         try {
-            earningService.generateEarningForCompletedJob(savedJob);
-        } catch (Exception ex) {
-            notificationService.createAdminNotification(
-                    NotificationType.LEDGER_ERROR,
-                    "Ledger calculation requires attention",
-                    "The earnings calculation for Job #" + savedJob.getId() + " could not be completed. Please review the job ledger.",
-                    "JOB",
-                    savedJob.getId()
-            );
-            throw ex;
-        }
-
-        try {
-            // Segment 8 Notifications
             notificationService.createNotification(
                     savedJob.getServiceRequest().getCustomer(),
-                    NotificationType.JOB_COMPLETED,
-                    "Job completed",
-                    "Your service job has been marked as completed.",
+                    NotificationType.PAYMENT_REQUIRED,
+                    "Payment Required",
+                    "Your worker has completed the service for Job #" + savedJob.getId() + ". Please complete payment to finalize the job.",
                     "JOB",
                     savedJob.getId()
             );
 
             notificationService.createNotification(
                     savedJob.getWorker(),
-                    NotificationType.JOB_COMPLETED,
-                    "Job completed",
-                    "Your job has been completed successfully.",
+                    NotificationType.PAYMENT_REQUIRED,
+                    "Awaiting Payment",
+                    "Completion requested for Job #" + savedJob.getId() + ". Customer payment is required.",
                     "JOB",
                     savedJob.getId()
             );

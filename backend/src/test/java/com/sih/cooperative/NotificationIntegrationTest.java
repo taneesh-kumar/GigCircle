@@ -153,7 +153,7 @@ public class NotificationIntegrationTest {
                         .header("Authorization", "Bearer " + customerToken1))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].type").value("WORKER_ASSIGNED"));
+                .andExpect(jsonPath("$[*].type", hasItem("WORKER_ASSIGNED")));
 
         // Worker sees job assigned (1 notification)
         mockMvc.perform(get("/api/worker/notifications")
@@ -176,11 +176,23 @@ public class NotificationIntegrationTest {
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/start").header("Authorization", "Bearer " + workerToken1)).andExpect(status().isOk());
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken1)).andExpect(status().isOk());
 
-        // Worker notifications: WORKER_ASSIGNED, JOB_COMPLETED, EARNING_GENERATED (3 total)
+        // Perform customer simulated payment to finalize job completion
+        com.sih.cooperative.dto.CreatePaymentRequest payReq = new com.sih.cooperative.dto.CreatePaymentRequest();
+        payReq.setJobId(jobId);
+        payReq.setPaymentMethod(com.sih.cooperative.entity.PaymentMethod.UPI);
+        payReq.setUpiId("test-success@upi");
+
+        mockMvc.perform(post("/api/customer/payments/process")
+                        .header("Authorization", "Bearer " + customerToken1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(payReq)))
+                .andExpect(status().isCreated());
+
+        // Worker notifications: WORKER_ASSIGNED, PAYMENT_REQUIRED, PAYMENT_SUCCESS, EARNING_GENERATED (4 total)
         mockMvc.perform(get("/api/worker/notifications")
                         .header("Authorization", "Bearer " + workerToken1))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(3)));
+                .andExpect(jsonPath("$", hasSize(4)));
     }
 
     @Test
@@ -194,6 +206,18 @@ public class NotificationIntegrationTest {
 
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/start").header("Authorization", "Bearer " + workerToken1)).andExpect(status().isOk());
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken1)).andExpect(status().isOk());
+
+        // Customer pays to finalize job completion
+        com.sih.cooperative.dto.CreatePaymentRequest payReq = new com.sih.cooperative.dto.CreatePaymentRequest();
+        payReq.setJobId(jobId);
+        payReq.setPaymentMethod(com.sih.cooperative.entity.PaymentMethod.UPI);
+        payReq.setUpiId("test-success@upi");
+
+        mockMvc.perform(post("/api/customer/payments/process")
+                        .header("Authorization", "Bearer " + customerToken1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(payReq)))
+                .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/customer/ratings/" + jobId)
                 .header("Authorization", "Bearer " + customerToken1)

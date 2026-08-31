@@ -143,6 +143,11 @@ public class EarningService {
         BigDecimal available = earningRepository.sumAvailableWorkerEarningByWorkerId(workerId);
         long count = earningRepository.countByWorkerId(workerId);
 
+        gross = (gross != null) ? gross : BigDecimal.ZERO;
+        fee = (fee != null) ? fee : BigDecimal.ZERO;
+        workerTotal = (workerTotal != null) ? workerTotal : BigDecimal.ZERO;
+        available = (available != null) ? available : BigDecimal.ZERO;
+
         return new WorkerEarningsSummary(
                 workerId,
                 gross.setScale(2, RoundingMode.HALF_UP),
@@ -191,6 +196,11 @@ public class EarningService {
         BigDecimal workerTotal = earningRepository.sumAllWorkerEarning();
         BigDecimal availableTotal = earningRepository.sumAllAvailableWorkerEarning();
         long count = earningRepository.count();
+
+        gross = (gross != null) ? gross : BigDecimal.ZERO;
+        fees = (fees != null) ? fees : BigDecimal.ZERO;
+        workerTotal = (workerTotal != null) ? workerTotal : BigDecimal.ZERO;
+        availableTotal = (availableTotal != null) ? availableTotal : BigDecimal.ZERO;
 
         return new PlatformRevenueSummary(
                 gross.setScale(2, RoundingMode.HALF_UP),

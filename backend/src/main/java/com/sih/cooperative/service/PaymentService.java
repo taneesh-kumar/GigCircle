@@ -27,17 +27,20 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final EarningsConfig earningsConfig;
     private final NotificationService notificationService;
+    private final EarningService earningService;
 
     public PaymentService(PaymentRepository paymentRepository,
                           JobRepository jobRepository,
                           UserRepository userRepository,
                           EarningsConfig earningsConfig,
-                          NotificationService notificationService) {
+                          NotificationService notificationService,
+                          EarningService earningService) {
         this.paymentRepository = paymentRepository;
         this.jobRepository = jobRepository;
         this.userRepository = userRepository;
         this.earningsConfig = earningsConfig;
         this.notificationService = notificationService;
+        this.earningService = earningService;
     }
 
     private User getAuthenticatedCustomer(String email) {
@@ -122,12 +125,12 @@ public class PaymentService {
         }
 
         // Idempotency: Reject if already paid
-        if (paymentRepository.existsByJobIdAndStatus(job.getId(), PaymentStatus.SUCCESS)) {
+        if (paymentRepository.existsByJobIdAndStatus(job.getId(), PaymentStatus.SUCCESS) || job.getStatus() == JobStatus.COMPLETED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This job has already been paid.");
         }
 
-        // Job must be in payable status (ACCEPTED, IN_PROGRESS, COMPLETED)
-        if (job.getStatus() != JobStatus.ACCEPTED && job.getStatus() != JobStatus.IN_PROGRESS && job.getStatus() != JobStatus.COMPLETED) {
+        // Job must be in payable status (PAYMENT_REQUIRED, IN_PROGRESS, ACCEPTED)
+        if (job.getStatus() != JobStatus.PAYMENT_REQUIRED && job.getStatus() != JobStatus.IN_PROGRESS && job.getStatus() != JobStatus.ACCEPTED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payment is not available for this job state.");
         }
 
@@ -184,13 +187,31 @@ public class PaymentService {
 
         Payment savedPayment = paymentRepository.save(payment);
 
-        // Notifications
+        // State Machine Gate: Payment Success automatically marks Job COMPLETED
         if (status == PaymentStatus.SUCCESS) {
+            job.setStatus(JobStatus.COMPLETED);
+            if (job.getCompletedAt() == null) {
+                job.setCompletedAt(LocalDateTime.now());
+            }
+            Job savedJob = jobRepository.save(job);
+
+            try {
+                earningService.generateEarningForCompletedJob(savedJob);
+            } catch (Exception ex) {
+                notificationService.createAdminNotification(
+                        NotificationType.LEDGER_ERROR,
+                        "Ledger calculation requires attention",
+                        "The earnings calculation for Job #" + savedJob.getId() + " could not be completed. Please review the job ledger.",
+                        "JOB",
+                        savedJob.getId()
+                );
+            }
+
             notificationService.createNotification(
                     customer,
                     NotificationType.PAYMENT_SUCCESS,
                     "Payment Successful",
-                    "Payment of ₹" + totalAmount + " was successful for Job #" + job.getId() + " (" + txnRef + ").",
+                    "Payment of ₹" + totalAmount + " was successful for Job #" + job.getId() + " (" + txnRef + "). The job is now completed.",
                     "PAYMENT",
                     savedPayment.getId()
             );
@@ -199,8 +220,8 @@ public class PaymentService {
                 notificationService.createNotification(
                         job.getWorker(),
                         NotificationType.PAYMENT_SUCCESS,
-                        "Payment Confirmed",
-                        "Customer payment of ₹" + totalAmount + " confirmed for Job #" + job.getId() + ".",
+                        "Payment Received",
+                        "Customer payment of ₹" + totalAmount + " confirmed for Job #" + job.getId() + ". Job completed successfully.",
                         "JOB",
                         job.getId()
                 );

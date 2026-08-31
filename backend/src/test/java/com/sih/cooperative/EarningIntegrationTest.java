@@ -126,16 +126,30 @@ public class EarningIntegrationTest {
         return objectMapper.readTree(aRes.getResponse().getContentAsString()).get("id").asLong();
     }
 
-    private Long completeJob(Long jobId, String workerToken) throws Exception {
+    private Long completeJob(Long jobId, String workerToken, String customerToken) throws Exception {
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/start").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
+
+        // Perform customer simulated payment to complete job
+        com.sih.cooperative.dto.CreatePaymentRequest payReq = new com.sih.cooperative.dto.CreatePaymentRequest();
+        payReq.setJobId(jobId);
+        payReq.setPaymentMethod(com.sih.cooperative.entity.PaymentMethod.UPI);
+        payReq.setUpiId("test-success@upi");
+
+        mockMvc.perform(post("/api/customer/payments/process")
+                        .header("Authorization", "Bearer " + customerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(payReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
+
         return jobId;
     }
 
     @Test
     void test1_7_CompletedJobGeneratesEarningAndCalculatesMonetaryValues() throws Exception {
         Long jobId = createJob(customerToken1, workerToken1, new BigDecimal("700.00"));
-        completeJob(jobId, workerToken1);
+        completeJob(jobId, workerToken1, customerToken1);
 
         assertTrue(earningRepository.existsByJobId(jobId));
         Earning earning = earningRepository.findByJobId(jobId).orElseThrow();
@@ -171,7 +185,7 @@ public class EarningIntegrationTest {
     @Test
     void test12_13_DuplicateEarningCreationPrevented() throws Exception {
         Long jobId = createJob(customerToken1, workerToken1, new BigDecimal("800.00"));
-        completeJob(jobId, workerToken1);
+        completeJob(jobId, workerToken1, customerToken1);
 
         assertEquals(1, earningRepository.findAll().stream().filter(e -> e.getJob().getId().equals(jobId)).count());
     }
@@ -179,7 +193,7 @@ public class EarningIntegrationTest {
     @Test
     void test14_15_WorkerEarningsRetrievalAndIsolation() throws Exception {
         Long jobId = createJob(customerToken1, workerToken1, new BigDecimal("1000.00"));
-        completeJob(jobId, workerToken1);
+        completeJob(jobId, workerToken1, customerToken1);
 
         // Worker 1 can retrieve own earnings
         mockMvc.perform(get("/api/worker/earnings")
@@ -213,7 +227,7 @@ public class EarningIntegrationTest {
     @Test
     void test16_17_CustomerJobEarningRetrievalAndIsolation() throws Exception {
         Long jobId = createJob(customerToken1, workerToken1, new BigDecimal("600.00"));
-        completeJob(jobId, workerToken1);
+        completeJob(jobId, workerToken1, customerToken1);
 
         // Customer 1 can view financial summary for own job
         mockMvc.perform(get("/api/customer/earnings/job/" + jobId)
@@ -233,10 +247,10 @@ public class EarningIntegrationTest {
     @Test
     void test20_22_AdminRevenueSummaryAndAccessControl() throws Exception {
         Long j1 = createJob(customerToken1, workerToken1, new BigDecimal("500.00"));
-        completeJob(j1, workerToken1);
+        completeJob(j1, workerToken1, customerToken1);
 
         Long j2 = createJob(customerToken2, workerToken1, new BigDecimal("1500.00"));
-        completeJob(j2, workerToken1);
+        completeJob(j2, workerToken1, customerToken2);
 
         // Admin retrieves revenue summary
         mockMvc.perform(get("/api/admin/revenue/summary")
@@ -269,10 +283,10 @@ public class EarningIntegrationTest {
     @Test
     void test25_28_WorkerSummaryAndMonetaryPrecision() throws Exception {
         Long j1 = createJob(customerToken1, workerToken1, new BigDecimal("350.50"));
-        completeJob(j1, workerToken1);
+        completeJob(j1, workerToken1, customerToken1);
 
         Long j2 = createJob(customerToken2, workerToken1, new BigDecimal("450.25"));
-        completeJob(j2, workerToken1);
+        completeJob(j2, workerToken1, customerToken2);
 
         // 350.50 * 0.10 = 35.05 fee -> 315.45 worker
         // 450.25 * 0.10 = 45.03 fee -> 405.22 worker
