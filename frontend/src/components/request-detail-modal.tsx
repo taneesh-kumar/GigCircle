@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertTriangle, Calendar, Clock, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert, IndianRupee, Clock3, Activity, User } from 'lucide-react';
 import { cancelServiceRequestApi } from '@/services/api';
 import { CATEGORY_LABELS, type ServiceRequest } from '@/types/service-request';
@@ -9,19 +9,28 @@ interface RequestDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onStatusChange: () => void;
+  showCancelButton?: boolean;
 }
 
-export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }: RequestDetailModalProps) {
+export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, showCancelButton = false }: RequestDetailModalProps) {
   const { toast } = useToast();
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (isOpen) {
+      setIsConfirmingCancel(false);
+      setIsCancelling(false);
+      setCancelError(null);
+    }
+  }, [isOpen, request]);
+
   if (!isOpen || !request) return null;
 
   const categoryInfo = CATEGORY_LABELS[request.category] || { label: request.category, description: '' };
   const jobStatusStr = request.jobStatus || (request.workerId ? 'ACCEPTED' : request.status);
-  const isCancellable = request.status === 'OPEN' && !request.jobStatus && !request.workerId;
+  const isCancellable = showCancelButton && request.status === 'OPEN' && !request.jobStatus && !request.workerId;
 
   const formatDateTime = (isoString: string) => {
     try {

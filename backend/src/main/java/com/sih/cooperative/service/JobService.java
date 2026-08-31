@@ -288,8 +288,8 @@ public class JobService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: job assigned to another worker");
         }
 
-        if (job.getStatus() != JobStatus.ACCEPTED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only ACCEPTED jobs can be declined");
+        if (job.getStatus() != JobStatus.ACCEPTED && job.getStatus() != JobStatus.IN_PROGRESS) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only ACCEPTED or IN_PROGRESS jobs can be declined");
         }
 
         ServiceRequest request = job.getServiceRequest();
