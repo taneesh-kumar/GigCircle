@@ -84,3 +84,16 @@ export interface NearbyWorkerSearchResult {
   tierMessage: string;
 }
 
+export interface RecommendedWorker extends NearbyWorker {
+  matchReasons?: string[];
+  suitabilityBadge?: string;
+  suitabilityScore?: number;
+}
+
+export interface WorkerRecommendationResult {
+  topRecommendation?: RecommendedWorker | null;
+  otherWorkers: RecommendedWorker[];
+  effectiveSearchRadiusKm: number;
+  tierMessage: string;
+}
+

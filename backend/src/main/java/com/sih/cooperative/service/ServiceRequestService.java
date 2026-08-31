@@ -1,6 +1,7 @@
 package com.sih.cooperative.service;
 
 import com.sih.cooperative.dto.NearbyWorkerSearchResult;
+import com.sih.cooperative.dto.WorkerRecommendationResult;
 import com.sih.cooperative.dto.CreateServiceRequestRequest;
 import com.sih.cooperative.dto.ServiceRequestResponse;
 import com.sih.cooperative.dto.WorkerRatingSummary;
@@ -195,5 +196,25 @@ public class ServiceRequestService {
         }
 
         return workerMatchingService.findNearbyWorkers(request.getLatitude(), request.getLongitude(), request.getCategory(), null);
+    }
+
+    @Transactional(readOnly = true)
+    public WorkerRecommendationResult getWorkerRecommendations(Double latitude, Double longitude, ServiceCategory category, Integer radiusKm, String customerEmail) {
+        getAuthenticatedCustomer(customerEmail);
+        return workerMatchingService.getWorkerRecommendations(latitude, longitude, category, radiusKm);
+    }
+
+    @Transactional(readOnly = true)
+    public WorkerRecommendationResult getWorkerRecommendationsForRequest(Long requestId, String customerEmail) {
+        User customer = getAuthenticatedCustomer(customerEmail);
+
+        ServiceRequest request = serviceRequestRepository.findById(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service request not found"));
+
+        if (!request.getCustomer().getId().equals(customer.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to requested service request");
+        }
+
+        return workerMatchingService.getWorkerRecommendations(request.getLatitude(), request.getLongitude(), request.getCategory(), null);
     }
 }

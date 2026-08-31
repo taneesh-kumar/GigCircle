@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Calendar, Clock, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert, IndianRupee, Clock3, Activity, User, Compass } from 'lucide-react';
-import { cancelServiceRequestApi, getNearbyWorkersForRequestApi } from '@/services/api';
-import { CATEGORY_LABELS, type ServiceRequest, type NearbyWorkerSearchResult } from '@/types/service-request';
+import { AlertTriangle, Calendar, Clock, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert, IndianRupee, Clock3, Activity, User, Compass, Sparkles } from 'lucide-react';
+import { cancelServiceRequestApi, getWorkerRecommendationsForRequestApi } from '@/services/api';
+import { CATEGORY_LABELS, type ServiceRequest, type WorkerRecommendationResult } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
-import { NearbyWorkersList } from '@/components/nearby-workers-list';
+import { RecommendedWorkerCard } from '@/components/recommended-worker-card';
 
 interface RequestDetailModalProps {
   request: ServiceRequest | null;
@@ -19,8 +19,8 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
 
-  const [nearbyResult, setNearbyResult] = useState<NearbyWorkerSearchResult | null>(null);
-  const [isLoadingNearby, setIsLoadingNearby] = useState(false);
+  const [recommendationResult, setRecommendationResult] = useState<WorkerRecommendationResult | null>(null);
+  const [isLoadingRecs, setIsLoadingRecs] = useState(false);
 
   useEffect(() => {
     if (isOpen && request) {
@@ -29,13 +29,13 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
       setCancelError(null);
 
       if (request.status === 'OPEN' && !request.workerId) {
-        setIsLoadingNearby(true);
-        getNearbyWorkersForRequestApi(request.id)
-          .then((res) => setNearbyResult(res))
-          .catch(() => setNearbyResult(null))
-          .finally(() => setIsLoadingNearby(false));
+        setIsLoadingRecs(true);
+        getWorkerRecommendationsForRequestApi(request.id)
+          .then((res) => setRecommendationResult(res))
+          .catch(() => setRecommendationResult(null))
+          .finally(() => setIsLoadingRecs(false));
       } else {
-        setNearbyResult(null);
+        setRecommendationResult(null);
       }
     }
   }, [isOpen, request]);
@@ -217,16 +217,16 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
             </div>
           )}
 
-          {/* Nearby Workers Geographic Matching Section */}
+          {/* Geographic Worker Recommendations Section */}
           {request.status === 'OPEN' && !request.workerId && (
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-2">
-                <Compass className="h-4 w-4 text-emerald-600 animate-spin-slow" />
+                <Sparkles className="h-4 w-4 text-emerald-600 animate-pulse" />
                 <h3 className="font-display text-sm font-bold text-slate-900">
-                  Nearby Eligible Workers
+                  Recommended Nearby Workers
                 </h3>
               </div>
-              <NearbyWorkersList searchResult={nearbyResult} isLoading={isLoadingNearby} />
+              <RecommendedWorkerCard recommendationResult={recommendationResult} isLoading={isLoadingRecs} />
             </div>
           )}
 

@@ -65,6 +65,27 @@ public class CustomerServiceRequestController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/recommendations")
+    public ResponseEntity<com.sih.cooperative.dto.WorkerRecommendationResult> getWorkerRecommendations(
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
+            @RequestParam(required = false) ServiceCategory category,
+            @RequestParam(required = false) Integer radiusKm,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        com.sih.cooperative.dto.WorkerRecommendationResult result = serviceRequestService.getWorkerRecommendations(latitude, longitude, category, radiusKm, userDetails.getUsername());
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{id}/recommendations")
+    public ResponseEntity<com.sih.cooperative.dto.WorkerRecommendationResult> getWorkerRecommendationsForRequest(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        com.sih.cooperative.dto.WorkerRecommendationResult result = serviceRequestService.getWorkerRecommendationsForRequest(id, userDetails.getUsername());
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ServiceRequestResponse> getServiceRequestDetail(
             @PathVariable Long id,

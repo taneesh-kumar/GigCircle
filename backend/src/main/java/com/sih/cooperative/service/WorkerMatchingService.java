@@ -2,6 +2,8 @@ package com.sih.cooperative.service;
 
 import com.sih.cooperative.dto.NearbyWorkerResponse;
 import com.sih.cooperative.dto.NearbyWorkerSearchResult;
+import com.sih.cooperative.dto.RecommendedWorkerResponse;
+import com.sih.cooperative.dto.WorkerRecommendationResult;
 import com.sih.cooperative.entity.ServiceCategory;
 import com.sih.cooperative.entity.ServiceRequest;
 import com.sih.cooperative.entity.WorkerProfile;
@@ -19,10 +21,12 @@ public class WorkerMatchingService {
 
     private final WorkerProfileRepository workerProfileRepository;
     private final RatingRepository ratingRepository;
+    private final WorkerRankingService workerRankingService;
 
-    public WorkerMatchingService(WorkerProfileRepository workerProfileRepository, RatingRepository ratingRepository) {
+    public WorkerMatchingService(WorkerProfileRepository workerProfileRepository, RatingRepository ratingRepository, WorkerRankingService workerRankingService) {
         this.workerProfileRepository = workerProfileRepository;
         this.ratingRepository = ratingRepository;
+        this.workerRankingService = workerRankingService;
     }
 
     public boolean isLocationCompatible(String requestLocation, String workerLocation) {
@@ -171,6 +175,29 @@ public class WorkerMatchingService {
                 List.of(),
                 50,
                 "No suitable workers found within 50 km. Try selecting another service location or try again later."
+        );
+    }
+
+    /**
+     * Executes Geographic Worker Recommendation matching and ranks candidates using WorkerRankingService.
+     */
+    public WorkerRecommendationResult getWorkerRecommendations(Double customerLat, Double customerLng, ServiceCategory category, Integer requestedRadius) {
+        NearbyWorkerSearchResult rawSearch = findNearbyWorkers(customerLat, customerLng, category, requestedRadius);
+
+        if (rawSearch.getWorkers() == null || rawSearch.getWorkers().isEmpty()) {
+            return new WorkerRecommendationResult(null, List.of(), rawSearch.getEffectiveRadiusKm(), rawSearch.getTierMessage());
+        }
+
+        List<RecommendedWorkerResponse> rankedWorkers = workerRankingService.rankAndWrapWorkers(rawSearch.getWorkers(), category);
+
+        RecommendedWorkerResponse topMatch = rankedWorkers.get(0);
+        List<RecommendedWorkerResponse> otherMatches = rankedWorkers.stream().skip(1).collect(Collectors.toList());
+
+        return new WorkerRecommendationResult(
+                topMatch,
+                otherMatches,
+                rawSearch.getEffectiveRadiusKm(),
+                rawSearch.getTierMessage()
         );
     }
 

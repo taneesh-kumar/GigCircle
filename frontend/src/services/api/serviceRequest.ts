@@ -36,3 +36,18 @@ export async function getNearbyWorkersForRequestApi(id: number): Promise<NearbyW
   return response.data;
 }
 
+export async function getWorkerRecommendationsApi(params: {
+  latitude?: number | null;
+  longitude?: number | null;
+  category?: ServiceCategory;
+  radiusKm?: number;
+}): Promise<import('@/types/service-request').WorkerRecommendationResult> {
+  const response = await apiClient.get<import('@/types/service-request').WorkerRecommendationResult>('/customer/requests/recommendations', { params });
+  return response.data;
+}
+
+export async function getWorkerRecommendationsForRequestApi(id: number): Promise<import('@/types/service-request').WorkerRecommendationResult> {
+  const response = await apiClient.get<import('@/types/service-request').WorkerRecommendationResult>(`/customer/requests/${id}/recommendations`);
+  return response.data;
+}
+
