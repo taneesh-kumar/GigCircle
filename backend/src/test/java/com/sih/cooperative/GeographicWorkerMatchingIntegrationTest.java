@@ -144,17 +144,17 @@ public class GeographicWorkerMatchingIntegrationTest {
     }
 
     @Test
-    void testTierExpansionTo25KmWhenNoWorkersWithin10Km() throws Exception {
-        // Search at a location (16.5500, 80.8500) where plumbers are ~15-20 km away (> 10 km, <= 25 km)
+    void testTierExpansionTo20KmWhenNoWorkersWithin10Km() throws Exception {
+        // Search at a location (16.5500, 80.8500) where plumbers are ~15-20 km away (> 10 km, <= 20 km)
         mockMvc.perform(get("/api/customer/requests/nearby-workers")
                         .header("Authorization", "Bearer " + customerToken)
                         .param("latitude", "16.5500")
                         .param("longitude", "80.8500")
                         .param("category", "PLUMBING"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.effectiveRadiusKm").value(25))
+                .andExpect(jsonPath("$.effectiveRadiusKm").value(20))
                 .andExpect(jsonPath("$.workers", hasSize(greaterThanOrEqualTo(1))))
-                .andExpect(jsonPath("$.tierMessage").value(containsString("25 km")));
+                .andExpect(jsonPath("$.tierMessage").value(containsString("20 km")));
     }
 
     @Test
@@ -183,7 +183,7 @@ public class GeographicWorkerMatchingIntegrationTest {
     }
 
     @Test
-    void testNoWorkerResultWhenBeyond50Km() throws Exception {
+    void testNoWorkerResultWhenBeyond30Km() throws Exception {
         // Customer at remote location (10.0000, 70.0000)
         mockMvc.perform(get("/api/customer/requests/nearby-workers")
                         .header("Authorization", "Bearer " + customerToken)
@@ -191,8 +191,8 @@ public class GeographicWorkerMatchingIntegrationTest {
                         .param("longitude", "70.0000")
                         .param("category", "PLUMBING"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.effectiveRadiusKm").value(50))
+                .andExpect(jsonPath("$.effectiveRadiusKm").value(30))
                 .andExpect(jsonPath("$.workers", hasSize(0)))
-                .andExpect(jsonPath("$.tierMessage").value(containsString("No suitable workers found within 50 km")));
+                .andExpect(jsonPath("$.tierMessage").value(containsString("No available workers found within 30 km")));
     }
 }

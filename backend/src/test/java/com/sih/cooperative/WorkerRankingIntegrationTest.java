@@ -114,6 +114,7 @@ public class WorkerRankingIntegrationTest {
     @Test
     void testLocalWorkerRankedAboveDistantWorker() throws Exception {
         // Customer at Vijayawada center (16.5062, 80.6480)
+        // 10 km search returns Local Plumber A (2.0 km away) and stops (does not include 18 km worker)
         mockMvc.perform(get("/api/customer/requests/recommendations")
                         .header("Authorization", "Bearer " + customerToken)
                         .param("latitude", "16.5062")
@@ -121,9 +122,9 @@ public class WorkerRankingIntegrationTest {
                         .param("category", "PLUMBING"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.topRecommendation.name").value("Local Plumber A"))
-                .andExpect(jsonPath("$.topRecommendation.suitabilityBadge").value("Top Recommended Match"))
-                .andExpect(jsonPath("$.topRecommendation.matchReasons", hasItem(containsString("Required plumbing category"))))
-                .andExpect(jsonPath("$.topRecommendation.matchReasons", hasItem(containsString("Available now"))));
+                .andExpect(jsonPath("$.topRecommendation.distanceKm").value(lessThan(5.0)))
+                .andExpect(jsonPath("$.effectiveSearchRadiusKm").value(10))
+                .andExpect(jsonPath("$.tierMessage", containsString("1 worker found within 10 km")));
     }
 
     @Test
@@ -142,11 +143,12 @@ public class WorkerRankingIntegrationTest {
 
         Long reqId = objectMapper.readTree(res.getResponse().getContentAsString()).get("id").asLong();
 
-        // Fetch recommendations for request
+        // Fetch nearby workers for request
         mockMvc.perform(get("/api/customer/requests/" + reqId + "/recommendations")
                         .header("Authorization", "Bearer " + customerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.topRecommendation.name").value("Local Plumber A"))
-                .andExpect(jsonPath("$.topRecommendation.distanceKm").value(lessThan(5.0)));
+                .andExpect(jsonPath("$.topRecommendation.distanceKm").value(lessThan(5.0)))
+                .andExpect(jsonPath("$.effectiveSearchRadiusKm").value(10));
     }
 }

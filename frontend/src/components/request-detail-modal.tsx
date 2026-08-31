@@ -236,9 +236,9 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
           {request.status === 'OPEN' && !request.workerId && (
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-emerald-600 animate-pulse" />
+                <MapPin className="h-4 w-4 text-emerald-600" />
                 <h3 className="font-display text-sm font-bold text-slate-900">
-                  Recommended Nearby Workers
+                  Available Nearby Workers
                 </h3>
               </div>
               <RecommendedWorkerCard recommendationResult={recommendationResult} isLoading={isLoadingRecs} />

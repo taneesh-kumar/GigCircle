@@ -21,12 +21,10 @@ public class WorkerMatchingService {
 
     private final WorkerProfileRepository workerProfileRepository;
     private final RatingRepository ratingRepository;
-    private final WorkerRankingService workerRankingService;
 
-    public WorkerMatchingService(WorkerProfileRepository workerProfileRepository, RatingRepository ratingRepository, WorkerRankingService workerRankingService) {
+    public WorkerMatchingService(WorkerProfileRepository workerProfileRepository, RatingRepository ratingRepository) {
         this.workerProfileRepository = workerProfileRepository;
         this.ratingRepository = ratingRepository;
-        this.workerRankingService = workerRankingService;
     }
 
     public boolean isLocationCompatible(String requestLocation, String workerLocation) {
@@ -60,18 +58,17 @@ public class WorkerMatchingService {
             return false;
         }
 
-        // 3. Geographic distance check if both coordinates exist
+        // 3. Geographic distance check if both coordinates exist (Platform enforces max 30 km)
         if (request.getLatitude() != null && request.getLongitude() != null
                 && profile.getLatitude() != null && profile.getLongitude() != null) {
             double distanceKm = HaversineUtil.calculateDistanceKm(
                     request.getLatitude(), request.getLongitude(),
                     profile.getLatitude(), profile.getLongitude()
             );
-            int maxRadius = profile.getServiceRadiusKm() != null ? profile.getServiceRadiusKm() : 50;
-            return distanceKm <= maxRadius;
+            return distanceKm <= 30.0;
         }
 
-        // 4. Fallback text locality match check
+        // 4. Fallback text locality match check if coordinates missing
         return isLocationCompatible(request.getLocation(), profile.getServiceLocation());
     }
 
@@ -102,8 +99,8 @@ public class WorkerMatchingService {
     }
 
     /**
-     * Executes Tiered Radius Search (10 km -> 25 km -> 50 km) for qualified, available workers.
-     * Sorts returned workers by distance ascending (nearest first).
+     * Executes Progressive Tiered Radius Search (10 km -> 20 km -> 30 km max) for qualified, available workers.
+     * Stops at the smallest radius with eligible workers and sorts returned workers strictly by distance (nearest first).
      */
     public NearbyWorkerSearchResult findNearbyWorkers(Double customerLat, Double customerLng, ServiceCategory category, Integer requestedRadius) {
         if (customerLat == null || customerLng == null) {
@@ -124,8 +121,9 @@ public class WorkerMatchingService {
                 .filter(p -> p.getLatitude() != null && p.getLongitude() != null)
                 .collect(Collectors.toList());
 
-        // Tiered Search Radii: 10 km -> 25 km -> 50 km (unless an explicit radius is requested)
-        int[] tiers = (requestedRadius != null) ? new int[]{requestedRadius} : new int[]{10, 25, 50};
+        // Platform Search Radii Tiers: 10 km -> 20 km -> 30 km (capped at max 30 km)
+        int effectiveCap = (requestedRadius != null) ? Math.min(requestedRadius, 30) : 30;
+        int[] tiers = (requestedRadius != null) ? new int[]{effectiveCap} : new int[]{10, 20, 30};
 
         for (int tierRadius : tiers) {
             List<NearbyWorkerResponse> matchedWorkers = eligibleProfiles.stream()
@@ -160,26 +158,26 @@ public class WorkerMatchingService {
                 String tierMessage;
                 if (tierRadius == 10) {
                     tierMessage = matchedWorkers.size() + " worker" + (matchedWorkers.size() == 1 ? "" : "s") + " found within 10 km";
-                } else if (tierRadius == 25) {
-                    tierMessage = "No suitable workers found within 10 km. Expanded search to 25 km (" + matchedWorkers.size() + " worker" + (matchedWorkers.size() == 1 ? "" : "s") + " found).";
+                } else if (tierRadius == 20) {
+                    tierMessage = "No available workers found within 10 km. Expanded search to 20 km (" + matchedWorkers.size() + " worker" + (matchedWorkers.size() == 1 ? "" : "s") + " found).";
                 } else {
-                    tierMessage = "No suitable workers found within 25 km. Expanded search to 50 km (" + matchedWorkers.size() + " worker" + (matchedWorkers.size() == 1 ? "" : "s") + " found).";
+                    tierMessage = "No available workers found within 20 km. Expanded search to 30 km (" + matchedWorkers.size() + " worker" + (matchedWorkers.size() == 1 ? "" : "s") + " found).";
                 }
 
                 return new NearbyWorkerSearchResult(matchedWorkers, tierRadius, tierMessage);
             }
         }
 
-        // Zero workers found within 50 km
+        // Zero workers found within 30 km
         return new NearbyWorkerSearchResult(
                 List.of(),
-                50,
-                "No suitable workers found within 50 km. Try selecting another service location or try again later."
+                30,
+                "No available workers found within 30 km for this service."
         );
     }
 
     /**
-     * Executes Geographic Worker Recommendation matching and ranks candidates using WorkerRankingService.
+     * Returns nearby workers wrapped in simple distance-sorted response objects with no recommendation ranking.
      */
     public WorkerRecommendationResult getWorkerRecommendations(Double customerLat, Double customerLng, ServiceCategory category, Integer requestedRadius) {
         NearbyWorkerSearchResult rawSearch = findNearbyWorkers(customerLat, customerLng, category, requestedRadius);
@@ -188,10 +186,12 @@ public class WorkerMatchingService {
             return new WorkerRecommendationResult(null, List.of(), rawSearch.getEffectiveRadiusKm(), rawSearch.getTierMessage());
         }
 
-        List<RecommendedWorkerResponse> rankedWorkers = workerRankingService.rankAndWrapWorkers(rawSearch.getWorkers(), category);
+        List<RecommendedWorkerResponse> distanceSortedWorkers = rawSearch.getWorkers().stream()
+                .map(w -> RecommendedWorkerResponse.fromNearbyWorker(w, List.of(), "Available Nearby", w.getDistanceKm()))
+                .collect(Collectors.toList());
 
-        RecommendedWorkerResponse topMatch = rankedWorkers.get(0);
-        List<RecommendedWorkerResponse> otherMatches = rankedWorkers.stream().skip(1).collect(Collectors.toList());
+        RecommendedWorkerResponse topMatch = distanceSortedWorkers.get(0);
+        List<RecommendedWorkerResponse> otherMatches = distanceSortedWorkers.stream().skip(1).collect(Collectors.toList());
 
         return new WorkerRecommendationResult(
                 topMatch,
