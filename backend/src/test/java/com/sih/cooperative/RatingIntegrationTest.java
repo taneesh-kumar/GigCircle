@@ -135,6 +135,23 @@ public class RatingIntegrationTest {
         }
 
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
+        if (targetStatus == JobStatus.PAYMENT_REQUIRED) {
+            return jobId;
+        }
+
+        // Perform customer payment to advance to COMPLETED
+        com.sih.cooperative.dto.CreatePaymentRequest payReq = new com.sih.cooperative.dto.CreatePaymentRequest();
+        payReq.setJobId(jobId);
+        payReq.setPaymentMethod(com.sih.cooperative.entity.PaymentMethod.UPI);
+        payReq.setUpiId("test-success@upi");
+
+        mockMvc.perform(post("/api/customer/payments/process")
+                        .header("Authorization", "Bearer " + customerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(payReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
+
         return jobId;
     }
 

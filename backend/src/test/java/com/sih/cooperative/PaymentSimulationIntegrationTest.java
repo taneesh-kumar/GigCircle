@@ -127,6 +127,17 @@ public class PaymentSimulationIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
         jobId = objectMapper.readTree(jobRes.getResponse().getContentAsString()).get("id").asLong();
+
+        // Worker starts job -> IN_PROGRESS
+        mockMvc.perform(post("/api/worker/jobs/" + jobId + "/start")
+                        .header("Authorization", "Bearer " + workerToken))
+                .andExpect(status().isOk());
+
+        // Worker completes job -> PAYMENT_REQUIRED
+        mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete")
+                        .header("Authorization", "Bearer " + workerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobStatus").value("PAYMENT_REQUIRED"));
     }
 
     @Test
@@ -157,6 +168,11 @@ public class PaymentSimulationIntegrationTest {
                 .andExpect(jsonPath("$.paymentMethod").value("UPI"))
                 .andExpect(jsonPath("$.paymentMethodDetails").value("test-success@upi"))
                 .andExpect(jsonPath("$.transactionReference", startsWith("SIM-TXN-")));
+
+        Job job = jobRepository.findById(jobId).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals(JobStatus.COMPLETED, job.getStatus());
+        org.junit.jupiter.api.Assertions.assertNotNull(job.getCompletedAt());
+        org.junit.jupiter.api.Assertions.assertTrue(earningRepository.existsByJobId(jobId));
     }
 
     @Test
@@ -172,6 +188,11 @@ public class PaymentSimulationIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FAILED"))
                 .andExpect(jsonPath("$.failureReason", containsString("declined")));
+
+        Job job = jobRepository.findById(jobId).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals(JobStatus.PAYMENT_REQUIRED, job.getStatus());
+        org.junit.jupiter.api.Assertions.assertNull(job.getCompletedAt());
+        org.junit.jupiter.api.Assertions.assertFalse(earningRepository.existsByJobId(jobId));
     }
 
     @Test

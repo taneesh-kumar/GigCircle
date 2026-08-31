@@ -10,7 +10,11 @@ export type NotificationType =
   | 'WORKER_DECLINED_JOB'
   | 'LOW_WORKER_RATING'
   | 'LEDGER_ERROR'
-  | 'SYSTEM_ERROR';
+  | 'SYSTEM_ERROR'
+  | 'PAYMENT_REQUIRED'
+  | 'PAYMENT_SUCCESS'
+  | 'PAYMENT_FAILED'
+  | 'PAYMENT_REFUNDED';
 
 export interface Notification {
   id: number;

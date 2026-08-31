@@ -106,6 +106,8 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                   jobStatusStr === 'COMPLETED'
                     ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                    : jobStatusStr === 'PAYMENT_REQUIRED'
+                    ? 'bg-amber-100 border border-amber-300 text-amber-900'
                     : jobStatusStr === 'IN_PROGRESS'
                     ? 'bg-blue-50 border border-blue-200 text-blue-700'
                     : jobStatusStr === 'ACCEPTED'
@@ -117,12 +119,14 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
               >
                 {jobStatusStr === 'COMPLETED' ? (
                   <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                ) : jobStatusStr === 'PAYMENT_REQUIRED' ? (
+                  <IndianRupee className="h-3 w-3 text-amber-700" />
                 ) : jobStatusStr === 'IN_PROGRESS' ? (
                   <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
                 ) : (
                   <Clock3 className="h-3 w-3 text-amber-600" />
                 )}
-                {jobStatusStr}
+                {jobStatusStr === 'PAYMENT_REQUIRED' ? 'PAYMENT REQUIRED' : jobStatusStr}
               </span>
             </div>
             <h2 id="detail-modal-title" className="font-display text-2xl font-black text-slate-900">
@@ -223,10 +227,14 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                 <button
                   type="button"
                   onClick={() => setIsPaymentOpen(true)}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white hover:bg-emerald-600 transition-colors shadow-sm"
+                  className={`w-full inline-flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold text-white transition-all shadow-sm ${
+                    jobStatusStr === 'PAYMENT_REQUIRED'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 font-extrabold animate-pulse'
+                      : 'bg-slate-900 hover:bg-emerald-600'
+                  }`}
                 >
                   <IndianRupee className="h-4 w-4" />
-                  Simulate Payment / View Receipt
+                  {jobStatusStr === 'PAYMENT_REQUIRED' ? `Pay Now (₹${request.budget.toLocaleString()})` : 'Simulate Payment / View Receipt'}
                 </button>
               )}
             </div>
