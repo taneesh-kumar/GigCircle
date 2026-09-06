@@ -14,10 +14,9 @@ import {
   Tv,
   Paintbrush,
   Wind,
-  ChevronRight,
   CheckCircle2,
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { BrandMark } from '@/components/platform-shell';
 
@@ -90,7 +89,6 @@ const POPULAR_SERVICES = [
 
 export default function Welcome() {
   const { user, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
 
   const userDashboard =
     user?.role === 'CUSTOMER'
@@ -300,33 +298,19 @@ export default function Welcome() {
               return (
                 <div
                   key={service.id}
-                  onClick={() => {
-                    if (isAuthenticated) {
-                      navigate(`${userDashboard}?tab=requests&category=${service.id}`);
-                    } else {
-                      navigate('/login');
-                    }
-                  }}
-                  className={`group rounded-3xl border bg-gradient-to-b ${service.color} p-6 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer flex flex-col justify-between`}
+                  className={`group rounded-3xl border bg-gradient-to-b ${service.color} p-7 shadow-xs hover:shadow-md hover:-translate-y-1.5 transition-all flex flex-col justify-start`}
                 >
-                  <div className="space-y-4">
-                    <div className={`h-12 w-12 rounded-2xl ${service.iconBg} flex items-center justify-center shadow-sm`}>
-                      <ServiceIcon className="h-6 w-6" />
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                        {service.name}
-                      </h3>
-                      <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                        {service.description}
-                      </p>
-                    </div>
+                  <div className={`h-12 w-12 rounded-2xl ${service.iconBg} flex items-center justify-center shadow-sm mb-5 group-hover:scale-105 transition-transform`}>
+                    <ServiceIcon className="h-6 w-6" />
                   </div>
 
-                  <div className="pt-6 flex items-center justify-between text-xs font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
-                    <span>Book Service</span>
-                    <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                      {service.name}
+                    </h3>
+                    <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                      {service.description}
+                    </p>
                   </div>
                 </div>
               );

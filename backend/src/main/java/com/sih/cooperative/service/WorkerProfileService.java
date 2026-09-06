@@ -139,8 +139,12 @@ public class WorkerProfileService {
     public WorkerProfileResponse toggleAvailability(Boolean isAvailable, String workerEmail) {
         User worker = getAuthenticatedWorker(workerEmail);
 
+        if (!worker.isActive()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Worker account is deactivated");
+        }
+
         WorkerProfile profile = workerProfileRepository.findByWorkerId(worker.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker profile not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker profile not found. Please complete worker profile onboarding."));
 
         profile.setAvailable(isAvailable != null ? isAvailable : !profile.isAvailable());
         WorkerProfile updatedProfile = workerProfileRepository.save(profile);

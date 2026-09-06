@@ -379,4 +379,48 @@ public class WorkerMatchingIntegrationTest {
         // Ensure exactly ONE job exists in repository for reqId
         assertEquals(1, jobRepository.findAll().stream().filter(j -> j.getServiceRequest().getId().equals(reqId)).count());
     }
+
+    @Test
+    void testMultiSegmentLocationTokenMatchingAcceptance() throws Exception {
+        // Service Request with detailed address containing Vijayawada
+        Long reqId = createCustomerRequest("PLUMBING", "APSRTC Enquiry Counter, APSRTC PNBS Bus Station Inner Road, Kaleswara Rao Market, Vijayawada", "800.00");
+
+        // Worker 3 with detailed address also in Vijayawada
+        RegisterRequest wrk3Reg = new RegisterRequest("John Worker", "john.worker.test@example.com", "9876543299", "WorkerPass123!", Role.WORKER);
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(wrk3Reg)))
+                .andExpect(status().isCreated());
+
+        LoginRequest wrk3Login = new LoginRequest("john.worker.test@example.com", "WorkerPass123!");
+        MvcResult wrk3LoginRes = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(wrk3Login)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String wrk3Token = objectMapper.readTree(wrk3LoginRes.getResponse().getContentAsString()).get("token").asText();
+
+        CreateWorkerProfileRequest profileReq3 = new CreateWorkerProfileRequest(
+                "Plumber in Vijayawada",
+                2,
+                new BigDecimal("99.00"),
+                Set.of("Plumbing"),
+                Set.of(ServiceCategory.PLUMBING),
+                Boolean.TRUE,
+                "Madhura Nagar, Devi Nagar, Vijayawada, Vijayawada",
+                10
+        );
+        mockMvc.perform(post("/api/worker/profile")
+                        .header("Authorization", "Bearer " + wrk3Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(profileReq3)))
+                .andExpect(status().isCreated());
+
+        // Worker 3 accepts job matching location by shared token "Vijayawada"
+        mockMvc.perform(post("/api/worker/jobs/" + reqId + "/accept")
+                        .header("Authorization", "Bearer " + wrk3Token))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.workerName").value("John Worker"));
+    }
 }
