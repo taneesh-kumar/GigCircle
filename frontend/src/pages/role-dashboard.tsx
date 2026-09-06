@@ -536,7 +536,15 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   };
 
   const handleToggleAvailability = async () => {
-    if (!workerProfile || isTogglingAvailability) return;
+    if (!workerProfile) {
+      setIsProfileModalOpen(true);
+      toast({
+        title: 'Profile Required',
+        description: 'Please set up your worker profile to manage availability.',
+      });
+      return;
+    }
+    if (isTogglingAvailability) return;
     setIsTogglingAvailability(true);
     const newStatus = !workerProfile.available;
     try {
@@ -561,6 +569,15 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   };
 
   const handleAcceptJob = async (requestId: number) => {
+    if (!workerProfile) {
+      setIsProfileModalOpen(true);
+      toast({
+        title: 'Profile Required',
+        description: 'Please complete your worker profile setup before accepting jobs.',
+        variant: 'destructive',
+      });
+      return;
+    }
     if (acceptingRequestId !== null) return;
     setAcceptingRequestId(requestId);
     try {

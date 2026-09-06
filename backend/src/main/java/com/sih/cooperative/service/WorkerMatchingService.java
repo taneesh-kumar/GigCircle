@@ -35,7 +35,26 @@ public class WorkerMatchingService {
         String normReq = requestLocation.toLowerCase().trim();
         String normWorker = workerLocation.toLowerCase().trim();
 
-        return normReq.contains(normWorker) || normWorker.contains(normReq);
+        if (normReq.contains(normWorker) || normWorker.contains(normReq)) {
+            return true;
+        }
+
+        // Token-based matching for multi-segment addresses (e.g. matching shared locality/city like "Vijayawada")
+        String[] reqTokens = normReq.split("[,\\s]+");
+        String[] workerTokens = normWorker.split("[,\\s]+");
+
+        for (String wToken : workerTokens) {
+            String cleanToken = wToken.trim();
+            if (cleanToken.length() >= 3) {
+                for (String rToken : reqTokens) {
+                    if (rToken.trim().equals(cleanToken)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     public boolean isWorkerEligible(ServiceRequest request, WorkerProfile profile) {
