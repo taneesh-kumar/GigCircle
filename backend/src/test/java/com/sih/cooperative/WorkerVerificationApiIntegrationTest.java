@@ -53,6 +53,9 @@ public class WorkerVerificationApiIntegrationTest {
     private WorkerProfileRepository workerProfileRepository;
 
     @Autowired
+    private com.sih.cooperative.repository.NotificationRepository notificationRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String adminToken;
@@ -65,6 +68,7 @@ public class WorkerVerificationApiIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        notificationRepository.deleteAll();
         verificationDocumentRepository.deleteAll();
         workerVerificationRepository.deleteAll();
         workerProfileRepository.deleteAll();

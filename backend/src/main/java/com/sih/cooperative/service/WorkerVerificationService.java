@@ -22,15 +22,18 @@ public class WorkerVerificationService {
     private final WorkerVerificationRepository workerVerificationRepository;
     private final VerificationDocumentRepository verificationDocumentRepository;
     private final AdminActivityRepository adminActivityRepository;
+    private final NotificationService notificationService;
 
     public WorkerVerificationService(UserRepository userRepository,
                                      WorkerVerificationRepository workerVerificationRepository,
                                      VerificationDocumentRepository verificationDocumentRepository,
-                                     AdminActivityRepository adminActivityRepository) {
+                                     AdminActivityRepository adminActivityRepository,
+                                     NotificationService notificationService) {
         this.userRepository = userRepository;
         this.workerVerificationRepository = workerVerificationRepository;
         this.verificationDocumentRepository = verificationDocumentRepository;
         this.adminActivityRepository = adminActivityRepository;
+        this.notificationService = notificationService;
     }
 
     private User getAuthenticatedWorker(String workerEmail) {
@@ -226,6 +229,15 @@ public class WorkerVerificationService {
         verification.setRejectionReason(null);
 
         WorkerVerification saved = workerVerificationRepository.save(verification);
+        
+        notificationService.createAdminNotification(
+                NotificationType.VERIFICATION_SUBMITTED,
+                "New Verification Submitted",
+                "A worker verification has been submitted for review.",
+                "WORKER_VERIFICATION",
+                saved.getId()
+        );
+
         return new WorkerVerificationResponse(saved);
     }
 
@@ -288,6 +300,26 @@ public class WorkerVerificationService {
         WorkerVerification saved = workerVerificationRepository.save(verification);
         recordAdminActivity(admin, "APPROVE_WORKER_VERIFICATION", saved.getId(), "Approved worker verification for user ID: " + verification.getWorker().getId());
 
+        if (currentStatus == VerificationStatus.SUSPENDED) {
+            notificationService.createNotification(
+                    saved.getWorker(),
+                    NotificationType.VERIFICATION_REINSTATED,
+                    "Verification Reinstated",
+                    "Your verification has been reinstated.",
+                    "WORKER_VERIFICATION",
+                    saved.getId()
+            );
+        } else {
+            notificationService.createNotification(
+                    saved.getWorker(),
+                    NotificationType.VERIFICATION_APPROVED,
+                    "Verification Approved",
+                    "Your verification has been approved.",
+                    "WORKER_VERIFICATION",
+                    saved.getId()
+            );
+        }
+
         return new WorkerVerificationResponse(saved);
     }
 
@@ -313,6 +345,15 @@ public class WorkerVerificationService {
 
         WorkerVerification saved = workerVerificationRepository.save(verification);
         recordAdminActivity(admin, "REQUEST_CHANGES_WORKER_VERIFICATION", saved.getId(), "Requested changes for worker verification: " + request.getReason());
+
+        notificationService.createNotification(
+                saved.getWorker(),
+                NotificationType.VERIFICATION_CHANGES_REQUIRED,
+                "Changes Required",
+                "Your verification requires changes. Review the requested updates.",
+                "WORKER_VERIFICATION",
+                saved.getId()
+        );
 
         return new WorkerVerificationResponse(saved);
     }
@@ -340,6 +381,15 @@ public class WorkerVerificationService {
         WorkerVerification saved = workerVerificationRepository.save(verification);
         recordAdminActivity(admin, "REJECT_WORKER_VERIFICATION", saved.getId(), "Rejected worker verification: " + request.getReason());
 
+        notificationService.createNotification(
+                saved.getWorker(),
+                NotificationType.VERIFICATION_REJECTED,
+                "Verification Rejected",
+                "Your verification has been rejected.",
+                "WORKER_VERIFICATION",
+                saved.getId()
+        );
+
         return new WorkerVerificationResponse(saved);
     }
 
@@ -365,6 +415,15 @@ public class WorkerVerificationService {
 
         WorkerVerification saved = workerVerificationRepository.save(verification);
         recordAdminActivity(admin, "SUSPEND_WORKER_VERIFICATION", saved.getId(), "Suspended worker verification: " + reason);
+
+        notificationService.createNotification(
+                saved.getWorker(),
+                NotificationType.VERIFICATION_SUSPENDED,
+                "Verification Suspended",
+                "Your verification has been suspended.",
+                "WORKER_VERIFICATION",
+                saved.getId()
+        );
 
         return new WorkerVerificationResponse(saved);
     }

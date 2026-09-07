@@ -57,6 +57,9 @@ public class WorkerVerificationSecurityTest {
     private AdminActivityRepository adminActivityRepository;
 
     @Autowired
+    private com.sih.cooperative.repository.NotificationRepository notificationRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String adminToken;
@@ -70,6 +73,7 @@ public class WorkerVerificationSecurityTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        notificationRepository.deleteAll();
         adminActivityRepository.deleteAll();
         verificationDocumentRepository.deleteAll();
         workerVerificationRepository.deleteAll();
