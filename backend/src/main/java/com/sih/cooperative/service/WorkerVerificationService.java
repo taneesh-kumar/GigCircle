@@ -23,17 +23,20 @@ public class WorkerVerificationService {
     private final VerificationDocumentRepository verificationDocumentRepository;
     private final AdminActivityRepository adminActivityRepository;
     private final NotificationService notificationService;
+    private final VerificationStorageService verificationStorageService;
 
     public WorkerVerificationService(UserRepository userRepository,
                                      WorkerVerificationRepository workerVerificationRepository,
                                      VerificationDocumentRepository verificationDocumentRepository,
                                      AdminActivityRepository adminActivityRepository,
-                                     NotificationService notificationService) {
+                                     NotificationService notificationService,
+                                     VerificationStorageService verificationStorageService) {
         this.userRepository = userRepository;
         this.workerVerificationRepository = workerVerificationRepository;
         this.verificationDocumentRepository = verificationDocumentRepository;
         this.adminActivityRepository = adminActivityRepository;
         this.notificationService = notificationService;
+        this.verificationStorageService = verificationStorageService;
     }
 
     private User getAuthenticatedWorker(String workerEmail) {
@@ -73,13 +76,7 @@ public class WorkerVerificationService {
     }
 
     private void validateFileReference(String fileReference) {
-        if (fileReference == null || fileReference.trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File reference is required");
-        }
-        String ref = fileReference.trim();
-        if (ref.contains("..") || ref.contains("\0")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid file reference format");
-        }
+        verificationStorageService.validateFileReference(fileReference);
     }
 
     @Transactional(readOnly = true)
@@ -107,7 +104,7 @@ public class WorkerVerificationService {
     @Transactional
     public VerificationDocumentResponse submitDocument(SubmitVerificationDocumentRequest request, String workerEmail) {
         User worker = getAuthenticatedWorker(workerEmail);
-        validateFileReference(request.getFileReference());
+        verificationStorageService.validateFileReference(request.getFileReference());
 
         WorkerVerification verification = workerVerificationRepository.findByWorkerId(worker.getId())
                 .orElseGet(() -> workerVerificationRepository.save(new WorkerVerification(worker, VerificationStatus.NOT_SUBMITTED)));
@@ -116,13 +113,18 @@ public class WorkerVerificationService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot modify documents for an already verified profile without a resubmission review flow");
         }
 
+        String physicalFilename = verificationStorageService.storeDocumentFile(request.getFileReference(), null);
+
         Optional<VerificationDocument> existingDocOpt = verification.getDocuments().stream()
                 .filter(d -> d.getDocumentType() == request.getDocumentType())
                 .findFirst();
 
         VerificationDocument document;
+        String oldPhysicalFile = null;
+
         if (existingDocOpt.isPresent()) {
             document = existingDocOpt.get();
+            oldPhysicalFile = document.getFileReference();
             document.setFileReference(request.getFileReference());
             document.setStatus(VerificationDocumentStatus.PENDING);
             document.setReviewNote(null);
@@ -132,6 +134,10 @@ public class WorkerVerificationService {
         }
 
         WorkerVerification updatedVerification = workerVerificationRepository.save(verification);
+        if (oldPhysicalFile != null && !oldPhysicalFile.equals(request.getFileReference())) {
+            verificationStorageService.deletePhysicalFile(oldPhysicalFile);
+        }
+
         VerificationDocument savedDoc = updatedVerification.getDocuments().stream()
                 .filter(d -> d.getDocumentType() == request.getDocumentType())
                 .findFirst()
@@ -156,16 +162,23 @@ public class WorkerVerificationService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot modify documents for an already verified profile");
         }
 
+        String oldPhysicalFile = null;
         if (request.getDocumentType() != null) {
             document.setDocumentType(request.getDocumentType());
         }
         if (request.getFileReference() != null) {
-            validateFileReference(request.getFileReference());
+            verificationStorageService.validateFileReference(request.getFileReference());
+            oldPhysicalFile = document.getFileReference();
+            verificationStorageService.storeDocumentFile(request.getFileReference(), null);
             document.setFileReference(request.getFileReference());
         }
         document.setStatus(VerificationDocumentStatus.PENDING);
 
         VerificationDocument saved = verificationDocumentRepository.save(document);
+        if (oldPhysicalFile != null && request.getFileReference() != null && !oldPhysicalFile.equals(request.getFileReference())) {
+            verificationStorageService.deletePhysicalFile(oldPhysicalFile);
+        }
+
         return new VerificationDocumentResponse(saved);
     }
 
@@ -181,7 +194,7 @@ public class WorkerVerificationService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: Document does not belong to authenticated worker");
         }
 
-        validateFileReference(document.getFileReference());
+        verificationStorageService.validateFileReference(document.getFileReference());
         return new VerificationDocumentResponse(document);
     }
 
@@ -197,7 +210,7 @@ public class WorkerVerificationService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Document does not belong to the specified verification record");
         }
 
-        validateFileReference(document.getFileReference());
+        verificationStorageService.validateFileReference(document.getFileReference());
         return new VerificationDocumentResponse(document);
     }
 
