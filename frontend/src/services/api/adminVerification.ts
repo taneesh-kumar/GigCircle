@@ -63,6 +63,15 @@ export async function suspendAdminVerificationApi(
   return response.data;
 }
 
+export async function reinstateAdminVerificationApi(
+  id: number
+): Promise<WorkerVerificationResponse> {
+  const response = await apiClient.post<WorkerVerificationResponse>(
+    `/admin/verifications/${id}/reinstate`
+  );
+  return response.data;
+}
+
 export async function previewAdminDocumentApi(
   verificationId: number,
   documentId: number

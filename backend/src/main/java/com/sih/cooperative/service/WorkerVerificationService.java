@@ -337,6 +337,18 @@ public class WorkerVerificationService {
     }
 
     @Transactional
+    public WorkerVerificationResponse reinstateVerification(Long verificationId, String adminEmail) {
+        WorkerVerification verification = workerVerificationRepository.findById(verificationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker verification not found with id: " + verificationId));
+
+        if (verification.getStatus() != VerificationStatus.SUSPENDED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot reinstate worker verification in status: " + verification.getStatus() + ". Only suspended profiles can be reinstated.");
+        }
+
+        return approveVerification(verificationId, adminEmail);
+    }
+
+    @Transactional
     public WorkerVerificationResponse requestChanges(Long verificationId, AdminVerificationReviewRequest request, String adminEmail) {
         User admin = getAuthenticatedAdmin(adminEmail);
 

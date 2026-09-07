@@ -91,4 +91,13 @@ public class AdminVerificationController {
         WorkerVerificationResponse response = workerVerificationService.suspendVerification(id, request, userDetails.getUsername());
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/{id}/reinstate")
+    public ResponseEntity<WorkerVerificationResponse> reinstateVerification(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        WorkerVerificationResponse response = workerVerificationService.reinstateVerification(id, userDetails.getUsername());
+        return ResponseEntity.ok(response);
+    }
 }
