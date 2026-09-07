@@ -32,6 +32,9 @@ public class WorkerVerificationIntegrationTest {
     @Autowired
     private VerificationDocumentRepository verificationDocumentRepository;
 
+    @Autowired
+    private com.sih.cooperative.repository.WorkerProfileRepository workerProfileRepository;
+
     private User worker1;
     private User worker2;
     private User adminUser;
@@ -40,6 +43,7 @@ public class WorkerVerificationIntegrationTest {
     public void setUp() {
         verificationDocumentRepository.deleteAll();
         workerVerificationRepository.deleteAll();
+        workerProfileRepository.deleteAll();
         userRepository.deleteAll();
 
         worker1 = new User("John Worker", "john.worker@example.com", "1234567890", "password123", Role.WORKER);
