@@ -56,6 +56,15 @@ public class WorkerVerificationController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/documents/{id}/preview")
+    public ResponseEntity<VerificationDocumentResponse> previewDocument(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        VerificationDocumentResponse response = workerVerificationService.previewWorkerDocument(id, userDetails.getUsername());
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/resubmit")
     public ResponseEntity<WorkerVerificationResponse> resubmitVerification(
             @AuthenticationPrincipal UserDetails userDetails
@@ -64,3 +73,4 @@ public class WorkerVerificationController {
         return ResponseEntity.ok(response);
     }
 }
+

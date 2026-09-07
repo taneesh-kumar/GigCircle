@@ -69,6 +69,16 @@ public class WorkerVerificationService {
         }
     }
 
+    private void validateFileReference(String fileReference) {
+        if (fileReference == null || fileReference.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File reference is required");
+        }
+        String ref = fileReference.trim();
+        if (ref.contains("..") || ref.contains("\0")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid file reference format");
+        }
+    }
+
     @Transactional(readOnly = true)
     public WorkerVerificationResponse getWorkerVerification(String workerEmail) {
         User worker = getAuthenticatedWorker(workerEmail);
@@ -94,6 +104,7 @@ public class WorkerVerificationService {
     @Transactional
     public VerificationDocumentResponse submitDocument(SubmitVerificationDocumentRequest request, String workerEmail) {
         User worker = getAuthenticatedWorker(workerEmail);
+        validateFileReference(request.getFileReference());
 
         WorkerVerification verification = workerVerificationRepository.findByWorkerId(worker.getId())
                 .orElseGet(() -> workerVerificationRepository.save(new WorkerVerification(worker, VerificationStatus.NOT_SUBMITTED)));
@@ -145,7 +156,8 @@ public class WorkerVerificationService {
         if (request.getDocumentType() != null) {
             document.setDocumentType(request.getDocumentType());
         }
-        if (request.getFileReference() != null && !request.getFileReference().isBlank()) {
+        if (request.getFileReference() != null) {
+            validateFileReference(request.getFileReference());
             document.setFileReference(request.getFileReference());
         }
         document.setStatus(VerificationDocumentStatus.PENDING);
@@ -153,6 +165,39 @@ public class WorkerVerificationService {
         VerificationDocument saved = verificationDocumentRepository.save(document);
         return new VerificationDocumentResponse(saved);
     }
+
+    @Transactional(readOnly = true)
+    public VerificationDocumentResponse previewWorkerDocument(Long documentId, String workerEmail) {
+        User worker = getAuthenticatedWorker(workerEmail);
+
+        VerificationDocument document = verificationDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Verification document not found"));
+
+        WorkerVerification verification = document.getVerification();
+        if (verification == null || !verification.getWorker().getId().equals(worker.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: Document does not belong to authenticated worker");
+        }
+
+        validateFileReference(document.getFileReference());
+        return new VerificationDocumentResponse(document);
+    }
+
+    @Transactional(readOnly = true)
+    public VerificationDocumentResponse previewAdminDocument(Long verificationId, Long documentId, String adminEmail) {
+        getAuthenticatedAdmin(adminEmail);
+
+        VerificationDocument document = verificationDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Verification document not found"));
+
+        WorkerVerification verification = document.getVerification();
+        if (verification == null || !verification.getId().equals(verificationId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Document does not belong to the specified verification record");
+        }
+
+        validateFileReference(document.getFileReference());
+        return new VerificationDocumentResponse(document);
+    }
+
 
     @Transactional
     public WorkerVerificationResponse resubmitVerification(String workerEmail) {

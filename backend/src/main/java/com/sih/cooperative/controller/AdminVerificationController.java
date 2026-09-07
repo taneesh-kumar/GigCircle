@@ -1,6 +1,7 @@
 package com.sih.cooperative.controller;
 
 import com.sih.cooperative.dto.AdminVerificationReviewRequest;
+import com.sih.cooperative.dto.VerificationDocumentResponse;
 import com.sih.cooperative.dto.WorkerVerificationResponse;
 import com.sih.cooperative.entity.VerificationStatus;
 import com.sih.cooperative.service.WorkerVerificationService;
@@ -40,6 +41,17 @@ public class AdminVerificationController {
         WorkerVerificationResponse response = workerVerificationService.getAdminVerificationById(id, userDetails.getUsername());
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{verificationId}/documents/{documentId}/preview")
+    public ResponseEntity<VerificationDocumentResponse> previewDocument(
+            @PathVariable Long verificationId,
+            @PathVariable Long documentId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        VerificationDocumentResponse response = workerVerificationService.previewAdminDocument(verificationId, documentId, userDetails.getUsername());
+        return ResponseEntity.ok(response);
+    }
+
 
     @PostMapping("/{id}/approve")
     public ResponseEntity<WorkerVerificationResponse> approveVerification(
