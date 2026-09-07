@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "description": "Cooperative Gig Services Platform — SIH Prototype",
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
+    "postinstall": "npm --prefix frontend install",
     "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",
     "install:frontend": "cd frontend && npm install"
