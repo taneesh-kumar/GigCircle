@@ -31,8 +31,15 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             // Ensure users active column exists for legacy databases
             jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE");
             logger.info("Database migration: Successfully verified users active column.");
+
+            // Drop outdated PostgreSQL check constraints for worker verification enums if present
+            jdbcTemplate.execute("ALTER TABLE worker_verifications DROP CONSTRAINT IF EXISTS worker_verifications_status_check");
+            jdbcTemplate.execute("ALTER TABLE verification_documents DROP CONSTRAINT IF EXISTS verification_documents_document_type_check");
+            jdbcTemplate.execute("ALTER TABLE verification_documents DROP CONSTRAINT IF EXISTS verification_documents_status_check");
+            logger.info("Database migration: Successfully verified worker verification check constraints.");
         } catch (Exception e) {
             logger.warn("Database migration warning: {}", e.getMessage());
         }
     }
 }
+
