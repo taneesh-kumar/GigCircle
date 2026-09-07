@@ -46,7 +46,8 @@ public class SecurityConfig {
                                 "/api/healthz",
                                 "/api/platform/info",
                                 "/api/auth/register",
-                                "/api/auth/login"
+                                "/api/auth/login",
+                                "/api/webhooks/**"
                         ).permitAll()
                         .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/worker/**").hasRole("WORKER")

@@ -64,6 +64,7 @@ import {
   getAdminUsersApi,
   getAdminWorkersApi,
   getCustomerJobEarningApi,
+  getPaymentByJobApi,
   getPlatformInfo,
   getServiceRequestsApi,
   getWorkerAssignedJobsApi,
@@ -93,11 +94,13 @@ import { CreateRequestModal } from '@/components/create-request-modal';
 import { RequestDetailModal } from '@/components/request-detail-modal';
 import { WorkerProfileModal } from '@/components/worker-profile-modal';
 import { RatingModal } from '@/components/rating-modal';
+import { PaymentModal } from '@/components/payment-modal';
 import { CATEGORY_LABELS, type ServiceRequest } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
 import type { JobResponse } from '@/types/worker-job';
 import type { Rating, WorkerRatingSummary } from '@/types/rating';
 import type { Earning, PlatformRevenueSummary, WorkerEarningsSummary } from '@/types/earning';
+import type { Payment } from '@/types/payment';
 import type {
   AdminActivity,
   AdminJob,
@@ -191,6 +194,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   // EXACTLY THREE CUSTOMER STATUS TABS: OPEN | COMPLETED | CANCELLED
   const [filterStatus, setFilterStatus] = useState<'OPEN' | 'COMPLETED' | 'CANCELLED'>('OPEN');
   const [customerJobEarnings, setCustomerJobEarnings] = useState<Record<number, Earning>>({});
+  const [customerJobPayments, setCustomerJobPayments] = useState<Record<number, Payment>>({});
 
   // Customer Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -201,6 +205,17 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [ratingJobId, setRatingJobId] = useState<number | null>(null);
   const [ratingWorkerName, setRatingWorkerName] = useState<string | null>(null);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+
+  // Customer Payment Modal State
+  const [paymentJobId, setPaymentJobId] = useState<number | null>(null);
+  const [paymentJobContext, setPaymentJobContext] = useState<{
+    jobId: number;
+    jobDescription: string;
+    workerName: string;
+    amount: number;
+    categoryLabel: string;
+  } | null>(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   // Worker State
   const [workerProfile, setWorkerProfile] = useState<WorkerProfile | null>(null);
@@ -263,6 +278,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             setCustomerJobEarnings((prev) => ({ ...prev, [req.jobId!]: earning }));
           } catch {
             // Non-critical fallback
+          }
+        }
+        if (req.jobId && req.jobStatus === 'COMPLETED' && !customerJobPayments[req.jobId]) {
+          try {
+            const payment = await getPaymentByJobApi(req.jobId);
+            setCustomerJobPayments((prev) => ({ ...prev, [req.jobId!]: payment }));
+          } catch {
+            // Non-critical: no payment yet for this job
           }
         }
       }
@@ -1393,25 +1416,62 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
                                 </button>
                                 {statusStr === 'COMPLETED' && (
-                                  req.isRated ? (
-                                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200/80 px-3.5 py-2 text-xs font-extrabold text-amber-700">
-                                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> Rated
-                                    </span>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        if (req.jobId) {
-                                          setRatingJobId(req.jobId);
-                                          setRatingWorkerName(req.workerName || 'Worker');
-                                          setIsRatingModalOpen(true);
-                                        }
-                                      }}
-                                      className="rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5"
-                                    >
-                                      <Star className="h-3.5 w-3.5" /> Rate Service
-                                    </button>
-                                  )
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {(() => {
+                                      const payment = req.jobId ? customerJobPayments[req.jobId] : undefined;
+                                      const isPaid = payment?.paymentStatus === 'SUCCESS';
+                                      if (!isPaid) {
+                                        return (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              if (req.jobId) {
+                                                setPaymentJobId(req.jobId);
+                                                setPaymentJobContext({
+                                                  jobId: req.jobId,
+                                                  jobDescription: req.description,
+                                                  workerName: req.workerName || 'Worker',
+                                                  amount: req.budget,
+                                                  categoryLabel: categoryInfo.label,
+                                                });
+                                                setIsPaymentModalOpen(true);
+                                              }
+                                            }}
+                                            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5"
+                                          >
+                                            <Wallet className="h-3.5 w-3.5" /> Pay Now
+                                          </button>
+                                        );
+                                      }
+                                      return (
+                                        <span
+                                          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200/80 px-3.5 py-2 text-xs font-extrabold text-emerald-700"
+                                          title={payment?.transactionId ? `Txn: ${payment.transactionId}` : 'Payment complete'}
+                                        >
+                                          <CheckCircle2 className="h-3.5 w-3.5" /> Paid
+                                        </span>
+                                      );
+                                    })()}
+                                    {req.isRated ? (
+                                      <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200/80 px-3.5 py-2 text-xs font-extrabold text-amber-700">
+                                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> Rated
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (req.jobId) {
+                                            setRatingJobId(req.jobId);
+                                            setRatingWorkerName(req.workerName || 'Worker');
+                                            setIsRatingModalOpen(true);
+                                          }
+                                        }}
+                                        className="rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5"
+                                      >
+                                        <Star className="h-3.5 w-3.5" /> Rate Service
+                                      </button>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -2583,6 +2643,180 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
               )}
 
+              {/* ADMIN REQUESTS DIRECTORY */}
+              {activeTab === 'requests' && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                  <h3 className="text-lg font-bold text-slate-900">Service Requests</h3>
+                  {adminRequests.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-10 text-center space-y-2.5">
+                      <h4 className="text-sm font-bold text-slate-800">No service requests yet</h4>
+                      <p className="text-xs text-slate-500">Customer service requests will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 overflow-x-auto">
+                      {adminRequests.map((r) => (
+                        <div key={r.id} className="py-3.5 flex items-center justify-between text-xs min-w-[600px]">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <strong className="text-slate-900">#{r.id} — {r.customerName}</strong>
+                              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 uppercase">
+                                {CATEGORY_LABELS[r.category]?.label || r.category}
+                              </span>
+                            </div>
+                            <p className="text-slate-500">{r.description}</p>
+                            <p className="text-slate-400">📍 {r.location} • ₹{r.budget}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                              r.assignmentStatus === 'ASSIGNED'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-amber-100 text-amber-700'
+                            }`}>
+                              {r.assignmentStatus}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase">
+                              {r.status}
+                            </span>
+                            <span className="text-[11px] text-slate-600">
+                              Worker: <strong>{r.assignedWorkerName || 'Unassigned'}</strong>
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ADMIN JOBS DIRECTORY */}
+              {activeTab === 'jobs' && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                  <h3 className="text-lg font-bold text-slate-900">Jobs</h3>
+                  {adminJobs.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-10 text-center space-y-2.5">
+                      <h4 className="text-sm font-bold text-slate-800">No jobs yet</h4>
+                      <p className="text-xs text-slate-500">Assigned jobs will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 overflow-x-auto">
+                      {adminJobs.map((j) => (
+                        <div key={j.id} className="py-3.5 flex items-center justify-between text-xs min-w-[600px]">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <strong className="text-slate-900">#{j.id}</strong>
+                              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 uppercase">
+                                Req #{j.serviceRequestId}
+                              </span>
+                            </div>
+                            <p className="text-slate-500">
+                              {j.customerName} → {j.workerName}
+                            </p>
+                            <p className="text-slate-400">Accepted: {j.acceptedAt ? new Date(j.acceptedAt).toLocaleDateString() : '—'}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                              j.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
+                              j.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
+                              j.status === 'ACCEPTED' ? 'bg-amber-100 text-amber-700' :
+                              'bg-slate-100 text-slate-700'
+                            }`}>
+                              {j.status}
+                            </span>
+                            {j.completedAt && (
+                              <span className="text-[10px] text-slate-400">
+                                Completed: {new Date(j.completedAt).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ADMIN RATINGS DIRECTORY */}
+              {activeTab === 'ratings' && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                  <h3 className="text-lg font-bold text-slate-900">Ratings & Reviews</h3>
+                  {adminRatings.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-10 text-center space-y-2.5">
+                      <h4 className="text-sm font-bold text-slate-800">No ratings yet</h4>
+                      <p className="text-xs text-slate-500">Customer ratings for completed jobs will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4">
+                      {adminRatings.map((r) => (
+                        <div key={r.id} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 space-y-3 hover:bg-white hover:border-amber-200 hover:shadow-xs transition-all">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="h-8 w-8 rounded-full bg-slate-900 text-white font-extrabold text-[10px] flex items-center justify-center shadow-xs shrink-0">
+                                {(r.customerName || 'C').substring(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <span className="font-extrabold text-slate-900 text-xs block">{r.customerName}</span>
+                                <span className="text-slate-400 text-[10px]">Job #{r.jobId} • Worker: {r.workerName}</span>
+                              </div>
+                            </div>
+                            <div className="inline-flex items-center gap-1 rounded-xl bg-amber-50 border border-amber-200/80 px-2.5 py-1 text-amber-700 font-extrabold text-xs shrink-0 shadow-2xs">
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                              {r.score.toFixed(1)}
+                            </div>
+                          </div>
+                          {r.review && (
+                            <p className="text-xs text-slate-600 italic pl-3 relative z-10 leading-relaxed font-medium">
+                              {r.review}
+                            </p>
+                          )}
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(r.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ADMIN ACTIVITY LOG */}
+              {activeTab === 'activity' && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                  <h3 className="text-lg font-bold text-slate-900">Activity Log</h3>
+                  {adminActivity.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-10 text-center space-y-2.5">
+                      <h4 className="text-sm font-bold text-slate-800">No activity yet</h4>
+                      <p className="text-xs text-slate-500">Platform activity will be recorded here.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 overflow-x-auto">
+                      {adminActivity.map((a) => (
+                        <div key={a.id} className="py-3 flex items-start justify-between gap-4 text-xs min-w-[600px]">
+                          <div className="flex items-start gap-3">
+                            <div className={`mt-0.5 h-6 w-6 rounded-full flex items-center justify-center shrink-0 ${
+                              a.actorRole === 'ADMIN' ? 'bg-rose-100 text-rose-600' :
+                              a.actorRole === 'WORKER' ? 'bg-blue-100 text-blue-600' :
+                              'bg-emerald-100 text-emerald-600'
+                            }`}>
+                              <Activity className="h-3 w-3" />
+                            </div>
+                            <div className="space-y-0.5">
+                              <p className="text-slate-800 font-semibold">{a.description}</p>
+                              <p className="text-slate-400">
+                                <span className="uppercase font-bold">{a.actorRole}</span> · {a.actionType} · {a.entityType}
+                                {a.entityId ? ` #${a.entityId}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-slate-400 shrink-0 whitespace-nowrap">
+                            {new Date(a.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* ADMIN NOTIFICATIONS */}
               {activeTab === 'notifications' && renderNotificationsView()}
             </div>
@@ -2613,6 +2847,17 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             jobId={ratingJobId}
             workerName={ratingWorkerName}
             onSuccess={fetchCustomerRequests}
+          />
+          <PaymentModal
+            isOpen={isPaymentModalOpen}
+            onClose={() => setIsPaymentModalOpen(false)}
+            onSuccess={fetchCustomerRequests}
+            jobId={paymentJobId ?? 0}
+            jobDescription={paymentJobContext?.jobDescription ?? ''}
+            workerName={paymentJobContext?.workerName ?? ''}
+            amount={paymentJobContext?.amount ?? 0}
+            categoryLabel={paymentJobContext?.categoryLabel ?? ''}
+            customerName={user?.name ?? ''}
           />
         </>
       )}

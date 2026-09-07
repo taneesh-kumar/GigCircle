@@ -11,6 +11,7 @@ import Register from '@/pages/register';
 import NotFound from '@/pages/not-found';
 import RoleDashboard from '@/pages/role-dashboard';
 import Welcome from '@/pages/welcome';
+import PaymentCallback from '@/pages/payment-callback';
 
 function CustomerDashboard() {
   return <RoleDashboard role="customer" />;
@@ -56,6 +57,14 @@ function Router() {
           }
         />
         <Route path="/unauthorized" element={<AccessBoundary />} />
+        <Route
+          path="/payment/callback"
+          element={
+            <ProtectedRoute allowedRoles={['CUSTOMER']}>
+              <PaymentCallback />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/404" element={<NotFound />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
