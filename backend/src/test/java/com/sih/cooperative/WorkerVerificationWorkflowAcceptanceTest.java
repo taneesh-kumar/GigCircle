@@ -156,7 +156,7 @@ class WorkerVerificationWorkflowAcceptanceTest {
                 .andExpect(jsonPath("$.status").value("PENDING_REVIEW"));
 
         // Verify Admin notification created
-        List<Notification> adminNotifs = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(admin.getId());
+        List<Notification> adminNotifs = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(admin.getId());
         assertFalse(adminNotifs.isEmpty());
         assertEquals(NotificationType.VERIFICATION_SUBMITTED, adminNotifs.get(0).getType());
 
@@ -173,7 +173,7 @@ class WorkerVerificationWorkflowAcceptanceTest {
                 .andExpect(jsonPath("$.status").value("CHANGES_REQUIRED"));
 
         // Verify Worker notification created
-        List<Notification> workerNotifs = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(worker.getId());
+        List<Notification> workerNotifs = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(worker.getId());
         assertFalse(workerNotifs.isEmpty());
         assertEquals(NotificationType.VERIFICATION_CHANGES_REQUIRED, workerNotifs.get(0).getType());
 
@@ -204,7 +204,7 @@ class WorkerVerificationWorkflowAcceptanceTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isVerified").value(true));
 
-        workerNotifs = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(worker.getId());
+        workerNotifs = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(worker.getId());
         assertEquals(NotificationType.VERIFICATION_APPROVED, workerNotifs.get(0).getType());
 
         // 6. Admin suspends worker verification
@@ -224,7 +224,7 @@ class WorkerVerificationWorkflowAcceptanceTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isVerified").value(false));
 
-        workerNotifs = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(worker.getId());
+        workerNotifs = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(worker.getId());
         assertEquals(NotificationType.VERIFICATION_SUSPENDED, workerNotifs.get(0).getType());
 
         // 7. Admin reinstates worker verification (SUSPENDED -> VERIFIED)
@@ -239,7 +239,7 @@ class WorkerVerificationWorkflowAcceptanceTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isVerified").value(true));
 
-        workerNotifs = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(worker.getId());
+        workerNotifs = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(worker.getId());
         assertEquals(NotificationType.VERIFICATION_REINSTATED, workerNotifs.get(0).getType());
     }
 
@@ -275,7 +275,7 @@ class WorkerVerificationWorkflowAcceptanceTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REJECTED"));
 
-        List<Notification> workerNotifs = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(worker.getId());
+        List<Notification> workerNotifs = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(worker.getId());
         assertEquals(NotificationType.VERIFICATION_REJECTED, workerNotifs.get(0).getType());
     }
 

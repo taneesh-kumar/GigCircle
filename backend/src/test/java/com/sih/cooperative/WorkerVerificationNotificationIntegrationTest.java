@@ -123,7 +123,7 @@ public class WorkerVerificationNotificationIntegrationTest {
                 .andExpect(status().isOk());
 
         // Verify notification delivered to admin
-        List<Notification> adminNotis = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(adminUser.getId())
+        List<Notification> adminNotis = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(adminUser.getId())
                 .stream()
                 .filter(n -> n.getType() == NotificationType.VERIFICATION_SUBMITTED)
                 .toList();
@@ -143,7 +143,7 @@ public class WorkerVerificationNotificationIntegrationTest {
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk());
 
-        List<Notification> workerNotis = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(workerUser.getId());
+        List<Notification> workerNotis = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(workerUser.getId());
         assertEquals(1, workerNotis.size());
         Notification noti = workerNotis.get(0);
         assertEquals(NotificationType.VERIFICATION_APPROVED, noti.getType());
@@ -162,7 +162,7 @@ public class WorkerVerificationNotificationIntegrationTest {
                         .content(objectMapper.writeValueAsString(reviewReq)))
                 .andExpect(status().isOk());
 
-        List<Notification> workerNotis = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(workerUser.getId());
+        List<Notification> workerNotis = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(workerUser.getId());
         assertEquals(1, workerNotis.size());
         Notification noti = workerNotis.get(0);
         assertEquals(NotificationType.VERIFICATION_CHANGES_REQUIRED, noti.getType());
@@ -181,7 +181,7 @@ public class WorkerVerificationNotificationIntegrationTest {
                         .content(objectMapper.writeValueAsString(reviewReq)))
                 .andExpect(status().isOk());
 
-        List<Notification> workerNotis = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(workerUser.getId());
+        List<Notification> workerNotis = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(workerUser.getId());
         assertEquals(1, workerNotis.size());
         Notification noti = workerNotis.get(0);
         assertEquals(NotificationType.VERIFICATION_REJECTED, noti.getType());
@@ -207,11 +207,11 @@ public class WorkerVerificationNotificationIntegrationTest {
                 .andExpect(status().isOk());
 
         // 3. Reinstate (Approve from suspended)
-        mockMvc.perform(post("/api/admin/verifications/" + verificationId + "/approve")
+        mockMvc.perform(post("/api/admin/verifications/" + verificationId + "/reinstate")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk());
 
-        List<Notification> workerNotis = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(workerUser.getId());
+        List<Notification> workerNotis = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(workerUser.getId());
         assertEquals(3, workerNotis.size());
 
         // Latest notification is reinstatement
