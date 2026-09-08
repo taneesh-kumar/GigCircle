@@ -23,8 +23,8 @@ The API starts on `http://localhost:8080` by default. Override the port with
 
 Use environment variables rather than committing credentials:
 
-- `DATABASE_URL` — JDBC PostgreSQL URL, for example
-  `jdbc:postgresql://localhost:5432/cooperative_gig`
+- `DATABASE_URL` — Supabase JDBC PostgreSQL URL, for example
+  `jdbc:postgresql://db.lbpkqjcbekjktpopkphd.supabase.co:5432/postgres?sslmode=require`
 - `DATABASE_USERNAME`
 - `DATABASE_PASSWORD`
 - `JWT_SECRET` — reserved for the authentication phase
