@@ -18,11 +18,16 @@ public class NearbyWorkerResponse {
     private Set<ServiceCategory> serviceCategories;
     private Set<String> skills;
     private Integer matchedSearchRadiusKm;
+    private Boolean isVerified = false;
 
     public NearbyWorkerResponse() {
     }
 
     public NearbyWorkerResponse(Long workerId, String name, Double distanceKm, Double rating, Long totalRatings, boolean available, Integer experienceYears, BigDecimal hourlyRate, Set<ServiceCategory> serviceCategories, Set<String> skills, Integer matchedSearchRadiusKm) {
+        this(workerId, name, distanceKm, rating, totalRatings, available, experienceYears, hourlyRate, serviceCategories, skills, matchedSearchRadiusKm, false);
+    }
+
+    public NearbyWorkerResponse(Long workerId, String name, Double distanceKm, Double rating, Long totalRatings, boolean available, Integer experienceYears, BigDecimal hourlyRate, Set<ServiceCategory> serviceCategories, Set<String> skills, Integer matchedSearchRadiusKm, Boolean isVerified) {
         this.workerId = workerId;
         this.name = name;
         this.distanceKm = distanceKm;
@@ -34,7 +39,9 @@ public class NearbyWorkerResponse {
         this.serviceCategories = serviceCategories;
         this.skills = skills;
         this.matchedSearchRadiusKm = matchedSearchRadiusKm;
+        this.isVerified = isVerified != null ? isVerified : false;
     }
+
 
     public Long getWorkerId() {
         return workerId;
@@ -123,4 +130,13 @@ public class NearbyWorkerResponse {
     public void setMatchedSearchRadiusKm(Integer matchedSearchRadiusKm) {
         this.matchedSearchRadiusKm = matchedSearchRadiusKm;
     }
+
+    public Boolean getIsVerified() {
+        return isVerified;
+    }
+
+    public void setIsVerified(Boolean isVerified) {
+        this.isVerified = isVerified != null ? isVerified : false;
+    }
 }
+

@@ -78,7 +78,7 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public List<NotificationResponse> getUserNotifications(String userEmail, Role requiredRole) {
         User user = getAuthenticatedUser(userEmail, requiredRole);
-        return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(user.getId())
+        return notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(user.getId())
                 .stream()
                 .map(NotificationResponse::fromEntity)
                 .collect(Collectors.toList());

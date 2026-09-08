@@ -9,11 +9,13 @@ import com.sih.cooperative.entity.ServiceRequest;
 import com.sih.cooperative.entity.WorkerProfile;
 import com.sih.cooperative.repository.RatingRepository;
 import com.sih.cooperative.repository.WorkerProfileRepository;
+import com.sih.cooperative.repository.WorkerVerificationRepository;
 import com.sih.cooperative.util.HaversineUtil;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,11 +23,14 @@ public class WorkerMatchingService {
 
     private final WorkerProfileRepository workerProfileRepository;
     private final RatingRepository ratingRepository;
+    private final WorkerVerificationRepository workerVerificationRepository;
 
-    public WorkerMatchingService(WorkerProfileRepository workerProfileRepository, RatingRepository ratingRepository) {
+    public WorkerMatchingService(WorkerProfileRepository workerProfileRepository, RatingRepository ratingRepository, WorkerVerificationRepository workerVerificationRepository) {
         this.workerProfileRepository = workerProfileRepository;
         this.ratingRepository = ratingRepository;
+        this.workerVerificationRepository = workerVerificationRepository;
     }
+
 
     public boolean isLocationCompatible(String requestLocation, String workerLocation) {
         if (workerLocation == null || workerLocation.isBlank() || requestLocation == null || requestLocation.isBlank()) {
@@ -174,7 +179,14 @@ public class WorkerMatchingService {
                     .collect(Collectors.toList());
 
             if (!matchedWorkers.isEmpty()) {
+                List<Long> workerIds = matchedWorkers.stream().map(NearbyWorkerResponse::getWorkerId).collect(Collectors.toList());
+                Set<Long> verifiedWorkerIds = workerVerificationRepository.findVerifiedWorkerIdsIn(workerIds);
+                for (NearbyWorkerResponse workerResp : matchedWorkers) {
+                    workerResp.setIsVerified(verifiedWorkerIds.contains(workerResp.getWorkerId()));
+                }
+
                 String tierMessage;
+
                 if (tierRadius == 10) {
                     tierMessage = matchedWorkers.size() + " worker" + (matchedWorkers.size() == 1 ? "" : "s") + " found within 10 km";
                 } else if (tierRadius == 20) {

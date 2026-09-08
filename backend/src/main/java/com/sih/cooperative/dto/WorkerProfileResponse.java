@@ -28,9 +28,11 @@ public class WorkerProfileResponse {
     private String city;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Boolean isVerified = false;
 
     public WorkerProfileResponse() {
     }
+
 
     public WorkerProfileResponse(Long id, Long workerId, String workerName, String workerEmail, String workerPhone, String bio, Integer experienceYears, BigDecimal hourlyRate, Set<String> skills, Set<ServiceCategory> serviceCategories, boolean isAvailable, String serviceLocation, Integer serviceRadiusKm, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this(id, workerId, workerName, workerEmail, workerPhone, bio, experienceYears, hourlyRate, skills, serviceCategories, isAvailable, serviceLocation, serviceRadiusKm, null, null, null, null, createdAt, updatedAt);
@@ -233,4 +235,13 @@ public class WorkerProfileResponse {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    public Boolean getIsVerified() {
+        return isVerified;
+    }
+
+    public void setIsVerified(Boolean isVerified) {
+        this.isVerified = isVerified != null ? isVerified : false;
+    }
 }
+

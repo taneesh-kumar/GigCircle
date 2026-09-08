@@ -24,7 +24,7 @@ public class RecommendedWorkerResponse extends NearbyWorkerResponse {
     }
 
     public static RecommendedWorkerResponse fromNearbyWorker(NearbyWorkerResponse worker, List<String> matchReasons, String suitabilityBadge, Double suitabilityScore) {
-        return new RecommendedWorkerResponse(
+        RecommendedWorkerResponse rec = new RecommendedWorkerResponse(
                 worker.getWorkerId(),
                 worker.getName(),
                 worker.getDistanceKm(),
@@ -40,7 +40,10 @@ public class RecommendedWorkerResponse extends NearbyWorkerResponse {
                 suitabilityBadge,
                 suitabilityScore
         );
+        rec.setIsVerified(worker.getIsVerified());
+        return rec;
     }
+
 
     public List<String> getMatchReasons() {
         return matchReasons;

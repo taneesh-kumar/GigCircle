@@ -12,6 +12,7 @@ import {
   HandHeart,
   Activity,
   Receipt,
+  ShieldCheck,
   LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -37,11 +38,14 @@ const workerNav: NavItem[] = [
   { id: 'earnings', label: 'Earnings', icon: Wallet },
   { id: 'ratings', label: 'Ratings & Reviews', icon: Star },
   { id: 'profile', label: 'Worker Profile', icon: User },
+  { id: 'verification', label: 'Verification', icon: ShieldCheck },
   { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
 
+
 const adminNav: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'verifications', label: 'Verifications', icon: ShieldCheck },
   { id: 'users', label: 'Users', icon: UsersRound },
   { id: 'workers', label: 'Workers', icon: HandHeart },
   { id: 'requests', label: 'Requests', icon: FileText },
@@ -51,6 +55,7 @@ const adminNav: NavItem[] = [
   { id: 'activity', label: 'Activity', icon: Activity },
   { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
+
 
 export function HorizontalNav() {
   const { user } = useAuth();
