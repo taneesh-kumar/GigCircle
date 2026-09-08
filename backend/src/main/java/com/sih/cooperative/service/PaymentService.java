@@ -123,24 +123,20 @@ public class PaymentService {
                 customer.getName() + " initiated a payment of Rs." + earning.getGrossAmount().toPlainString() + " (Tnx: " + merchantOrderId + ").",
                 "PAYMENT", savedPayment.getId()
         );
+// Demo payment gateway
+// Simulates successful payment for UPI, Cards and Net Banking.
+savedPayment.setPaymentInstrument("DEMO_PAYMENT");
+savedPayment.setPaymentStatus(PaymentStatus.SUCCESS);
+paymentRepository.save(savedPayment);
 
-        // Call PhonePe to get the checkout URL
-        try {
-            String redirectUrl = phonePeService.initiatePayment(savedPayment, customer.getId());
-            savedPayment.setRedirectUrl(redirectUrl);
-            paymentRepository.save(savedPayment);
-            logger.info("PhonePe payment initiated for paymentId={}, merchantOrderId={}",
-                    savedPayment.getId(), merchantOrderId);
-        } catch (Exception e) {
-            logger.error("Failed to initiate PhonePe payment for paymentId={}", savedPayment.getId(), e);
-            // Mark payment as failed since PhonePe couldn't be reached
-            savedPayment.setPaymentStatus(PaymentStatus.FAILED);
-            paymentRepository.save(savedPayment);
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Unable to reach payment gateway. Please try again later.");
-        }
+// Complete payment internally:
+//90% goes to worker and 10% remains as platform fee.
+completePaymentInternal(savedPayment);
 
-        return PaymentResponse.fromEntity(savedPayment);
+logger.info("Demo payment completed for paymentId={}, merchantOrderId={}",
+        savedPayment.getId(), merchantOrderId);
+
+               return PaymentResponse.fromEntity(savedPayment);
     }
 
     /**
