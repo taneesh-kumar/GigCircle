@@ -106,6 +106,8 @@ import { RatingModal } from '@/components/rating-modal';
 import { PaymentModal } from '@/components/payment-modal';
 import { CustomerPaymentHistoryModal } from '@/components/customer-payment-history-modal';
 import { WorkerVerificationSection } from '@/components/worker-verification-section';
+import { AdminVerificationSection } from '@/components/admin-verification-section';
+
 import { CATEGORY_LABELS, type ServiceRequest } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
 import type { JobResponse } from '@/types/worker-job';
@@ -3020,8 +3022,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
               )}
 
+              {/* WORKER VERIFICATION AUDIT TAB */}
+              {activeTab === 'verifications' && <AdminVerificationSection />}
+
               {/* WORKERS GOVERNANCE DIRECTORY */}
               {(activeTab === 'workers' || activeTab === 'overview') && (
+
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>

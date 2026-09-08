@@ -13,6 +13,7 @@ import RoleDashboard from '@/pages/role-dashboard';
 import Welcome from '@/pages/welcome';
 
 import WorkerVerificationPage from '@/pages/worker-verification';
+import AdminVerificationPage from '@/pages/admin-verification';
 
 function CustomerDashboard() {
   return <RoleDashboard role="customer" />;
@@ -65,6 +66,15 @@ function Router() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/verifications"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminVerificationPage />
+            </ProtectedRoute>
+          }
+        />
+
 
         <Route path="/unauthorized" element={<AccessBoundary />} />
         <Route path="/404" element={<NotFound />} />
