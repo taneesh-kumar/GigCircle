@@ -41,6 +41,7 @@ import type {
 import { DOCUMENT_TYPE_LABELS, STATUS_LABELS } from '@/types/worker-verification';
 import type { AdminActivity } from '@/types/admin';
 import { useToast } from '@/hooks/use-toast';
+import { DocumentViewerModal } from '@/components/document-viewer-modal';
 
 type ActionType = 'APPROVE' | 'REQUEST_CHANGES' | 'REJECT' | 'SUSPEND' | null;
 
@@ -778,89 +779,15 @@ export function AdminVerificationSection() {
         )}
       </div>
 
-      {/* DOCUMENT PREVIEW MODAL */}
-      {(previewDocument || isPreviewLoading || previewError) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-emerald-600" />
-                Secure Document Preview
-              </h3>
-              <button
-                onClick={() => {
-                  setPreviewDocument(null);
-                  setPreviewError(null);
-                }}
-                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
-              >
-                ×
-              </button>
-            </div>
-
-            {isPreviewLoading ? (
-              <div className="py-8 text-center space-y-2">
-                <Loader2 className="h-7 w-7 animate-spin mx-auto text-emerald-600" />
-                <p className="text-xs text-slate-500">Fetching secure document stream...</p>
-              </div>
-            ) : previewError ? (
-              <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-xs text-rose-800 space-y-2">
-                <div className="flex items-center gap-2 font-bold">
-                  <AlertCircle className="h-4 w-4 text-rose-600" /> Error Loading Preview
-                </div>
-                <p>{previewError}</p>
-              </div>
-            ) : previewDocument ? (
-              <div className="space-y-4 text-xs">
-                <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-2">
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-                      Document Type
-                    </span>
-                    <strong className="text-slate-900 text-sm font-bold">
-                      {DOCUMENT_TYPE_LABELS[previewDocument.documentType] || previewDocument.documentType}
-                    </strong>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-                      Secure File Reference
-                    </span>
-                    <span className="font-mono text-slate-700 text-xs bg-slate-200/60 px-2 py-1 rounded-md block mt-0.5 truncate">
-                      {previewDocument.fileReference}
-                    </span>
-                  </div>
-                  <div className="flex justify-between pt-1 text-[11px] text-slate-500">
-                    <span>Status: <strong className="text-emerald-700">{previewDocument.status}</strong></span>
-                    <span>Uploaded: {formatTimestamp(previewDocument.uploadedAt)}</span>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-slate-900 p-6 text-center text-slate-300 space-y-2">
-                  <ShieldCheck className="h-8 w-8 text-emerald-400 mx-auto" />
-                  <p className="text-xs font-semibold text-white">
-                    Verified Document Reference Authenticated
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    File verification endpoint verified document ID #{previewDocument.id} for verification record #{previewDocument.verificationId}.
-                  </p>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="pt-2 text-right">
-              <button
-                type="button"
-                onClick={() => {
-                  setPreviewDocument(null);
-                  setPreviewError(null);
-                }}
-                className="rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 px-4 py-2 text-xs font-bold text-slate-700"
-              >
-                Close Preview
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* UNIFIED REAL DOCUMENT PREVIEW MODAL */}
+      {previewDocument && (
+        <DocumentViewerModal
+          doc={previewDocument}
+          onClose={() => {
+            setPreviewDocument(null);
+            setPreviewError(null);
+          }}
+        />
       )}
 
       {/* CONFIRMATION & REASON ACTION MODAL */}

@@ -324,7 +324,7 @@ VALUES (
     'System Admin',
     'admin@gigcircle.com',
     '0000000000',
-    '$2a$10$eD8.s15e8qJvD/T/O8eS4eU59aW2sZ3m9R5C5N8P0Q5R6S7T8U9V.',
+    '$2a$10$Nm/mbvmRzjDfmN.T2.lWg.7xXKPNa3PrcW3IvsizWnspRzgrvB5ZW',
     'ADMIN',
     TRUE,
     CURRENT_TIMESTAMP,
