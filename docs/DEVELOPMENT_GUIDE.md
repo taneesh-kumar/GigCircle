@@ -20,22 +20,18 @@ cp .env.example .env
 Required variables:
 
 - `VITE_API_BASE_URL=/api`
-- `DATABASE_URL=jdbc:postgresql://localhost:5432/cooperative_gig`
+- `DATABASE_URL=jdbc:postgresql://db.lbpkqjcbekjktpopkphd.supabase.co:5432/postgres?sslmode=require`
 - `DATABASE_USERNAME=postgres`
-- `DATABASE_PASSWORD=your_password`
+- `DATABASE_PASSWORD=your_supabase_password`
 - `JWT_SECRET=your_secure_secret`
 - `CORS_ALLOWED_ORIGINS=http://localhost:5173`
 - `PORT=8080`
 
-## Database Setup
+## Database Setup (Supabase PostgreSQL)
 
-Create the database locally:
+Execute [`schema.sql`](file:///t:/Taneesh/Documents/Git%20Repos/Smart%20India%20Hackathon/GigCircle/schema.sql) in the Supabase SQL Editor to initialize all tables, constraints, indexes, and reference admin account.
 
-```sql
-CREATE DATABASE cooperative_gig;
-```
-
-Optional verification script:
+Optional connection verification script:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/verify-db-connection.ps1"

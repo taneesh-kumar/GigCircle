@@ -10,11 +10,11 @@
 
 param (
     [string]$EnvFilePath = "$PSScriptRoot\..\.env",
-    [string]$DbHost = "localhost",
+    [string]$DbHost = "db.lbpkqjcbekjktpopkphd.supabase.co",
     [int]$DbPort = 5432,
-    [string]$DbName = "cooperative_gig",
+    [string]$DbName = "postgres",
     [string]$DbUser = "postgres",
-    [string]$DbPassword = "3232"
+    [string]$DbPassword = ""
 )
 
 Write-Host "===============================================" -ForegroundColor Cyan

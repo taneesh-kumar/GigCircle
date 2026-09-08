@@ -55,8 +55,8 @@ The **GigCircle Cooperative Gig Services Platform** provides a structured digita
                              │  JDBC Connection
                              ▼
 ┌─────────────────────────────────────────────────────────┐
-│               PostgreSQL Database (5432)                │
-│                 DB: cooperative_gig                     │
+│            Supabase PostgreSQL Database (5432)          │
+│                Host: db.*.supabase.co                   │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -145,28 +145,24 @@ cd GigCircle
 cp .env.example .env
 ```
 
-Ensure your `.env` contains:
+Ensure your `.env` contains your Supabase PostgreSQL credentials:
 
 ```env
 PORT=8080
-DATABASE_URL=jdbc:postgresql://localhost:5432/cooperative_gig
+DATABASE_URL=jdbc:postgresql://db.lbpkqjcbekjktpopkphd.supabase.co:5432/postgres?sslmode=require
 DATABASE_USERNAME=postgres
-DATABASE_PASSWORD=your_postgres_password
+DATABASE_PASSWORD=your_supabase_password
 JWT_SECRET=your-super-secret-jwt-key-must-be-long-and-secure
 CORS_ALLOWED_ORIGINS=http://localhost:5173
 ```
 
 ---
 
-### 2. Database Configuration
+### 2. Database Setup (Supabase PostgreSQL)
 
-Start your PostgreSQL server and create the database:
-
-```sql
-CREATE DATABASE cooperative_gig;
-```
-
-To verify PostgreSQL port connection and health:
+1. Open your [Supabase SQL Editor](https://supabase.com/dashboard).
+2. Execute [`schema.sql`](file:///t:/Taneesh/Documents/Git%20Repos/Smart%20India%20Hackathon/GigCircle/schema.sql) to provision all tables, enums, checks, foreign keys, and default admin seed data.
+3. Verify connection reachability and backend database status:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "scripts/verify-db-connection.ps1"
