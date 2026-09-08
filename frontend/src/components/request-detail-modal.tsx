@@ -6,6 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import { RecommendedWorkerCard } from '@/components/recommended-worker-card';
 import { PaymentModal } from '@/components/payment-modal';
 import { useAuth } from '@/context/AuthContext';
+import { VerifiedWorkerBadge } from '@/components/verified-worker-badge';
+
 
 interface RequestDetailModalProps {
   request: ServiceRequest | null;
@@ -217,8 +219,12 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">Assigned Worker</span>
-                    <span className="text-sm font-bold text-slate-900">{request.workerName}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-900">{request.workerName}</span>
+                      <VerifiedWorkerBadge isVerified={request.isWorkerVerified || request.isVerified} size="sm" />
+                    </div>
                   </div>
+
                 </div>
                 <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-800 border border-emerald-200">
                   Matched & Verified

@@ -107,6 +107,8 @@ import { PaymentModal } from '@/components/payment-modal';
 import { CustomerPaymentHistoryModal } from '@/components/customer-payment-history-modal';
 import { WorkerVerificationSection } from '@/components/worker-verification-section';
 import { AdminVerificationSection } from '@/components/admin-verification-section';
+import { VerifiedWorkerBadge } from '@/components/verified-worker-badge';
+
 
 import { CATEGORY_LABELS, type ServiceRequest } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
@@ -1230,10 +1232,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 </div>
                                 <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
                                   {req.workerName ? (
-                                    <span className="flex items-center gap-1 font-medium text-slate-600">
+                                    <span className="flex items-center gap-1.5 font-medium text-slate-600">
                                       <User className="h-3.5 w-3.5 text-slate-400" /> Assigned Worker: <strong className="text-slate-800 font-semibold">{req.workerName}</strong>
+                                      <VerifiedWorkerBadge isVerified={req.isWorkerVerified || req.isVerified} size="sm" />
                                     </span>
                                   ) : (
+
                                     <span className="flex items-center gap-1 text-slate-400 italic">
                                       <Clock3 className="h-3.5 w-3.5 text-slate-400" /> Awaiting Worker Assignment
                                     </span>
@@ -3054,6 +3058,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           <div>
                             <div className="flex items-center gap-2">
                               <strong className="text-slate-800 font-extrabold text-sm block">{w.name}</strong>
+                              <VerifiedWorkerBadge isVerified={w.isVerified} size="sm" />
                               <span className="text-[10px] text-slate-400 font-mono">({w.email})</span>
                               {!w.active && (
                                 <span className="inline-block bg-rose-50 text-rose-600 border border-rose-100 rounded-full px-2 py-0.5 text-[9px] font-bold">
@@ -3061,6 +3066,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 </span>
                               )}
                             </div>
+
                             <div className="flex flex-wrap gap-1 mt-1">
                               {w.serviceCategories?.map((cat) => (
                                 <span key={cat} className="inline-block bg-slate-50 border border-slate-200/60 text-slate-500 text-[10px] rounded-full px-2 py-0.5 font-bold">

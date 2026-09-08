@@ -26,9 +26,11 @@ public class AdminWorkerResponse {
     private Double averageRating;
     private Long totalRatings;
     private LocalDateTime createdAt;
+    private Boolean isVerified = false;
 
     public AdminWorkerResponse() {
     }
+
 
     public AdminWorkerResponse(Long workerId, Long profileId, String name, String email, String phone,
                                String bio, Integer experienceYears, BigDecimal hourlyRate,
@@ -212,4 +214,13 @@ public class AdminWorkerResponse {
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
+
+    public Boolean getIsVerified() {
+        return isVerified;
+    }
+
+    public void setIsVerified(Boolean isVerified) {
+        this.isVerified = isVerified != null ? isVerified : false;
+    }
 }
+

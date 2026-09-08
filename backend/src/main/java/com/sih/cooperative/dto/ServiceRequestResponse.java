@@ -40,9 +40,11 @@ public class ServiceRequestResponse {
     private Double workerAverageRating;
     private Long workerTotalRatings;
     private Boolean isRated;
+    private Boolean isWorkerVerified = false;
 
     public ServiceRequestResponse() {
     }
+
 
     public ServiceRequestResponse(Long id, ServiceCategory category, String description, String location, BigDecimal budget, LocalDateTime preferredTime, ServiceRequestStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Long customerId, String customerName, String assignmentStatus, Long jobId, Long workerId, String workerName, JobStatus jobStatus, LocalDateTime startedAt, LocalDateTime completedAt, Double workerAverageRating, Long workerTotalRatings, Boolean isRated) {
         this(id, category, description, location, null, null, null, null, budget, preferredTime, status, createdAt, updatedAt, customerId, customerName, assignmentStatus, jobId, workerId, workerName, jobStatus, startedAt, completedAt, workerAverageRating, workerTotalRatings, isRated);
@@ -314,4 +316,13 @@ public class ServiceRequestResponse {
     public void setIsRated(Boolean isRated) {
         this.isRated = isRated;
     }
+
+    public Boolean getIsWorkerVerified() {
+        return isWorkerVerified;
+    }
+
+    public void setIsWorkerVerified(Boolean isWorkerVerified) {
+        this.isWorkerVerified = isWorkerVerified != null ? isWorkerVerified : false;
+    }
 }
+

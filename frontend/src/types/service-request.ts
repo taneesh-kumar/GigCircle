@@ -39,7 +39,10 @@ export interface ServiceRequest {
   workerAverageRating?: number;
   workerTotalRatings?: number;
   isRated?: boolean;
+  isWorkerVerified?: boolean;
+  isVerified?: boolean;
 }
+
 
 export interface CreateServiceRequestInput {
   category: ServiceCategory;
@@ -76,7 +79,9 @@ export interface NearbyWorker {
   serviceCategories?: ServiceCategory[];
   skills?: string[];
   matchedSearchRadiusKm?: number;
+  isVerified?: boolean;
 }
+
 
 export interface NearbyWorkerSearchResult {
   workers: NearbyWorker[];

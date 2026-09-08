@@ -1,6 +1,8 @@
 import React from 'react';
 import { Star, MapPin, ShieldCheck, ArrowRight, User, CheckCircle2 } from 'lucide-react';
 import type { RecommendedWorker, WorkerRecommendationResult } from '@/types/service-request';
+import { VerifiedWorkerBadge } from '@/components/verified-worker-badge';
+
 
 interface RecommendedWorkerCardProps {
   recommendationResult: WorkerRecommendationResult | null;
@@ -71,13 +73,17 @@ export function RecommendedWorkerCard({ recommendationResult, isLoading, onSelec
                       {worker.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <h5 className="font-display text-base font-black text-slate-900 group-hover:text-emerald-950 transition-colors">
-                        {worker.name}
-                      </h5>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h5 className="font-display text-base font-black text-slate-900 group-hover:text-emerald-950 transition-colors">
+                          {worker.name}
+                        </h5>
+                        <VerifiedWorkerBadge isVerified={worker.isVerified} size="sm" />
+                      </div>
                       <span className="font-mono text-xs font-extrabold text-emerald-700 block mt-0.5">
                         📍 {worker.distanceKm} km away
                       </span>
                     </div>
+
                   </div>
 
                   <span className="inline-flex items-center gap-1 rounded-2xl bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-800 border border-amber-200 shrink-0">

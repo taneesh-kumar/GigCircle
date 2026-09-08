@@ -20,7 +20,9 @@ export interface WorkerProfile {
   city?: string | null;
   createdAt: string;
   updatedAt: string;
+  isVerified?: boolean;
 }
+
 
 export interface CreateWorkerProfileInput {
   bio?: string;

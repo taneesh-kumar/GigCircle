@@ -10,6 +10,7 @@ import com.sih.cooperative.repository.JobRepository;
 import com.sih.cooperative.repository.RatingRepository;
 import com.sih.cooperative.repository.ServiceRequestRepository;
 import com.sih.cooperative.repository.UserRepository;
+import com.sih.cooperative.repository.WorkerVerificationRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,20 +30,24 @@ public class ServiceRequestService {
     private final RatingRepository ratingRepository;
     private final NotificationService notificationService;
     private final WorkerMatchingService workerMatchingService;
+    private final WorkerVerificationRepository workerVerificationRepository;
 
     public ServiceRequestService(ServiceRequestRepository serviceRequestRepository,
                                  UserRepository userRepository,
                                  JobRepository jobRepository,
                                  RatingRepository ratingRepository,
                                  NotificationService notificationService,
-                                 WorkerMatchingService workerMatchingService) {
+                                 WorkerMatchingService workerMatchingService,
+                                 WorkerVerificationRepository workerVerificationRepository) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.ratingRepository = ratingRepository;
         this.notificationService = notificationService;
         this.workerMatchingService = workerMatchingService;
+        this.workerVerificationRepository = workerVerificationRepository;
     }
+
 
     private User getAuthenticatedCustomer(String email) {
         User user = userRepository.findByEmail(email.toLowerCase().trim())
@@ -60,17 +65,22 @@ public class ServiceRequestService {
         if (assignedJobOpt.isPresent()) {
             Job job = assignedJobOpt.get();
             WorkerRatingSummary summary = null;
+            boolean isWorkerVerified = false;
             if (job.getWorker() != null) {
                 Long workerId = job.getWorker().getId();
                 Double avg = ratingRepository.findAverageScoreByWorkerId(workerId);
                 Long count = ratingRepository.countByWorkerId(workerId);
                 summary = new WorkerRatingSummary(workerId, avg, count);
+                isWorkerVerified = workerVerificationRepository.existsByWorkerIdAndStatus(workerId, VerificationStatus.VERIFIED);
             }
             boolean isRated = ratingRepository.existsByJobId(job.getId());
-            return ServiceRequestResponse.fromEntity(req, job, summary, isRated);
+            ServiceRequestResponse resp = ServiceRequestResponse.fromEntity(req, job, summary, isRated);
+            resp.setIsWorkerVerified(isWorkerVerified);
+            return resp;
         }
         return ServiceRequestResponse.fromEntity(req, null, null, false);
     }
+
 
     @Transactional
     public ServiceRequestResponse createServiceRequest(CreateServiceRequestRequest request, String customerEmail) {
