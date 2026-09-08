@@ -12,6 +12,8 @@ import NotFound from '@/pages/not-found';
 import RoleDashboard from '@/pages/role-dashboard';
 import Welcome from '@/pages/welcome';
 
+import WorkerVerificationPage from '@/pages/worker-verification';
+
 function CustomerDashboard() {
   return <RoleDashboard role="customer" />;
 }
@@ -48,6 +50,14 @@ function Router() {
           }
         />
         <Route
+          path="/worker/verification"
+          element={
+            <ProtectedRoute allowedRoles={['WORKER']}>
+              <WorkerVerificationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/dashboard"
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
@@ -55,6 +65,7 @@ function Router() {
             </ProtectedRoute>
           }
         />
+
         <Route path="/unauthorized" element={<AccessBoundary />} />
         <Route path="/404" element={<NotFound />} />
         <Route path="*" element={<NotFound />} />

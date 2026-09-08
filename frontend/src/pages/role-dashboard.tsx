@@ -105,6 +105,7 @@ import { WorkerProfileModal } from '@/components/worker-profile-modal';
 import { RatingModal } from '@/components/rating-modal';
 import { PaymentModal } from '@/components/payment-modal';
 import { CustomerPaymentHistoryModal } from '@/components/customer-payment-history-modal';
+import { WorkerVerificationSection } from '@/components/worker-verification-section';
 import { CATEGORY_LABELS, type ServiceRequest } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
 import type { JobResponse } from '@/types/worker-job';
@@ -2868,8 +2869,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               </div>
             )}
 
+            {/* TAB: WORKER VERIFICATION */}
+            {activeTab === 'verification' && <WorkerVerificationSection />}
+
             {/* TAB: WORKER NOTIFICATIONS */}
             {activeTab === 'notifications' && renderNotificationsView()}
+
           </div>
         )}
 
