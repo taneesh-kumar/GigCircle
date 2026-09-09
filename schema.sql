@@ -304,7 +304,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     read_at TIMESTAMP WITHOUT TIME ZONE,
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_chat_messages_conversation FOREIGN KEY (conversation_id) REFERENCES chat_conversations (id) ON DELETE CASCADE,
-    CONSTRAINT fk_chat_messages_sender FOREIGN KEY (sender_id) REFERENCES users (id) ON DELETE CASCADE
+    CONSTRAINT fk_chat_messages_sender FOREIGN KEY (sender_id) REFERENCES users (id) ON DELETE RESTRICT
 );
 
 -- -----------------------------------------------------------------------------
@@ -329,8 +329,8 @@ CREATE TABLE IF NOT EXISTS disputes (
     updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     resolved_at TIMESTAMP WITHOUT TIME ZONE,
     CONSTRAINT fk_disputes_job FOREIGN KEY (job_id) REFERENCES jobs (id) ON DELETE CASCADE,
-    CONSTRAINT fk_disputes_raised_by FOREIGN KEY (raised_by_id) REFERENCES users (id) ON DELETE CASCADE,
-    CONSTRAINT fk_disputes_against_user FOREIGN KEY (against_user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_disputes_raised_by FOREIGN KEY (raised_by_id) REFERENCES users (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_disputes_against_user FOREIGN KEY (against_user_id) REFERENCES users (id) ON DELETE RESTRICT,
     CONSTRAINT fk_disputes_resolved_by FOREIGN KEY (resolved_by_id) REFERENCES users (id) ON DELETE SET NULL
 );
 
@@ -348,7 +348,7 @@ CREATE TABLE IF NOT EXISTS dispute_evidence (
     file_size BIGINT,
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_dispute_evidence_dispute FOREIGN KEY (dispute_id) REFERENCES disputes (id) ON DELETE CASCADE,
-    CONSTRAINT fk_dispute_evidence_uploader FOREIGN KEY (uploaded_by_id) REFERENCES users (id) ON DELETE CASCADE
+    CONSTRAINT fk_dispute_evidence_uploader FOREIGN KEY (uploaded_by_id) REFERENCES users (id) ON DELETE RESTRICT
 );
 
 -- -----------------------------------------------------------------------------
@@ -364,7 +364,7 @@ CREATE TABLE IF NOT EXISTS dispute_history (
     comment VARCHAR(1000),
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_dispute_history_dispute FOREIGN KEY (dispute_id) REFERENCES disputes (id) ON DELETE CASCADE,
-    CONSTRAINT fk_dispute_history_actor FOREIGN KEY (actor_id) REFERENCES users (id) ON DELETE CASCADE
+    CONSTRAINT fk_dispute_history_actor FOREIGN KEY (actor_id) REFERENCES users (id) ON DELETE RESTRICT
 );
 
 -- 4. INDEXES

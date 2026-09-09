@@ -37,6 +37,14 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE verification_documents DROP CONSTRAINT IF EXISTS verification_documents_document_type_check");
             jdbcTemplate.execute("ALTER TABLE verification_documents DROP CONSTRAINT IF EXISTS verification_documents_status_check");
             logger.info("Database migration: Successfully verified worker verification check constraints.");
+
+            // Create partial unique index for active disputes if running against PostgreSQL
+            try {
+                jdbcTemplate.execute("CREATE UNIQUE INDEX IF NOT EXISTS uk_disputes_active_job ON disputes(job_id) WHERE status IN ('OPEN', 'UNDER_REVIEW', 'ACTION_REQUIRED')");
+                logger.info("Database migration: Successfully verified active disputes partial index.");
+            } catch (Exception ex) {
+                logger.debug("Active dispute partial index skipped (non-PostgreSQL dialect or index exists): {}", ex.getMessage());
+            }
         } catch (Exception e) {
             logger.warn("Database migration warning: {}", e.getMessage());
         }

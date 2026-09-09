@@ -24,7 +24,7 @@ public interface DisputeRepository extends JpaRepository<Dispute, Long> {
     boolean existsByJobIdAndStatusIn(Long jobId, Collection<DisputeStatus> statuses);
 
     @EntityGraph(attributePaths = {"job", "job.serviceRequest", "raisedBy", "againstUser", "resolvedBy"})
-    @Query("SELECT d FROM Dispute d WHERE d.job.id = :jobId AND d.status IN ('OPEN', 'UNDER_REVIEW', 'ACTION_REQUIRED')")
+    @Query("SELECT d FROM Dispute d WHERE d.job.id = :jobId AND d.status IN (com.sih.cooperative.entity.DisputeStatus.OPEN, com.sih.cooperative.entity.DisputeStatus.UNDER_REVIEW, com.sih.cooperative.entity.DisputeStatus.ACTION_REQUIRED)")
     Optional<Dispute> findActiveDisputeByJobId(@Param("jobId") Long jobId);
 
     @EntityGraph(attributePaths = {"job", "job.serviceRequest", "raisedBy", "againstUser", "resolvedBy"})
