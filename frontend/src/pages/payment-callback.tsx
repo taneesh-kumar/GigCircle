@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle2, ShieldAlert, Loader2, ArrowLeft } from 'lucide-react';
-import { getPaymentStatusApi } from '@/services/api';
+import { getPaymentByIdApi } from '@/services/api/payment';
 import type { Payment } from '@/types/payment';
 
 const MAX_POLL_ATTEMPTS = 15;
@@ -26,7 +26,7 @@ export default function PaymentCallback() {
 
     const poll = async () => {
       try {
-        const result = await getPaymentStatusApi(Number(paymentId));
+        const result = await getPaymentByIdApi(Number(paymentId));
         setPayment(result);
 
         if (result.paymentStatus === 'SUCCESS') {

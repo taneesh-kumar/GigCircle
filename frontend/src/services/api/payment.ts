@@ -2,26 +2,33 @@ import api from './client';
 import type { Payment, PaymentRequest } from '@/types/payment';
 
 export const initiatePaymentApi = async (request: PaymentRequest): Promise<Payment> => {
-  const response = await api.post<Payment>('/customer/payments', request);
+  const response = await api.post<Payment>('/payments/initiate', request);
   return response.data;
 };
 
-export const getPaymentStatusApi = async (paymentId: number): Promise<Payment> => {
-  const response = await api.get<Payment>(`/customer/payments/${paymentId}/status`);
+export const completePaymentApi = async (
+  paymentId: number,
+  paymentMethod: string,
+  upiId?: string
+): Promise<Payment> => {
+  const response = await api.post<Payment>(`/payments/${paymentId}/complete`, {
+    paymentMethod,
+    upiId: upiId || undefined,
+  });
   return response.data;
 };
 
 export const getCustomerPaymentsApi = async (): Promise<Payment[]> => {
-  const response = await api.get<Payment[]>('/customer/payments');
+  const response = await api.get<Payment[]>('/payments/customer');
   return response.data;
 };
 
 export const getPaymentByJobApi = async (jobId: number): Promise<Payment> => {
-  const response = await api.get<Payment>(`/customer/payments/job/${jobId}`);
+  const response = await api.get<Payment>(`/payments/job/${jobId}`);
   return response.data;
 };
 
 export const getPaymentByIdApi = async (paymentId: number): Promise<Payment> => {
-  const response = await api.get<Payment>(`/customer/payments/${paymentId}`);
+  const response = await api.get<Payment>(`/payments/${paymentId}`);
   return response.data;
 };

@@ -1,17 +1,6 @@
 import { useState } from 'react';
-import {
-  X,
-  Loader2,
-  CheckCircle2,
-  ShieldAlert,
-  IndianRupee,
-  Star,
-  Clock3,
-  ExternalLink,
-} from 'lucide-react';
-import { initiatePaymentApi, getPaymentStatusApi } from '@/services/api';
-import type { Payment } from '@/types/payment';
-import { useToast } from '@/hooks/use-toast';
+import { X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { initiatePaymentApi, completePaymentApi } from '@/services/api/payment';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -25,7 +14,7 @@ interface PaymentModalProps {
   customerName: string;
 }
 
-type Stage = 'select' | 'redirecting' | 'success' | 'error';
+type Stage = 'select' | 'success' | 'error';
 
 export function PaymentModal({
   isOpen,
@@ -37,245 +26,253 @@ export function PaymentModal({
   amount,
   categoryLabel,
 }: PaymentModalProps) {
-  const { toast } = useToast();
   const [stage, setStage] = useState<Stage>('select');
-  const [pendingPayment, setPendingPayment] = useState<Payment | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [method, setMethod] = useState<'UPI' | 'CARD' | 'CASH'>('UPI');
+  const [upiId, setUpiId] = useState('test-success@upi');
+  const [paymentId, setPaymentId] = useState<number | null>(null);
+  const [payment, setPayment] = useState<any>(null);
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
-  const handlePayWithPhonePe = async () => {
-    setErrorMessage(null);
-    setStage('redirecting');
-    setIsProcessing(true);
+  const fee = amount * 0.10;
+  const total = amount + fee;
 
-    try {
-      // Step 1: Create payment + get PhonePe checkout URL
-      const initiated = await initiatePaymentApi({ jobId });
-
-      if (!initiated.redirectUrl) {
-        throw new Error('PhonePe did not return a checkout URL');
-      }
-
-      setPendingPayment(initiated);
-
-      // Step 2: Redirect customer to PhonePe hosted checkout
-      // Store payment id so callback page knows which payment to poll
-      localStorage.setItem('pendingPaymentId', String(initiated.id));
-      window.location.href = initiated.redirectUrl;
-    } catch (err: any) {
-      setIsProcessing(false);
-      setStage('error');
-      const msg = err?.response?.data?.message || 'Payment processing failed. Please try again.';
-      setErrorMessage(msg);
-      toast({
-        title: 'Payment Failed',
-        description: msg,
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Polling fallback: if user lands back on callback page within the modal context
-  // (e.g., callback page re-opens the dashboard), this can verify status.
-  const checkStatus = async (paymentId: number) => {
-    try {
-      const payment = await getPaymentStatusApi(paymentId);
-      return payment;
-    } catch (err) {
-      return null;
-    }
-  };
-
-  const handleRetry = () => {
+  const resetAndClose = () => {
     setStage('select');
-    setErrorMessage(null);
-    setPendingPayment(null);
-  };
-
-  const handleClose = () => {
-    setStage('select');
-    setErrorMessage(null);
-    setPendingPayment(null);
+    setMethod('UPI');
+    setUpiId('test-success@upi');
+    setPaymentId(null);
+    setPayment(null);
+    setError('');
     onClose();
   };
 
+  const handlePay = async () => {
+    try {
+      setError('');
+
+      const initiated = await initiatePaymentApi({ jobId });
+      setPaymentId(initiated.id);
+
+      const completed = await completePaymentApi(
+        initiated.id,
+        method,
+        method === 'UPI' ? upiId : undefined
+      );
+
+      setPayment(completed);
+      setStage('success');
+      onSuccess();
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+        err?.message ||
+        'Demo payment failed. Please try again.'
+      );
+      setStage('error');
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs animate-rise-in">
-      <div
-        className="relative w-full max-w-md rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xl"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="payment-modal-title"
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-purple-500 animate-pulse" />
-              <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                Secure Payment via PhonePe
-              </span>
-            </div>
-            <h2 id="payment-modal-title" className="font-display text-xl font-black text-slate-900">
-              {stage === 'redirecting' ? 'Redirecting to PhonePe' : 'Complete Payment'}
-            </h2>
-          </div>
-          <button
-            onClick={handleClose}
-            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-            aria-label="Close payment"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl">
 
-        {/* Job Info */}
-        {(stage === 'select' || stage === 'redirecting') && (
-          <div className="mt-5 space-y-4">
-            <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 space-y-2">
+        {stage === 'select' && (
+          <>
+            <div className="bg-slate-900 px-6 py-5 text-white">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Job</span>
-                <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                  {categoryLabel}
-                </span>
-              </div>
-              <p className="text-sm font-semibold text-slate-900 leading-snug">{jobDescription}</p>
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>Worker: <strong className="text-slate-700">{workerName}</strong></span>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                  <IndianRupee className="h-5 w-5" />
-                </div>
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-700 block">Amount Payable</span>
-                  <span className="text-2xl font-black text-emerald-800 font-mono">₹{amount.toLocaleString()}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-bold text-emerald-400">
+                      GigCircle Pay
+                    </span>
+                    <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-300">
+                      Simulation
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-300">
+                    Demo payment gateway
+                  </p>
                 </div>
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">Fee breakdown</span>
-                <span className="text-[11px] text-slate-500">Worker: <strong className="text-emerald-700">₹{(amount * 0.9).toFixed(0)}</strong></span>
-                <br />
-                <span className="text-[11px] text-slate-500">Platform: <strong className="text-slate-600">₹{(amount * 0.1).toFixed(0)}</strong></span>
-              </div>
-            </div>
 
-            {/* Pay with PhonePe button */}
-            {stage === 'select' && (
-              <div className="space-y-3">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">
-                  Payment Gateway
-                </span>
                 <button
                   type="button"
-                  onClick={handlePayWithPhonePe}
-                  disabled={isProcessing}
-                  className="w-full rounded-2xl border-2 border-purple-300 bg-gradient-to-r from-purple-50 to-indigo-50 p-4 text-left hover:border-purple-500 hover:shadow-md transition-all group flex items-center gap-4 disabled:opacity-50"
+                  onClick={resetAndClose}
+                  className="rounded-full p-2 hover:bg-white/10"
                 >
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0">
-                    <span className="text-base font-black">Pe</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-slate-900">Pay with PhonePe</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">
-                      UPI • Cards • Net Banking • Wallets
-                    </div>
-                  </div>
-                  <ExternalLink className="h-5 w-5 text-purple-500 group-hover:text-purple-700 transition-colors shrink-0" />
+                  <X className="h-5 w-5" />
                 </button>
-                <p className="text-[11px] text-slate-400 text-center leading-relaxed">
-                  You will be redirected to PhonePe's secure payment page to complete this transaction.
+              </div>
+            </div>
+
+            <div className="border-b border-emerald-100 bg-emerald-50 px-6 py-3 text-sm font-semibold text-emerald-700">
+              Demo Payment � No real money will be charged.
+            </div>
+
+            <div className="space-y-5 p-6">
+              <div className="rounded-2xl border border-slate-200 p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Service
+                  </span>
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600">
+                    {categoryLabel}
+                  </span>
+                </div>
+
+                <h3 className="text-lg font-bold text-slate-800">
+                  {jobDescription}
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Worker: <span className="font-semibold">{workerName}</span>
                 </p>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* Redirecting Stage */}
-        {stage === 'redirecting' && (
-          <div className="mt-8 flex flex-col items-center justify-center space-y-4 py-8">
-            <div className="relative">
-              <div className="h-16 w-16 rounded-full border-4 border-purple-100 flex items-center justify-center">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center">
-                  <span className="text-sm font-black">Pe</span>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <div className="flex justify-between text-sm text-slate-500">
+                  <span>Service Amount</span>
+                  <span>?{amount.toFixed(2)}</span>
+                </div>
+
+                <div className="mt-3 flex justify-between text-sm text-slate-500">
+                  <span>Platform Fee (10%)</span>
+                  <span>?{fee.toFixed(2)}</span>
+                </div>
+
+                <div className="my-4 border-t border-slate-200" />
+
+                <div className="flex justify-between text-lg font-bold text-slate-800">
+                  <span>Total Amount</span>
+                  <span className="text-emerald-600">
+                    ?{total.toFixed(2)}
+                  </span>
                 </div>
               </div>
-              <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-purple-500 flex items-center justify-center animate-pulse">
-                <Loader2 className="h-3.5 w-3.5 text-white animate-spin" />
-              </div>
-            </div>
-            <div className="text-center space-y-1">
-              <p className="text-sm font-bold text-slate-900">Redirecting to PhonePe...</p>
-              <p className="text-xs text-slate-500">
-                Opening secure checkout page
-              </p>
-            </div>
-            <div className="w-full max-w-xs rounded-full h-1 bg-slate-100 overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-purple-400 to-indigo-500 rounded-full animate-pulse" style={{ width: '70%' }} />
-            </div>
-          </div>
-        )}
 
-        {/* Error Stage */}
-        {stage === 'error' && (
-          <div className="mt-6 space-y-4">
-            <div className="flex flex-col items-center justify-center py-4 space-y-3">
-              <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
-                <ShieldAlert className="h-8 w-8 text-red-600" />
-              </div>
-              <div className="text-center space-y-1">
-                <p className="text-base font-black text-slate-900">Payment Failed</p>
-                <p className="text-xs text-slate-500">{errorMessage}</p>
-              </div>
-            </div>
+              <div>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Select Payment Method
+                </p>
 
-            <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-500">Amount</span>
-                <span className="font-mono font-bold text-slate-700">₹{amount.toLocaleString()}</span>
+                <div className="grid grid-cols-3 gap-3">
+                  {(['UPI', 'CARD', 'CASH'] as const).map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => setMethod(item)}
+                      className={`rounded-xl border px-4 py-3 text-sm font-bold transition ${
+                        method === item
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      {item === 'CARD' ? 'Card' : item === 'CASH' ? 'Cash' : 'UPI'}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-500">Worker</span>
-                <span className="font-semibold text-slate-700">{workerName}</span>
-              </div>
-            </div>
 
-            <div className="flex gap-2.5">
+              {method === 'UPI' && (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    UPI ID
+                  </label>
+                  <input
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-emerald-500"
+                    placeholder="test-success@upi"
+                  />
+                  <p className="mt-2 text-xs text-slate-400">
+                    Test trigger: use <b>test-failure@upi</b> to simulate a failed payment.
+                  </p>
+                </div>
+              )}
+
               <button
                 type="button"
-                onClick={handleClose}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                onClick={handlePay}
+                className="w-full rounded-xl bg-emerald-600 px-5 py-4 text-base font-bold text-white shadow-lg transition hover:bg-emerald-700"
               >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleRetry}
-                className="flex-1 rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-purple-700 transition-colors flex items-center justify-center gap-1.5"
-              >
-                <Clock3 className="h-3.5 w-3.5" /> Try Again
+                Pay ?{total.toFixed(2)} ?
               </button>
             </div>
-          </div>
+          </>
         )}
 
-        {/* Footer Actions */}
-        <div className="mt-6 flex items-center justify-end gap-2.5 border-t border-slate-100 pt-4">
-          {stage === 'select' && (
+        {stage === 'success' && (
+          <div className="p-8 text-center">
+            <CheckCircle2 className="mx-auto h-16 w-16 text-emerald-500" />
+
+            <h2 className="mt-4 text-2xl font-bold text-slate-800">
+              Payment Successful ?
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-500">
+              This job has been paid for and is marked completed.
+            </p>
+
+            <div className="mt-6 rounded-2xl bg-slate-50 p-5 text-left">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Transaction ID</span>
+                <span className="font-bold text-slate-800">
+                  {payment?.transactionId || `SIM-TXN-${paymentId}`}
+                </span>
+              </div>
+
+              <div className="mt-4 flex justify-between text-sm">
+                <span className="text-slate-500">Service Amount</span>
+                <span>?{amount.toFixed(2)}</span>
+              </div>
+
+              <div className="mt-2 flex justify-between text-sm">
+                <span className="text-slate-500">Platform Fee (10%)</span>
+                <span>?{fee.toFixed(2)}</span>
+              </div>
+
+              <div className="mt-4 flex justify-between border-t pt-4 font-bold">
+                <span>Total Amount Paid</span>
+                <span className="text-emerald-600">
+                  ?{total.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="mt-4 flex justify-between">
+                <span className="text-slate-500">Status</span>
+                <span className="font-bold text-emerald-600">Paid</span>
+              </div>
+            </div>
+
             <button
               type="button"
-              onClick={handleClose}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+              onClick={resetAndClose}
+              className="mt-6 w-full rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700"
             >
-              Cancel Payment
+              Done / View Job
             </button>
-          )}
-        </div>
+          </div>
+        )}
+
+        {stage === 'error' && (
+          <div className="p-8 text-center">
+            <AlertCircle className="mx-auto h-16 w-16 text-red-500" />
+
+            <h2 className="mt-4 text-2xl font-bold text-slate-800">
+              Payment Failed
+            </h2>
+
+            <p className="mt-2 text-sm text-red-500">{error}</p>
+
+            <button
+              type="button"
+              onClick={() => setStage('select')}
+              className="mt-6 w-full rounded-xl bg-slate-900 px-5 py-3 font-bold text-white"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
