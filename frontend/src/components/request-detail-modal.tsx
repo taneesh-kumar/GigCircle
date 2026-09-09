@@ -1,27 +1,85 @@
-import { useState } from 'react';
-import { AlertTriangle, Calendar, Clock, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert, IndianRupee, Clock3, Activity, User } from 'lucide-react';
-import { cancelServiceRequestApi } from '@/services/api';
-import { CATEGORY_LABELS, type ServiceRequest } from '@/types/service-request';
+import { useState, useEffect } from 'react';
+import { AlertTriangle, Calendar, Clock, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert, IndianRupee, Clock3, Activity, User, Compass, Sparkles, FileText, MessageSquare } from 'lucide-react';
+import { cancelServiceRequestApi, getWorkerRecommendationsForRequestApi } from '@/services/api';
+import { CATEGORY_LABELS, type ServiceRequest, type WorkerRecommendationResult } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
+import { RecommendedWorkerCard } from '@/components/recommended-worker-card';
+import { PaymentModal } from '@/components/payment-modal';
+import { InvoiceModal } from '@/components/invoice-modal';
+import { useAuth } from '@/context/AuthContext';
+import { VerifiedWorkerBadge } from '@/components/verified-worker-badge';
+import { ChatPanel } from '@/components/chat/ChatPanel';
+import { DisputeCreateForm } from '@/components/dispute/DisputeCreateForm';
+import { DisputeDetailPanel } from '@/components/dispute/DisputeDetailPanel';
+import { getDisputeForJobApi } from '@/services/api/dispute';
+import type { DisputeDetailResponse } from '@/types/dispute';
+
 
 interface RequestDetailModalProps {
   request: ServiceRequest | null;
   isOpen: boolean;
   onClose: () => void;
   onStatusChange: () => void;
+  showCancelButton?: boolean;
 }
 
-export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }: RequestDetailModalProps) {
+export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, showCancelButton = false }: RequestDetailModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+
+  const [recommendationResult, setRecommendationResult] = useState<WorkerRecommendationResult | null>(null);
+  const [isLoadingRecs, setIsLoadingRecs] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isDisputeOpen, setIsDisputeOpen] = useState(false);
+  const [dispute, setDispute] = useState<DisputeDetailResponse | null>(null);
+
+  const fetchDispute = async () => {
+    if (request?.jobId) {
+      try {
+        const d = await getDisputeForJobApi(request.jobId);
+        setDispute(d);
+      } catch {
+        setDispute(null);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && request) {
+      setIsConfirmingCancel(false);
+      setIsCancelling(false);
+      setCancelError(null);
+      setIsChatOpen(false);
+      setIsDisputeOpen(false);
+
+      if (request.jobId) {
+        fetchDispute();
+      } else {
+        setDispute(null);
+      }
+
+      if (request.status === 'OPEN' && !request.workerId) {
+        setIsLoadingRecs(true);
+        getWorkerRecommendationsForRequestApi(request.id)
+          .then((res) => setRecommendationResult(res))
+          .catch(() => setRecommendationResult(null))
+          .finally(() => setIsLoadingRecs(false));
+      } else {
+        setRecommendationResult(null);
+      }
+    }
+  }, [isOpen, request]);
 
   if (!isOpen || !request) return null;
 
   const categoryInfo = CATEGORY_LABELS[request.category] || { label: request.category, description: '' };
   const jobStatusStr = request.jobStatus || (request.workerId ? 'ACCEPTED' : request.status);
-  const isCancellable = request.status === 'OPEN' && !request.jobStatus && !request.workerId;
+  const isCancellable = showCancelButton && request.status === 'OPEN' && !request.jobStatus && !request.workerId;
 
   const formatDateTime = (isoString: string) => {
     try {
@@ -64,7 +122,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs animate-rise-in">
       <div
-        className="relative w-full max-w-xl rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xl md:p-8"
+        className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200/90 bg-white p-6 shadow-2xl md:p-8 my-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="detail-modal-title"
@@ -81,6 +139,8 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                   jobStatusStr === 'COMPLETED'
                     ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                    : jobStatusStr === 'PAYMENT_REQUIRED'
+                    ? 'bg-amber-100 border border-amber-300 text-amber-900'
                     : jobStatusStr === 'IN_PROGRESS'
                     ? 'bg-blue-50 border border-blue-200 text-blue-700'
                     : jobStatusStr === 'ACCEPTED'
@@ -92,12 +152,14 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
               >
                 {jobStatusStr === 'COMPLETED' ? (
                   <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                ) : jobStatusStr === 'PAYMENT_REQUIRED' ? (
+                  <IndianRupee className="h-3 w-3 text-amber-700" />
                 ) : jobStatusStr === 'IN_PROGRESS' ? (
                   <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
                 ) : (
                   <Clock3 className="h-3 w-3 text-amber-600" />
                 )}
-                {jobStatusStr}
+                {jobStatusStr === 'PAYMENT_REQUIRED' ? 'PAYMENT REQUIRED' : jobStatusStr}
               </span>
             </div>
             <h2 id="detail-modal-title" className="font-display text-2xl font-black text-slate-900">
@@ -176,21 +238,124 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
             </div>
           </div>
 
-          {/* Assigned Worker Info Section */}
+          {/* Assigned Worker Info & Payment Action Section */}
           {request.workerName && (
-            <div className="rounded-2xl bg-emerald-50/60 border border-emerald-100/80 p-4 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center shadow-sm">
-                  {request.workerName.substring(0, 2).toUpperCase()}
+            <div className="rounded-2xl bg-emerald-50/60 border border-emerald-100/80 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-full bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center shadow-sm">
+                    {request.workerName.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">Assigned Worker</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-900">{request.workerName}</span>
+                      <VerifiedWorkerBadge isVerified={request.isWorkerVerified || request.isVerified} size="sm" />
+                    </div>
+                  </div>
+
                 </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">Assigned Worker</span>
-                  <span className="text-sm font-bold text-slate-900">{request.workerName}</span>
-                </div>
+                <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-800 border border-emerald-200">
+                  Matched & Verified
+                </span>
               </div>
-              <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-800 border border-emerald-200">
-                Matched & Verified
-              </span>
+
+              {request.jobId && (jobStatusStr === 'PAYMENT_REQUIRED' || jobStatusStr === 'COMPLETED' || jobStatusStr === 'IN_PROGRESS' || jobStatusStr === 'ACCEPTED') && (
+                <div className="space-y-3 pt-2 border-t border-emerald-200/60">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsChatOpen(!isChatOpen)}
+                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-800 transition-colors shadow-xs"
+                    >
+                      <MessageSquare className="h-4 w-4 text-emerald-400" />
+                      {isChatOpen ? 'Close Job Chat' : 'Open Job Chat'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsDisputeOpen(!isDisputeOpen)}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors shadow-xs"
+                    >
+                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      {isDisputeOpen ? 'Hide Dispute' : 'Dispute / Help'}
+                    </button>
+                  </div>
+
+                  {isChatOpen && request.jobId && (
+                    <div className="mt-3">
+                      <ChatPanel jobId={request.jobId} />
+                    </div>
+                  )}
+
+                  {isDisputeOpen && request.jobId && (
+                    <div className="mt-3">
+                      {dispute ? (
+                        <DisputeDetailPanel dispute={dispute} onRefresh={fetchDispute} />
+                      ) : (
+                        <DisputeCreateForm
+                          jobId={request.jobId}
+                          onSuccess={(newDispute) => setDispute(newDispute)}
+                          onCancel={() => setIsDisputeOpen(false)}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {request.jobId && (jobStatusStr === 'PAYMENT_REQUIRED' || jobStatusStr === 'COMPLETED') && (
+                <div className="space-y-2">
+                  {user?.role === 'CUSTOMER' ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsPaymentOpen(true)}
+                      className={`w-full inline-flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold text-white transition-all shadow-sm ${
+                        jobStatusStr === 'PAYMENT_REQUIRED'
+                          ? 'bg-emerald-600 hover:bg-emerald-700 font-extrabold animate-pulse'
+                          : 'bg-slate-900 hover:bg-emerald-600'
+                      }`}
+                    >
+                      <IndianRupee className="h-4 w-4" />
+                      {jobStatusStr === 'PAYMENT_REQUIRED' ? `Pay Now (₹${request.budget.toLocaleString()})` : 'View Payment Receipt'}
+                    </button>
+                  ) : (
+                    jobStatusStr === 'PAYMENT_REQUIRED' ? (
+                      <div className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-50 border border-amber-200 py-2.5 text-xs font-bold text-amber-800">
+                        <Clock3 className="h-4 w-4 text-amber-600 animate-pulse" />
+                        Awaiting Customer Payment (₹{request.budget.toLocaleString()})
+                      </div>
+                    ) : (
+                      <div className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 py-2.5 text-xs font-bold text-emerald-800">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        Payment Completed & Payout Logged
+                      </div>
+                    )
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsInvoiceOpen(true)}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-800 hover:bg-slate-50 transition-colors shadow-xs"
+                  >
+                    <FileText className="h-4 w-4 text-emerald-600" />
+                    View Service Invoice
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Geographic Worker Recommendations Section */}
+          {request.status === 'OPEN' && !request.workerId && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-emerald-600" />
+                <h3 className="font-display text-sm font-bold text-slate-900">
+                  Available Nearby Workers
+                </h3>
+              </div>
+              <RecommendedWorkerCard recommendationResult={recommendationResult} isLoading={isLoadingRecs} />
             </div>
           )}
 
@@ -258,6 +423,27 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange }:
           )}
         </div>
       </div>
+
+      {/* Payment Checkout Modal */}
+      {request && request.jobId && (
+        <PaymentModal
+          jobId={request.jobId}
+          isOpen={isPaymentOpen}
+          onClose={() => setIsPaymentOpen(false)}
+          onPaymentSuccess={() => {
+            onStatusChange();
+          }}
+        />
+      )}
+
+      {/* Invoice Modal */}
+      {request && request.jobId && (
+        <InvoiceModal
+          jobId={request.jobId}
+          isOpen={isInvoiceOpen}
+          onClose={() => setIsInvoiceOpen(false)}
+        />
+      )}
     </div>
   );
 }
