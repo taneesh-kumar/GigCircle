@@ -8,7 +8,7 @@ An **Smart India Hackathon (SIH)** ready full-stack cooperative gig platform con
 
 - [Overview](#overview)
 - [Architecture & Tech Stack](#architecture--tech-stack)
-- [Completed Segments (Segments 1–10)](#completed-segments-segments-110)
+- [Completed Phases (Phases 1–5)](#completed-phases-phases-15)
 - [Project Structure](#project-structure)
 - [Prerequisites](#prerequisites)
 - [Getting Started & Local Setup](#getting-started--local-setup)
@@ -18,6 +18,7 @@ An **Smart India Hackathon (SIH)** ready full-stack cooperative gig platform con
   - [4. Running the Frontend](#4-running-the-frontend)
 - [Verification & Automated Test Suite](#verification--automated-test-suite)
 - [REST Endpoints Overview](#rest-endpoints-overview)
+- [Chat & Dispute Management Workflow](#chat--dispute-management-workflow)
 - [Team Collaboration & Workflow](#team-collaboration--workflow)
 - [SIH Demo Readiness](#sih-demo-readiness)
 
@@ -27,9 +28,9 @@ An **Smart India Hackathon (SIH)** ready full-stack cooperative gig platform con
 
 The **GigCircle Cooperative Gig Services Platform** provides a structured digital ecosystem built around three primary stakeholder perspectives:
 
-- 👤 **Customer**: Create service requests across 8 local categories, view real-time matched worker assignments, track job progress (`ACCEPTED` → `IN_PROGRESS` → `COMPLETED`), inspect transparent financial breakdowns, submit 1–5 star ratings & reviews, and receive in-app notifications.
-- 🛠️ **Worker**: Register worker profiles, manage skills, categories, hourly rates, location, and availability toggles; view real-time eligible job feeds, accept assignments, manage job lifecycles, receive automated earnings (90% net payout after 10% cooperative fee), and view customer ratings.
-- 🛡️ **Admin / Cooperative Steward**: Platform governance overview, registered user directory, worker account inspection & active/deactivate status toggling, service request/job/rating monitoring, financial gross volume oversight, and server-derived activity audit stream.
+- 👤 **Customer**: Create service requests across local categories, view matched worker assignments, track job progress (`ACCEPTED` → `IN_PROGRESS` → `COMPLETED`), communicate via job chat, raise disputes if service issues arise, inspect transparent financial breakdowns, submit 1–5 star ratings & reviews, and receive in-app notifications.
+- 🛠️ **Worker**: Register worker profiles, manage skills, categories, hourly rates, location, and availability toggles; view eligible job feeds, accept assignments, manage job lifecycles, chat with customers for assigned jobs, respond to active disputes, receive automated earnings (90% net payout after 10% cooperative fee), and view customer ratings.
+- 🛡️ **Admin / Cooperative Steward**: Platform governance overview, registered user directory, worker account inspection & active/deactivate status toggling, worker verification review, comprehensive dispute resolution dashboard (move under review, request information, resolve with notes, or dismiss with notes), financial gross volume oversight, and server-derived activity audit stream.
 
 ---
 
@@ -76,59 +77,52 @@ The **GigCircle Cooperative Gig Services Platform** provides a structured digita
 
 ---
 
-## 🎯 Completed Segments (Segments 1–10)
+## 🎯 Completed Phases (Phases 1–5)
 
-| Segment | Module | Description | Status |
+| Phase | Module | Description | Status |
 | :---: | :--- | :--- | :---: |
-| **Segment 1** | **Authentication & RBAC** | JWT Auth, Customer/Worker/Admin registration & login, password hashing, role protection, Admin bootstrap (`admin@gigcircle.com`). | **COMPLETE** |
-| **Segment 2** | **Service Requests** | Customer creation of requests across 8 categories, listing, request details, cancellation, ownership validation. | **COMPLETE** |
-| **Segment 3** | **Worker Profiles** | Worker profile creation, skills cataloguing, service categories, hourly rate, location, radius, and availability toggles. | **COMPLETE** |
-| **Segment 4** | **Matching & Acceptance** | Algorithmic worker matching by category/location, single-worker job acceptance, and concurrency protection. | **COMPLETE** |
-| **Segment 5** | **Job Lifecycle** | Full state machine (`ACCEPTED` $\to$ `IN_PROGRESS` $\to$ `COMPLETED`), timestamp recording (`acceptedAt`, `startedAt`, `completedAt`). | **COMPLETE** |
-| **Segment 6** | **Ratings & Reviews** | 1–5 rating submission, written reviews, single-rating per job constraint, real-time worker rating summaries. | **COMPLETE** |
-| **Segment 7** | **Cooperative Revenue** | Automated earning creation, 10% platform fee calculation (`BigDecimal`), worker earnings ledgers, admin gross volume views. | **COMPLETE** |
-| **Segment 8** | **Notifications** | Database-backed notifications, unread counters, mark-read, lifecycle notification triggers, cross-role isolation. | **COMPLETE** |
-| **Segment 9** | **Admin Governance** | Platform overview statistics, user directory, worker activate/deactivate controls, monitoring endpoints, audit stream. | **COMPLETE** |
-| **Segment 10** | **V1 Hardening & Acceptance** | Transactional isolation (`REQUIRES_NEW`), database migration runner, regression testing, Vite production build, demo checklist. | **COMPLETE** |
+| **Phase 1** | **Persistence Review & Hardening** | Foreign-key `ON DELETE RESTRICT`/`SET NULL` audit preservation, partial active-dispute unique index, JPQL query refactoring, 5 targeted persistence tests. | **COMPLETE** |
+| **Phase 2** | **Customer–Worker Chat Backend** | Job-scoped 1-to-1 conversation creation, authenticated sender resolution, rest-based polling support, 14 integration test cases. | **COMPLETE** |
+| **Phase 3** | **Dispute Management Backend** | Single active dispute constraint per job, participant dispute creation/response, admin dispute resolution workflow, audit logging & history. | **COMPLETE** |
+| **Phase 4** | **Frontend Integration** | TypeScript DTO interfaces, Axios API clients, `ChatPanel` with auto-polling, `DisputeCreateForm`, `DisputeDetailPanel`, and `AdminDisputesPage`. | **COMPLETE** |
+| **Phase 5** | **Validation & Security Hardening** | Full backend test suite pass (185/185), frontend typecheck/production build pass, security audit, E2E manual role testing. | **COMPLETE** |
 
 ---
 
 ## 📁 Project Structure
 
 ```text
-Cooperative-Gig-Services-Platform/
+GigCircle/
 ├── .env.example             # Git-safe environment template
 ├── .gitignore               # Ignored files (node_modules, target, .env)
 ├── README.md                # Project documentation & onboarding guide
 ├── package.json             # Root NPM configuration & convenience scripts
+├── schema.sql               # Database schema & initial seeds
 │
 ├── frontend/                # React + TypeScript + Vite client application
 │   ├── src/
-│   │   ├── components/      # Layout elements & NotificationPanel dropdown
-│   │   ├── pages/           # Customer, Worker, and Admin role dashboards
-│   │   ├── services/api/    # Axios API services for auth, requests, workers, jobs, ratings, earnings, notifications, admin
-│   │   ├── types/           # TypeScript DTO interfaces
+│   │   ├── components/      # Layout elements, ChatPanel, Dispute components, Modals
+│   │   ├── pages/           # Customer, Worker, Admin dashboards & AdminDisputesPage
+│   │   ├── services/api/    # Axios API services for auth, chat, dispute, jobs, payments
+│   │   ├── types/           # TypeScript DTO interfaces (chat, dispute, admin, etc.)
 │   │   ├── App.tsx          # Router setup
 │   │   └── main.tsx         # Entry point
 │   ├── package.json         # Dependencies & build scripts
 │   └── vite.config.ts       # Vite proxy & build settings
 │
-├── backend/                 # Java Spring Boot REST API
-│   ├── src/
-│   │   ├── main/java/com/sih/cooperative/
-│   │   │   ├── config/       # Security, CORS, and DatabaseMigrationRunner
-│   │   │   ├── controller/   # REST Controllers (Auth, Requests, Worker, Rating, Earning, Notification, Admin)
-│   │   │   ├── dto/          # Data Transfer Objects
-│   │   │   ├── entity/       # JPA Entities (User, ServiceRequest, WorkerProfile, Job, Rating, Earning, Notification, AdminActivity)
-│   │   │   ├── repository/   # Spring Data JPA Repositories
-│   │   │   ├── security/     # JwtTokenProvider, JwtAuthFilter
-│   │   │   └── service/      # Business logic & transaction handlers
-│   │   └── test/java/com/sih/cooperative/
-│   │       └── *IntegrationTest.java # 9 Integration Test Suites (98 tests)
-│   └── pom.xml              # Maven dependencies
-│
-└── scripts/                 # Verification & operational scripts
-    └── verify-db-connection.ps1 # Database connection verification script
+└── backend/                 # Java Spring Boot REST API
+    ├── src/
+    │   ├── main/java/com/sih/cooperative/
+    │   │   ├── config/       # Security, CORS, and DatabaseMigrationRunner
+    │   │   ├── controller/   # REST Controllers (Auth, Chat, Dispute, AdminDispute, Requests, Worker, Rating, Payment)
+    │   │   ├── dto/          # Data Transfer Objects
+    │   │   ├── entity/       # JPA Entities (User, Job, ChatConversation, ChatMessage, Dispute, DisputeHistory, DisputeEvidence, AdminActivity)
+    │   │   ├── repository/   # Spring Data JPA Repositories
+    │   │   ├── security/     # JwtTokenProvider, JwtAuthFilter
+    │   │   └── service/      # Business logic & transaction handlers
+    │   └── test/java/com/sih/cooperative/
+    │       └── *IntegrationTest.java # 15 Integration Test Suites (185 tests)
+    └── pom.xml              # Maven dependencies
 ```
 
 ---
@@ -161,12 +155,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 ### 2. Database Setup (Supabase PostgreSQL)
 
 1. Open your [Supabase SQL Editor](https://supabase.com/dashboard).
-2. Execute [`schema.sql`](file:///t:/Taneesh/Documents/Git%20Repos/Smart%20India%20Hackathon/GigCircle/schema.sql) to provision all tables, enums, checks, foreign keys, and default admin seed data.
-3. Verify connection reachability and backend database status:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File "scripts/verify-db-connection.ps1"
-```
+2. Execute [`schema.sql`](file:///t:/Taneesh/Documents/Git%20Repos/Smart%20India%20Hackathon/GigCircle/schema.sql) to provision all tables, enums, checks, foreign keys, and partial active-dispute unique index (`uk_disputes_active_job`).
 
 ---
 
@@ -206,7 +195,7 @@ cd backend
 mvn clean test
 ```
 
-- **Tests Executed**: **98**
+- **Tests Executed**: **185**
 - **Failures**: **0**
 - **Errors**: **0**
 - **Skipped**: **0**
@@ -237,21 +226,30 @@ npm run build
 | :--- | :--- | :--- | :--- | :--- |
 | **Auth** | `POST` | `/api/auth/register` | Public | Register Customer or Worker |
 | **Auth** | `POST` | `/api/auth/login` | Public | Authenticate user & return JWT token |
-| **Requests** | `POST` | `/api/customer/service-requests` | CUSTOMER | Create a new service request |
-| **Requests** | `GET` | `/api/customer/service-requests` | CUSTOMER | List customer's service requests |
-| **Requests** | `POST` | `/api/customer/service-requests/{id}/cancel` | CUSTOMER | Cancel open request |
-| **Worker** | `POST` | `/api/worker/profile` | WORKER | Create worker profile |
-| **Worker** | `GET` | `/api/worker/jobs` | WORKER | View eligible matched jobs |
-| **Worker** | `POST` | `/api/worker/jobs/{id}/accept` | WORKER | Accept a matched job |
-| **Worker** | `POST` | `/api/worker/jobs/{id}/start` | WORKER | Mark job as in-progress |
-| **Worker** | `POST` | `/api/worker/jobs/{id}/complete` | WORKER | Complete job & trigger earnings |
-| **Ratings** | `POST` | `/api/customer/ratings` | CUSTOMER | Rate completed job (1–5 stars) |
-| **Earnings** | `GET` | `/api/worker/earnings` | WORKER | View worker net earnings & ledger |
-| **Notifications** | `GET` | `/api/notifications` | Authenticated | List user's notifications |
-| **Admin** | `GET` | `/api/admin/overview` | ADMIN | View platform overview metrics |
-| **Admin** | `POST` | `/api/admin/workers/{id}/deactivate` | ADMIN | Deactivate worker account |
-| **Admin** | `POST` | `/api/admin/workers/{id}/activate` | ADMIN | Reactivate worker account |
-| **Admin** | `GET` | `/api/admin/activity` | ADMIN | View administrative audit stream |
+| **Chat** | `GET` | `/api/chat/job/{jobId}` | Authenticated | Get/create chat conversation for job |
+| **Chat** | `GET` | `/api/chat/job/{jobId}/messages` | Authenticated | Get chronological chat messages |
+| **Chat** | `POST` | `/api/chat/job/{jobId}/messages` | Authenticated | Send message to job chat |
+| **Chat** | `POST` | `/api/chat/job/{jobId}/read` | Authenticated | Mark unread messages as read |
+| **Disputes** | `POST` | `/api/disputes` | Authenticated | Create dispute for assigned job |
+| **Disputes** | `GET` | `/api/disputes/my-disputes` | Authenticated | List disputes involving current user |
+| **Disputes** | `GET` | `/api/disputes/job/{jobId}` | Authenticated | Get dispute details for job |
+| **Disputes** | `POST` | `/api/disputes/{id}/respond` | Authenticated | Respond to active dispute |
+| **Admin Disputes**| `GET` | `/api/admin/disputes` | ADMIN | List all platform disputes (filterable) |
+| **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/review` | ADMIN | Move dispute under review |
+| **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/request-response`| ADMIN | Request additional info |
+| **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/resolve` | ADMIN | Resolve dispute with resolution notes |
+| **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/dismiss` | ADMIN | Dismiss dispute with dismissal notes |
+
+---
+
+## 💬 Chat & Dispute Management Workflow
+
+1. **Job-Scoped Communication**: Each assigned `Job` gets exactly one `ChatConversation`. Only the Customer and assigned Worker can send/read messages. Identity is strictly derived from the JWT authentication context.
+2. **Dispute Resolution Flow**:
+   - Customer or Worker can raise a dispute (`OPEN`) if an issue arises. Only one active dispute (`OPEN`, `UNDER_REVIEW`, `ACTION_REQUIRED`) is permitted per Job.
+   - Participants can view the dispute history timeline and post response updates.
+   - Admin reviews the dispute via `/admin/disputes`, transitions status (`UNDER_REVIEW` / `ACTION_REQUIRED`), and finalizes it with required resolution or dismissal notes (`RESOLVED` / `DISMISSED`).
+   - Every status change logs a `DisputeHistory` entry, and every admin action records an `AdminActivity` audit entry.
 
 ---
 
@@ -259,5 +257,6 @@ npm run build
 
 GigCircle V1 is fully prepared for **Smart India Hackathon** evaluation:
 - Demonstrates transparent local household service matching.
-- Implements worker cooperative 10% platform fee economic distribution.
+- Implements worker cooperative fee economic distribution.
+- Features integrated Customer–Worker Job Chat and Dispute Resolution workflows.
 - Enforces multi-tier security, database notifications, and administrative platform governance.
