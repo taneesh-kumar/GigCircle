@@ -19,6 +19,7 @@ An **Smart India Hackathon (SIH)** ready full-stack cooperative gig platform con
 - [Verification & Automated Test Suite](#verification--automated-test-suite)
 - [REST Endpoints Overview](#rest-endpoints-overview)
 - [Chat & Dispute Management Workflow](#chat--dispute-management-workflow)
+- [Invoice Generation & Billing System](#invoice-generation--billing-system)
 - [Team Collaboration & Workflow](#team-collaboration--workflow)
 - [SIH Demo Readiness](#sih-demo-readiness)
 

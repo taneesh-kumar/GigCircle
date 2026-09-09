@@ -45,6 +45,38 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             } catch (Exception ex) {
                 logger.debug("Active dispute partial index skipped (non-PostgreSQL dialect or index exists): {}", ex.getMessage());
             }
+
+            // Create invoices table if not exists for non-Hibernate managed environments or legacy schema sync
+            try {
+                jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS invoices (
+                        id BIGSERIAL PRIMARY KEY,
+                        invoice_number VARCHAR(64) NOT NULL UNIQUE,
+                        job_id BIGINT NOT NULL UNIQUE,
+                        customer_id BIGINT NOT NULL,
+                        worker_id BIGINT NOT NULL,
+                        service_name VARCHAR(255) NOT NULL,
+                        service_description VARCHAR(1000),
+                        service_charge NUMERIC(12, 2) NOT NULL,
+                        platform_fee NUMERIC(12, 2) NOT NULL,
+                        tax_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+                        discount_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+                        total_amount NUMERIC(12, 2) NOT NULL,
+                        payment_status VARCHAR(50) NOT NULL,
+                        payment_reference VARCHAR(64),
+                        issued_at TIMESTAMP NOT NULL,
+                        paid_at TIMESTAMP,
+                        created_at TIMESTAMP NOT NULL,
+                        updated_at TIMESTAMP NOT NULL,
+                        CONSTRAINT fk_invoices_job FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE RESTRICT,
+                        CONSTRAINT fk_invoices_customer FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE RESTRICT,
+                        CONSTRAINT fk_invoices_worker FOREIGN KEY (worker_id) REFERENCES users(id) ON DELETE RESTRICT
+                    )
+                """);
+                logger.info("Database migration: Successfully verified invoices table.");
+            } catch (Exception ex) {
+                logger.debug("Invoices table creation migration skipped or handled by Hibernate: {}", ex.getMessage());
+            }
         } catch (Exception e) {
             logger.warn("Database migration warning: {}", e.getMessage());
         }

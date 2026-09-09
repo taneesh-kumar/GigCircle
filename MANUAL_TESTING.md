@@ -67,8 +67,25 @@ Ensure test accounts exist in the database (or register via `/register`):
 
 ---
 
-### 4. Security & Access Boundary Verification
-- **Unrelated Job Access**: Attempt to access a job chat or dispute ID belonging to another user. Verify API returns `403 FORBIDDEN`.
-- **Non-Admin Access**: Attempt to navigate to `/admin/disputes` as Customer or Worker. Verify client redirects or returns `403 Access Denied`.
+### 4. Invoice Generation & Transaction Records
+1. Log in as **Customer** (`customer@gigcircle.com`).
+2. Open job details for a completed or payment-required job.
+3. Click **"View Service Invoice"**:
+   - Verify modal opens showing unique invoice number (e.g. `GC-2026-000001`).
+   - Verify itemized breakdown: Service Charge, Platform Fee (10%), Taxes (0%), Total Amount.
+   - Verify payment status badge accurately reflects payment status (`PENDING` or `PAID`).
+   - Verify payment reference is populated when paid.
+4. Log in as **Worker** (`worker@gigcircle.com`):
+   - Access the same job details and click **"View Service Invoice"**.
+   - Verify worker views the exact same idempotent invoice record.
+5. Log in as **Admin** (`admin@gigcircle.com`):
+   - Query `/api/invoices/admin` or view invoice by job ID.
+   - Verify full platform invoice governance access.
+
+---
+
+### 5. Security & Access Boundary Verification
+- **Unrelated Job Access**: Attempt to access a job chat, dispute, or invoice belonging to another user. Verify API returns `403 FORBIDDEN`.
+- **Non-Admin Access**: Attempt to navigate to `/admin/disputes` or call `/api/invoices/admin` as Customer or Worker. Verify client redirects or returns `403 Access Denied`.
 - **Closed Dispute Protection**: Verify participant response input is disabled on `RESOLVED` or `DISMISSED` disputes.
-- **Session Refresh**: Refresh page (F5) during an active chat/dispute view. Verify authenticated session restores and data reloads cleanly.
+- **Session Refresh**: Refresh page (F5) during an active chat/dispute/invoice view. Verify authenticated session restores and data reloads cleanly.
