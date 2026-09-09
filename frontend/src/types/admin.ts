@@ -6,11 +6,17 @@ export interface PlatformOverviewSummary {
   totalUsers: number;
   totalCustomers: number;
   totalWorkers: number;
+  activeUsers: number;
+  suspendedUsers: number;
+  deactivatedUsers: number;
   totalServiceRequests: number;
   openRequests: number;
   assignedRequests: number;
+  activeJobs: number;
   completedJobs: number;
   cancelledRequests: number;
+  completionRate: number;
+  cancellationRate: number;
   totalRatings: number;
   averageRating: number;
   totalGrossVolume: number;
@@ -18,7 +24,29 @@ export interface PlatformOverviewSummary {
   totalWorkerEarnings: number;
 }
 
+export interface ServiceDemandResponse {
+  category: ServiceCategory;
+  requestCount: number;
+  completedJobCount: number;
+  grossServiceValue: number;
+  demandPercentage: number;
+}
+
+export type AlertSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
+
+export interface OperationalAlertResponse {
+  alertType: string;
+  severity: AlertSeverity;
+  title: string;
+  description: string;
+  relatedEntityType: string;
+  relatedEntityId?: number;
+  detectedTimestamp: string;
+  count: number;
+}
+
 export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
+
 
 export interface AdminUser {
   id: number;

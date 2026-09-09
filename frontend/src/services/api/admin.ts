@@ -6,7 +6,9 @@ import type {
   AdminServiceRequest,
   AdminUser,
   AdminWorker,
+  OperationalAlertResponse,
   PlatformOverviewSummary,
+  ServiceDemandResponse,
 } from '@/types/admin';
 
 export const getAdminOverviewApi = async (): Promise<PlatformOverviewSummary> => {
@@ -63,8 +65,18 @@ export const getAdminServiceRequestsApi = async (): Promise<AdminServiceRequest[
   return response.data;
 };
 
-export const getAdminJobsApi = async (): Promise<AdminJob[]> => {
-  const response = await api.get<AdminJob[]>('/admin/jobs');
+export const getAdminJobsApi = async (status?: string): Promise<AdminJob[]> => {
+  const response = await api.get<AdminJob[]>('/admin/jobs', { params: status ? { status } : undefined });
+  return response.data;
+};
+
+export const getServiceDemandApi = async (): Promise<ServiceDemandResponse[]> => {
+  const response = await api.get<ServiceDemandResponse[]>('/admin/analytics/service-demand');
+  return response.data;
+};
+
+export const getOperationalAlertsApi = async (): Promise<OperationalAlertResponse[]> => {
+  const response = await api.get<OperationalAlertResponse[]>('/admin/alerts');
   return response.data;
 };
 
@@ -77,3 +89,4 @@ export const getAdminActivityApi = async (): Promise<AdminActivity[]> => {
   const response = await api.get<AdminActivity[]>('/admin/activity');
   return response.data;
 };
+

@@ -82,11 +82,12 @@ The **GigCircle Cooperative Gig Services Platform** provides a structured digita
 
 | Phase | Module | Description | Status |
 | :---: | :--- | :--- | :---: |
-| **Phase 1** | **Persistence Review & Hardening** | Foreign-key `ON DELETE RESTRICT`/`SET NULL` audit preservation, partial active-dispute unique index, JPQL query refactoring, 5 targeted persistence tests. | **COMPLETE** |
-| **Phase 2** | **Customer–Worker Chat Backend** | Job-scoped 1-to-1 conversation creation, authenticated sender resolution, rest-based polling support, 14 integration test cases. | **COMPLETE** |
+| **Phase 1** | **Account Status & Governance** | `AccountStatus` enum (`ACTIVE`, `SUSPENDED`, `DEACTIVATED`), login enforcement, admin user activation/deactivation/suspension controls, self-deactivation protection, audit logging. | **COMPLETE** |
+| **Phase 2** | **Full Admin Dashboard & Analytics** | Enhanced Overview KPIs, backend completion & cancellation rate calculations, service demand by category API, filterable active jobs API, dynamic operational alerts API, and UI sections. | **COMPLETE** |
 | **Phase 3** | **Dispute Management Backend** | Single active dispute constraint per job, participant dispute creation/response, admin dispute resolution workflow, audit logging & history. | **COMPLETE** |
 | **Phase 4** | **Frontend Integration** | TypeScript DTO interfaces, Axios API clients, `ChatPanel` with auto-polling, `DisputeCreateForm`, `DisputeDetailPanel`, and `AdminDisputesPage`. | **COMPLETE** |
-| **Phase 5** | **Validation & Security Hardening** | Full backend test suite pass (185/185), frontend typecheck/production build pass, security audit, E2E manual role testing. | **COMPLETE** |
+| **Phase 5** | **Validation & Security Hardening** | Full backend test suite pass, frontend typecheck/production build pass, security audit, E2E manual role testing. | **COMPLETE** |
+
 
 ---
 

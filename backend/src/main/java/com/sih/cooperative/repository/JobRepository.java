@@ -33,4 +33,13 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     List<Job> findAllByOrderByCreatedAtDesc();
 
     long countByStatus(com.sih.cooperative.entity.JobStatus status);
+
+    long countByStatusIn(java.util.Collection<com.sih.cooperative.entity.JobStatus> statuses);
+
+    @EntityGraph(attributePaths = {"serviceRequest", "serviceRequest.customer", "worker"})
+    List<Job> findByStatusInOrderByCreatedAtDesc(java.util.Collection<com.sih.cooperative.entity.JobStatus> statuses);
+
+    @EntityGraph(attributePaths = {"serviceRequest", "serviceRequest.customer", "worker"})
+    List<Job> findByStatusOrderByCreatedAtDesc(com.sih.cooperative.entity.JobStatus status);
 }
+

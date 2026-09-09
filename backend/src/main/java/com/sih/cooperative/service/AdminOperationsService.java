@@ -27,6 +27,8 @@ public class AdminOperationsService {
     private final AdminActivityRepository adminActivityRepository;
     private final NotificationService notificationService;
     private final WorkerVerificationRepository workerVerificationRepository;
+    private final DisputeRepository disputeRepository;
+
 
     public AdminOperationsService(UserRepository userRepository,
                                   WorkerProfileRepository workerProfileRepository,
@@ -36,7 +38,8 @@ public class AdminOperationsService {
                                   EarningRepository earningRepository,
                                   AdminActivityRepository adminActivityRepository,
                                   NotificationService notificationService,
-                                  WorkerVerificationRepository workerVerificationRepository) {
+                                  WorkerVerificationRepository workerVerificationRepository,
+                                  DisputeRepository disputeRepository) {
         this.userRepository = userRepository;
         this.workerProfileRepository = workerProfileRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -46,6 +49,7 @@ public class AdminOperationsService {
         this.adminActivityRepository = adminActivityRepository;
         this.notificationService = notificationService;
         this.workerVerificationRepository = workerVerificationRepository;
+        this.disputeRepository = disputeRepository;
     }
 
 
@@ -80,12 +84,33 @@ public class AdminOperationsService {
         long totalCustomers = userRepository.countByRole(Role.CUSTOMER);
         long totalWorkers = userRepository.countByRole(Role.WORKER);
 
+        long activeUsers = userRepository.countByStatus(AccountStatus.ACTIVE);
+        long suspendedUsers = userRepository.countByStatus(AccountStatus.SUSPENDED);
+        long deactivatedUsers = userRepository.countByStatus(AccountStatus.DEACTIVATED);
+
         long totalRequests = serviceRequestRepository.count();
         long openRequests = serviceRequestRepository.countByStatus(ServiceRequestStatus.OPEN);
         long cancelledRequests = serviceRequestRepository.countByStatus(ServiceRequestStatus.CANCELLED);
 
         long assignedRequests = jobRepository.count();
+        long activeJobs = jobRepository.countByStatusIn(List.of(JobStatus.ACCEPTED, JobStatus.IN_PROGRESS, JobStatus.PAYMENT_REQUIRED));
         long completedJobs = jobRepository.countByStatus(JobStatus.COMPLETED);
+
+        // Completion Rate Formula: (completedJobs / totalAssignedJobs) * 100
+        BigDecimal completionRate = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        if (assignedRequests > 0) {
+            completionRate = BigDecimal.valueOf(completedJobs)
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(BigDecimal.valueOf(assignedRequests), 2, RoundingMode.HALF_UP);
+        }
+
+        // Cancellation Rate Formula: (cancelledRequests / totalServiceRequests) * 100
+        BigDecimal cancellationRate = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        if (totalRequests > 0) {
+            cancellationRate = BigDecimal.valueOf(cancelledRequests)
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(BigDecimal.valueOf(totalRequests), 2, RoundingMode.HALF_UP);
+        }
 
         long totalRatings = ratingRepository.count();
         Double avgRatingDouble = ratingRepository.findPlatformAverageScore();
@@ -105,11 +130,17 @@ public class AdminOperationsService {
                 totalUsers,
                 totalCustomers,
                 totalWorkers,
+                activeUsers,
+                suspendedUsers,
+                deactivatedUsers,
                 totalRequests,
                 openRequests,
                 assignedRequests,
+                activeJobs,
                 completedJobs,
                 cancelledRequests,
+                completionRate,
+                cancellationRate,
                 totalRatings,
                 avgRating,
                 totalGross,
@@ -117,6 +148,183 @@ public class AdminOperationsService {
                 totalWorkerEarnings
         );
     }
+
+    @Transactional(readOnly = true)
+    public List<ServiceDemandResponse> getServiceDemand(String adminEmail) {
+        getAuthenticatedAdmin(adminEmail);
+
+        List<ServiceRequest> allRequests = serviceRequestRepository.findAll();
+        long totalRequests = allRequests.size();
+
+        if (totalRequests == 0) {
+            return List.of();
+        }
+
+        List<Job> allJobs = jobRepository.findAll();
+
+        Map<ServiceCategory, List<ServiceRequest>> requestsByCategory = allRequests.stream()
+                .filter(r -> r.getCategory() != null)
+                .collect(Collectors.groupingBy(ServiceRequest::getCategory));
+
+        Map<Long, Job> jobsByRequestId = allJobs.stream()
+                .collect(Collectors.toMap(j -> j.getServiceRequest().getId(), Function.identity(), (j1, j2) -> j1));
+
+        return requestsByCategory.entrySet().stream()
+                .map(entry -> {
+                    ServiceCategory category = entry.getKey();
+                    List<ServiceRequest> categoryRequests = entry.getValue();
+                    long reqCount = categoryRequests.size();
+
+                    long completedCount = 0;
+                    BigDecimal grossVal = BigDecimal.ZERO;
+
+                    for (ServiceRequest req : categoryRequests) {
+                        Job job = jobsByRequestId.get(req.getId());
+                        if (job != null && job.getStatus() == JobStatus.COMPLETED) {
+                            completedCount++;
+                            if (req.getBudget() != null) {
+                                grossVal = grossVal.add(req.getBudget());
+                            }
+                        }
+                    }
+
+                    BigDecimal demandPct = BigDecimal.valueOf(reqCount)
+                            .multiply(BigDecimal.valueOf(100))
+                            .divide(BigDecimal.valueOf(totalRequests), 2, RoundingMode.HALF_UP);
+
+                    return new ServiceDemandResponse(
+                            category,
+                            reqCount,
+                            completedCount,
+                            grossVal.setScale(2, RoundingMode.HALF_UP),
+                            demandPct
+                    );
+                })
+                .sorted((a, b) -> b.getRequestCount().compareTo(a.getRequestCount()))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<OperationalAlertResponse> getOperationalAlerts(String adminEmail) {
+        getAuthenticatedAdmin(adminEmail);
+
+        List<OperationalAlertResponse> alerts = new java.util.ArrayList<>();
+
+        // 1. Open requests without worker assignment
+        List<ServiceRequest> openReqs = serviceRequestRepository.findByStatusOrderByCreatedAtDesc(ServiceRequestStatus.OPEN);
+        if (!openReqs.isEmpty()) {
+            ServiceRequest newest = openReqs.get(0);
+            alerts.add(new OperationalAlertResponse(
+                    "UNASSIGNED_SERVICE_REQUESTS",
+                    OperationalAlertResponse.AlertSeverity.WARNING,
+                    openReqs.size() + " Open Service Request" + (openReqs.size() > 1 ? "s" : "") + " Awaiting Assignment",
+                    "There are currently " + openReqs.size() + " service requests in OPEN status with no assigned worker.",
+                    "SERVICE_REQUEST",
+                    newest.getId(),
+                    newest.getCreatedAt(),
+                    (long) openReqs.size()
+            ));
+        }
+
+        // 2. Pending worker verification reviews
+        List<WorkerVerification> pendingVerifications = workerVerificationRepository.findByStatus(VerificationStatus.PENDING_REVIEW);
+        if (!pendingVerifications.isEmpty()) {
+            WorkerVerification newest = pendingVerifications.get(0);
+            alerts.add(new OperationalAlertResponse(
+                    "PENDING_WORKER_VERIFICATIONS",
+                    OperationalAlertResponse.AlertSeverity.INFO,
+                    pendingVerifications.size() + " Worker Verification" + (pendingVerifications.size() > 1 ? "s" : "") + " Pending Review",
+                    pendingVerifications.size() + " worker verification documents are submitted and awaiting administrative review.",
+                    "WORKER_VERIFICATION",
+                    newest.getId(),
+                    newest.getCreatedAt(),
+                    (long) pendingVerifications.size()
+            ));
+        }
+
+
+        // 3. Unresolved disputes
+        List<Dispute> activeDisputes = disputeRepository.findAll().stream()
+                .filter(d -> d.getStatus() == DisputeStatus.OPEN || d.getStatus() == DisputeStatus.UNDER_REVIEW || d.getStatus() == DisputeStatus.ACTION_REQUIRED)
+                .collect(Collectors.toList());
+        if (!activeDisputes.isEmpty()) {
+            Dispute newest = activeDisputes.get(0);
+            alerts.add(new OperationalAlertResponse(
+                    "UNRESOLVED_DISPUTES",
+                    OperationalAlertResponse.AlertSeverity.CRITICAL,
+                    activeDisputes.size() + " Unresolved Dispute" + (activeDisputes.size() > 1 ? "s" : "") + " Require Attention",
+                    activeDisputes.size() + " disputes are currently open or under administrative review.",
+                    "DISPUTE",
+                    newest.getId(),
+                    newest.getCreatedAt(),
+                    (long) activeDisputes.size()
+            ));
+        }
+
+        // 4. Jobs awaiting payment
+        List<Job> paymentRequiredJobs = jobRepository.findByStatusOrderByCreatedAtDesc(JobStatus.PAYMENT_REQUIRED);
+        if (!paymentRequiredJobs.isEmpty()) {
+            Job newest = paymentRequiredJobs.get(0);
+            alerts.add(new OperationalAlertResponse(
+                    "JOBS_AWAITING_PAYMENT",
+                    OperationalAlertResponse.AlertSeverity.WARNING,
+                    paymentRequiredJobs.size() + " Job" + (paymentRequiredJobs.size() > 1 ? "s" : "") + " Awaiting Customer Payment",
+                    paymentRequiredJobs.size() + " completed jobs are awaiting customer payment settlement.",
+                    "JOB",
+                    newest.getId(),
+                    newest.getCreatedAt(),
+                    (long) paymentRequiredJobs.size()
+            ));
+        }
+
+        // 5. Suspended/deactivated workers with active jobs
+        List<Job> activeJobs = jobRepository.findByStatusInOrderByCreatedAtDesc(List.of(JobStatus.ACCEPTED, JobStatus.IN_PROGRESS, JobStatus.PAYMENT_REQUIRED));
+        List<Job> jobsWithInactiveWorkers = activeJobs.stream()
+                .filter(j -> j.getWorker() != null && j.getWorker().getStatus() != AccountStatus.ACTIVE)
+                .collect(Collectors.toList());
+        if (!jobsWithInactiveWorkers.isEmpty()) {
+            Job newest = jobsWithInactiveWorkers.get(0);
+            alerts.add(new OperationalAlertResponse(
+                    "INACTIVE_WORKER_ACTIVE_ASSIGNMENT",
+                    OperationalAlertResponse.AlertSeverity.CRITICAL,
+                    jobsWithInactiveWorkers.size() + " Active Job" + (jobsWithInactiveWorkers.size() > 1 ? "s" : "") + " Assigned to Inactive Worker",
+                    "Workers assigned to " + jobsWithInactiveWorkers.size() + " active jobs are currently suspended or deactivated.",
+                    "JOB",
+                    newest.getId(),
+                    newest.getCreatedAt(),
+                    (long) jobsWithInactiveWorkers.size()
+            ));
+        }
+
+        return alerts;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminJobResponse> getJobsFiltered(String statusParam, String adminEmail) {
+        getAuthenticatedAdmin(adminEmail);
+
+        if (statusParam == null || statusParam.isBlank()) {
+            return getJobs(adminEmail);
+        }
+
+        String normalizedStatus = statusParam.trim().toUpperCase();
+
+        if ("ACTIVE".equals(normalizedStatus)) {
+            List<Job> activeJobs = jobRepository.findByStatusInOrderByCreatedAtDesc(
+                    List.of(JobStatus.ACCEPTED, JobStatus.IN_PROGRESS, JobStatus.PAYMENT_REQUIRED)
+            );
+            return activeJobs.stream().map(AdminJobResponse::fromEntity).collect(Collectors.toList());
+        }
+
+        try {
+            JobStatus targetStatus = JobStatus.valueOf(normalizedStatus);
+            List<Job> jobs = jobRepository.findByStatusOrderByCreatedAtDesc(targetStatus);
+            return jobs.stream().map(AdminJobResponse::fromEntity).collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid job status filter value: " + statusParam);
+        }
+    }
+
 
     @Transactional(readOnly = true)
     public List<AdminUserResponse> getUsers(Role roleFilter, Boolean activeFilter, String search, String adminEmail) {

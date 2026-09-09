@@ -484,4 +484,101 @@ public class AdminOperationsIntegrationTest {
                         .content("{\"reason\":\"Attempt deactivating final admin\"}"))
                 .andExpect(status().isBadRequest()); // Protected by self-deactivation check (or conflict check)
     }
+
+    @Test
+    void test27_EnhancedPlatformOverviewReturnsCalculatedMetricsAndRates() throws Exception {
+        // Create service request and job
+        ServiceRequest req = new ServiceRequest(customerUser, ServiceCategory.ELECTRICAL, "Wiring repair", "Downtown", new BigDecimal("1000.00"), LocalDateTime.now().plusDays(1));
+        serviceRequestRepository.save(req);
+
+        Job job = new Job(req, workerUser, JobStatus.COMPLETED);
+        jobRepository.save(job);
+
+        mockMvc.perform(get("/api/admin/overview")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activeUsers").value(3))
+                .andExpect(jsonPath("$.suspendedUsers").value(0))
+                .andExpect(jsonPath("$.deactivatedUsers").value(0))
+                .andExpect(jsonPath("$.activeJobs").value(0))
+                .andExpect(jsonPath("$.completionRate").value(100.0))
+                .andExpect(jsonPath("$.cancellationRate").value(0.0));
+    }
+
+    @Test
+    void test28_ZeroDenominatorRatesReturnZero() throws Exception {
+        mockMvc.perform(get("/api/admin/overview")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completionRate").value(0.0))
+                .andExpect(jsonPath("$.cancellationRate").value(0.0));
+    }
+
+    @Test
+    void test29_ServiceDemandAnalyticsReturnsGroupedAndSortedData() throws Exception {
+        ServiceRequest req1 = new ServiceRequest(customerUser, ServiceCategory.ELECTRICAL, "Wiring 1", "Downtown", new BigDecimal("1000.00"), LocalDateTime.now().plusDays(1));
+        ServiceRequest req2 = new ServiceRequest(customerUser, ServiceCategory.ELECTRICAL, "Wiring 2", "Downtown", new BigDecimal("1500.00"), LocalDateTime.now().plusDays(1));
+        ServiceRequest req3 = new ServiceRequest(customerUser, ServiceCategory.PLUMBING, "Leak fix", "Downtown", new BigDecimal("800.00"), LocalDateTime.now().plusDays(1));
+        serviceRequestRepository.save(req1);
+        serviceRequestRepository.save(req2);
+        serviceRequestRepository.save(req3);
+
+        mockMvc.perform(get("/api/admin/analytics/service-demand")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].category").value("ELECTRICAL"))
+                .andExpect(jsonPath("$[0].requestCount").value(2))
+                .andExpect(jsonPath("$[0].demandPercentage").value(66.67))
+                .andExpect(jsonPath("$[1].category").value("PLUMBING"))
+                .andExpect(jsonPath("$[1].requestCount").value(1))
+                .andExpect(jsonPath("$[1].demandPercentage").value(33.33));
+    }
+
+    @Test
+    void test30_ActiveJobsFilterReturnsOnlyActiveStatuses() throws Exception {
+        ServiceRequest req1 = new ServiceRequest(customerUser, ServiceCategory.ELECTRICAL, "Wiring 1", "Downtown", new BigDecimal("1000.00"), LocalDateTime.now().plusDays(1));
+        ServiceRequest req2 = new ServiceRequest(customerUser, ServiceCategory.PLUMBING, "Leak fix", "Downtown", new BigDecimal("800.00"), LocalDateTime.now().plusDays(1));
+        serviceRequestRepository.save(req1);
+        serviceRequestRepository.save(req2);
+
+        Job activeJob = new Job(req1, workerUser, JobStatus.IN_PROGRESS);
+        Job completedJob = new Job(req2, workerUser, JobStatus.COMPLETED);
+        jobRepository.save(activeJob);
+        jobRepository.save(completedJob);
+
+        // Filter ACTIVE
+        mockMvc.perform(get("/api/admin/jobs?status=ACTIVE")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].status").value("IN_PROGRESS"));
+
+        // Filter IN_PROGRESS
+        mockMvc.perform(get("/api/admin/jobs?status=IN_PROGRESS")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].status").value("IN_PROGRESS"));
+
+        // Invalid status
+        mockMvc.perform(get("/api/admin/jobs?status=INVALID_STATUS")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void test31_OperationalAlertsGeneratedFromRealConditions() throws Exception {
+        // Create open request -> should generate alert
+        ServiceRequest req = new ServiceRequest(customerUser, ServiceCategory.CLEANING, "House cleaning", "Downtown", new BigDecimal("500.00"), LocalDateTime.now().plusDays(1));
+        serviceRequestRepository.save(req);
+
+        mockMvc.perform(get("/api/admin/alerts")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].alertType").value("UNASSIGNED_SERVICE_REQUESTS"))
+                .andExpect(jsonPath("$[0].severity").value("WARNING"));
+    }
 }
+

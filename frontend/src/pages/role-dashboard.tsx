@@ -95,6 +95,8 @@ import {
   markAllAdminNotificationsReadApi,
   getAdminPaymentsApi,
   getAdminPaymentSummaryApi,
+  getServiceDemandApi,
+  getOperationalAlertsApi,
   getCustomerPaymentsApi,
   refundPaymentApi,
 } from '@/services/api';
@@ -133,10 +135,13 @@ import type {
   AdminServiceRequest,
   AdminUser,
   AdminWorker,
+  OperationalAlertResponse,
   PlatformOverviewSummary,
+  ServiceDemandResponse,
 } from '@/types/admin';
 import type { Notification } from '@/types/notification';
 import { useToast } from '@/hooks/use-toast';
+
 
 type RoleKey = 'customer' | 'worker' | 'admin';
 
@@ -282,10 +287,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [adminActivity, setAdminActivity] = useState<AdminActivity[]>([]);
   const [adminPayments, setAdminPayments] = useState<PaymentResponse[]>([]);
   const [adminPaymentSummary, setAdminPaymentSummary] = useState<AdminPaymentSummary | null>(null);
+  const [serviceDemand, setServiceDemand] = useState<ServiceDemandResponse[]>([]);
+  const [operationalAlerts, setOperationalAlerts] = useState<OperationalAlertResponse[]>([]);
+  const [adminJobStatusFilter, setAdminJobStatusFilter] = useState<string>('ALL');
   const [isLoadingAdminData, setIsLoadingAdminData] = useState<boolean>(role === 'admin');
   const [adminUserFilter, setAdminUserFilter] = useState<'ALL' | 'CUSTOMER' | 'WORKER' | 'ADMIN'>('ALL');
   const [adminNotifFilter, setAdminNotifFilter] = useState<'all' | 'unread' | 'alerts'>('all');
   const [operatingWorkerId, setOperatingWorkerId] = useState<number | null>(null);
+
 
   const fetchCustomerRequests = async () => {
     if (role !== 'customer') return;
@@ -447,18 +456,21 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     if (role !== 'admin') return;
     setIsLoadingAdminData(true);
     try {
-      const [overview, users, workers, reqs, jobs, ratings, activity, revenueSummary, revenueLedger, payments, paymentSummary] = await Promise.all([
+      const [overview, users, workers, reqs, jobs, ratings, activity, revenueSummary, revenueLedger, payments, paymentSummary, demand, alerts] = await Promise.all([
         getAdminOverviewApi(),
         getAdminUsersApi(),
         getAdminWorkersApi(),
         getAdminServiceRequestsApi(),
-        getAdminJobsApi(),
+        getAdminJobsApi(adminJobStatusFilter === 'ALL' ? undefined : adminJobStatusFilter),
         getAdminRatingsApi(),
         getAdminActivityApi(),
         getAdminRevenueSummaryApi(),
         getAdminEarningsApi(),
         getAdminPaymentsApi(),
+
         getAdminPaymentSummaryApi(),
+        getServiceDemandApi(),
+        getOperationalAlertsApi(),
       ]);
       setAdminOverview(overview);
       setAdminUsers(users);
@@ -471,6 +483,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       setAdminEarningsLedger(revenueLedger);
       setAdminPayments(payments);
       setAdminPaymentSummary(paymentSummary);
+      setServiceDemand(demand);
+      setOperationalAlerts(alerts);
+
     } catch (err: any) {
       toast({
         title: 'Failed to load Admin Operations data',
@@ -2912,58 +2927,157 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   </div>
 
                   {/* METRIC CARDS WITH GRADIENT STYLING */}
-                  <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-blue-300 transition-all">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Total Users</span>
+                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Users Overview</span>
                         <div className="h-9 w-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
                           <UsersRound className="h-4.5 w-4.5" />
                         </div>
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-1">
                         <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 select-none leading-none">
-                          {adminUsers.length}
+                          {adminOverview?.totalUsers ?? adminUsers.length}
                         </div>
-                        <span className="inline-block text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-100/70 rounded-full px-2.5 py-0.5">
-                          Platform Accounts
-                        </span>
+                        <p className="text-[10px] font-semibold text-slate-500">
+                          Active: <strong className="text-emerald-700">{adminOverview?.activeUsers ?? 0}</strong> | Susp: <strong className="text-amber-700">{adminOverview?.suspendedUsers ?? 0}</strong> | Deact: <strong className="text-rose-700">{adminOverview?.deactivatedUsers ?? 0}</strong>
+                        </p>
                       </div>
                     </div>
 
                     <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-emerald-300 transition-all">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Active Workers</span>
+                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Active Jobs & Rate</span>
                         <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
-                          <UserCheck className="h-4.5 w-4.5" />
+                          <Activity className="h-4.5 w-4.5" />
                         </div>
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-1">
                         <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 select-none leading-none">
-                          {adminWorkers.length}
+                          {adminOverview?.activeJobs ?? 0}
                         </div>
                         <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100/70 rounded-full px-2.5 py-0.5">
-                          Verified Profiles
+                          Completion Rate: {adminOverview?.completionRate ?? '0.00'}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-amber-300 transition-all">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Cancellation Rate</span>
+                        <div className="h-9 w-9 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                          <AlertCircle className="h-4.5 w-4.5" />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-amber-600 to-orange-600 select-none leading-none">
+                          {adminOverview?.cancellationRate ?? '0.00'}%
+                        </div>
+                        <span className="inline-block text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-100/70 rounded-full px-2.5 py-0.5">
+                          Cancelled: {adminOverview?.cancelledRequests ?? 0} requests
                         </span>
                       </div>
                     </div>
 
                     <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-indigo-300 transition-all">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Total Service Requests</span>
+                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Gross Volume</span>
                         <div className="h-9 w-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
-                          <FileText className="h-4.5 w-4.5" />
+                          <IndianRupee className="h-4.5 w-4.5" />
                         </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-blue-500 select-none leading-none">
-                          {adminRequests.length}
+                      <div className="space-y-1">
+                        <div className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-blue-500 select-none leading-none font-mono">
+                          ₹{adminOverview?.totalGrossVolume?.toFixed(2) ?? '0.00'}
                         </div>
                         <span className="inline-block text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100/70 rounded-full px-2.5 py-0.5">
-                          Lifetime Postings
+                          Fees: ₹{adminOverview?.totalPlatformFees?.toFixed(2) ?? '0.00'}
                         </span>
                       </div>
                     </div>
                   </div>
+
+                  {/* OPERATIONAL ALERTS SECTION */}
+                  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ShieldAlert className="h-5 w-5 text-amber-600" />
+                        <h3 className="text-lg font-bold text-slate-900">Operational System Alerts</h3>
+                      </div>
+                      <span className="text-xs font-bold text-slate-500 bg-slate-100 rounded-full px-3 py-1">
+                        {operationalAlerts.length} Active
+                      </span>
+                    </div>
+
+                    {operationalAlerts.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center text-xs text-slate-500">
+                        <CheckCircle2 className="mx-auto h-6 w-6 text-emerald-500 mb-1" />
+                        No operational alerts detected. All systems are functioning normally.
+                      </div>
+                    ) : (
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {operationalAlerts.map((alert, idx) => (
+                          <div
+                            key={idx}
+                            className={`rounded-2xl border p-4 space-y-1.5 transition-all ${
+                              alert.severity === 'CRITICAL'
+                                ? 'border-red-200 bg-red-50/50 text-red-900'
+                                : alert.severity === 'WARNING'
+                                ? 'border-amber-200 bg-amber-50/50 text-amber-900'
+                                : 'border-blue-200 bg-blue-50/50 text-blue-900'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-extrabold text-sm tracking-tight">{alert.title}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                alert.severity === 'CRITICAL' ? 'bg-red-100 border-red-300 text-red-800' :
+                                alert.severity === 'WARNING' ? 'bg-amber-100 border-amber-300 text-amber-800' :
+                                'bg-blue-100 border-blue-300 text-blue-800'
+                              }`}>
+                                {alert.severity}
+                              </span>
+                            </div>
+                            <p className="text-xs opacity-90 leading-relaxed">{alert.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SERVICE DEMAND ANALYTICS SECTION */}
+                  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold text-slate-900">Service Demand by Category</h3>
+                      <span className="text-xs text-slate-500 font-semibold">Backend aggregated metrics</span>
+                    </div>
+
+                    {serviceDemand.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center text-xs text-slate-500">
+                        No service demand data available.
+                      </div>
+                    ) : (
+                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {serviceDemand.map((item) => (
+                          <div key={item.category} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 space-y-2 hover:bg-white hover:border-emerald-200 transition-all">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-slate-900 text-sm">{CATEGORY_LABELS[item.category]?.label || item.category}</span>
+                              <span className="font-mono text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-0.5">
+                                {item.demandPercentage}%
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-slate-500">
+                              <span>Requests: <strong className="text-slate-800">{item.requestCount}</strong></span>
+                              <span>Completed: <strong className="text-slate-800">{item.completedJobCount}</strong></span>
+                            </div>
+                            <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                              <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${item.demandPercentage}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                 </>
               )}
 
@@ -3265,16 +3379,45 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       <h3 className="text-lg font-bold text-slate-900">Job Executions</h3>
                       <p className="text-xs text-slate-500">Live worker performance and contract tracking</p>
                     </div>
-                    {activeTab === 'overview' && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchParams({ tab: 'jobs' })}
-                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
-                      >
-                        View All Jobs →
-                      </button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-3">
+                      {activeTab === 'jobs' && (
+                        <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
+                          {(['ALL', 'ACTIVE', 'ACCEPTED', 'IN_PROGRESS', 'PAYMENT_REQUIRED', 'COMPLETED'] as const).map((st) => (
+                            <button
+                              key={st}
+                              type="button"
+                              onClick={async () => {
+                                setAdminJobStatusFilter(st);
+                                try {
+                                  const filtered = await getAdminJobsApi(st === 'ALL' ? undefined : st);
+                                  setAdminJobs(filtered);
+                                } catch {
+                                  // Fallback
+                                }
+                              }}
+                              className={`rounded-lg px-2.5 py-1 font-bold transition-all ${
+                                adminJobStatusFilter === st
+                                  ? 'bg-emerald-600 text-white shadow-xs'
+                                  : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                            >
+                              {st}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {activeTab === 'overview' && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchParams({ tab: 'jobs' })}
+                          className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                        >
+                          View All Jobs →
+                        </button>
+                      )}
+                    </div>
                   </div>
+
                   <div className="divide-y divide-slate-100 overflow-x-auto">
                     {displayJobs.length === 0 ? (
                       <p className="text-xs text-slate-400 py-4 text-center">No job records found.</p>

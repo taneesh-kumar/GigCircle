@@ -102,9 +102,23 @@ public class AdminOperationsController {
     }
 
     @GetMapping("/jobs")
-    public ResponseEntity<List<AdminJobResponse>> getJobs(Principal principal) {
-        List<AdminJobResponse> jobs = adminOperationsService.getJobs(principal.getName());
+    public ResponseEntity<List<AdminJobResponse>> getJobs(
+            @RequestParam(required = false) String status,
+            Principal principal) {
+        List<AdminJobResponse> jobs = adminOperationsService.getJobsFiltered(status, principal.getName());
         return ResponseEntity.ok(jobs);
+    }
+
+    @GetMapping("/analytics/service-demand")
+    public ResponseEntity<List<ServiceDemandResponse>> getServiceDemand(Principal principal) {
+        List<ServiceDemandResponse> demand = adminOperationsService.getServiceDemand(principal.getName());
+        return ResponseEntity.ok(demand);
+    }
+
+    @GetMapping("/alerts")
+    public ResponseEntity<List<OperationalAlertResponse>> getOperationalAlerts(Principal principal) {
+        List<OperationalAlertResponse> alerts = adminOperationsService.getOperationalAlerts(principal.getName());
+        return ResponseEntity.ok(alerts);
     }
 
     @GetMapping("/ratings")
@@ -119,3 +133,4 @@ public class AdminOperationsController {
         return ResponseEntity.ok(activities);
     }
 }
+

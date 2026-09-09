@@ -104,8 +104,30 @@ Ensure test accounts exist in the database (or register via `/register`):
 
 ---
 
-### 6. Security & Access Boundary Verification
+### 6. Phase 2: Full Admin Dashboard KPIs, Analytics, and Operational Alerts
+1. Log in as **Admin** (`admin@gigcircle.com`).
+2. Navigate to **Admin Dashboard Overview** (`/dashboard?tab=overview`):
+   - Verify KPI cards display backend-calculated metrics: Total Users, Active Users, Suspended Users, Deactivated Users, Active Jobs, Completion Rate %, Cancellation Rate %, Platform Gross Volume, and Platform Fees.
+   - Verify rates display exactly 2 decimal places and return `0.00%` when denominators are zero.
+3. Verify **Service Demand by Category**:
+   - Check category demand breakdown cards.
+   - Verify categories display request count, completed count, and percentage of total demand sorted descending.
+4. Verify **Active Jobs Filtering**:
+   - Navigate to **Job Executions** tab (`/dashboard?tab=jobs`).
+   - Filter by status `ACTIVE`: Verify only jobs in status `ACCEPTED`, `IN_PROGRESS`, or `PAYMENT_REQUIRED` are displayed.
+   - Filter by status `COMPLETED`: Verify completed jobs are listed.
+   - Enter invalid query status (e.g. `INVALID`): Verify backend returns `400 BAD REQUEST`.
+5. Verify **Operational Alerts**:
+   - Create test conditions (e.g. an unassigned OPEN service request or pending worker verification).
+   - Check **Operational System Alerts** section on overview dashboard.
+   - Verify alert cards display severity badges (`INFO`, `WARNING`, `CRITICAL`), title, description, and entity ID.
+   - Resolve the underlying condition and verify the alert disappears on refresh.
+
+---
+
+### 7. Security & Access Boundary Verification
 - **Unrelated Job Access**: Attempt to access a job chat, dispute, or invoice belonging to another user. Verify API returns `403 FORBIDDEN`.
-- **Non-Admin Access**: Attempt to navigate to `/admin/disputes` or call `/api/invoices/admin` as Customer or Worker. Verify client redirects or returns `403 Access Denied`.
+- **Non-Admin Access**: Attempt to navigate to `/admin/disputes` or call `/api/admin/overview` as Customer or Worker. Verify client redirects or returns `403 Access Denied`.
 - **Closed Dispute Protection**: Verify participant response input is disabled on `RESOLVED` or `DISMISSED` disputes.
 - **Session Refresh**: Refresh page (F5) during an active chat/dispute/invoice view. Verify authenticated session restores and data reloads cleanly.
+

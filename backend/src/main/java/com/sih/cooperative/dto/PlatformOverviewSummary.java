@@ -7,11 +7,17 @@ public class PlatformOverviewSummary {
     private Long totalUsers;
     private Long totalCustomers;
     private Long totalWorkers;
+    private Long activeUsers;
+    private Long suspendedUsers;
+    private Long deactivatedUsers;
     private Long totalServiceRequests;
     private Long openRequests;
     private Long assignedRequests;
+    private Long activeJobs;
     private Long completedJobs;
     private Long cancelledRequests;
+    private BigDecimal completionRate;
+    private BigDecimal cancellationRate;
     private Long totalRatings;
     private BigDecimal averageRating;
     private BigDecimal totalGrossVolume;
@@ -22,18 +28,26 @@ public class PlatformOverviewSummary {
     }
 
     public PlatformOverviewSummary(Long totalUsers, Long totalCustomers, Long totalWorkers,
+                                   Long activeUsers, Long suspendedUsers, Long deactivatedUsers,
                                    Long totalServiceRequests, Long openRequests, Long assignedRequests,
-                                   Long completedJobs, Long cancelledRequests, Long totalRatings,
-                                   BigDecimal averageRating, BigDecimal totalGrossVolume,
+                                   Long activeJobs, Long completedJobs, Long cancelledRequests,
+                                   BigDecimal completionRate, BigDecimal cancellationRate,
+                                   Long totalRatings, BigDecimal averageRating, BigDecimal totalGrossVolume,
                                    BigDecimal totalPlatformFees, BigDecimal totalWorkerEarnings) {
         this.totalUsers = totalUsers;
         this.totalCustomers = totalCustomers;
         this.totalWorkers = totalWorkers;
+        this.activeUsers = activeUsers;
+        this.suspendedUsers = suspendedUsers;
+        this.deactivatedUsers = deactivatedUsers;
         this.totalServiceRequests = totalServiceRequests;
         this.openRequests = openRequests;
         this.assignedRequests = assignedRequests;
+        this.activeJobs = activeJobs;
         this.completedJobs = completedJobs;
         this.cancelledRequests = cancelledRequests;
+        this.completionRate = completionRate;
+        this.cancellationRate = cancellationRate;
         this.totalRatings = totalRatings;
         this.averageRating = averageRating;
         this.totalGrossVolume = totalGrossVolume;
@@ -65,6 +79,30 @@ public class PlatformOverviewSummary {
         this.totalWorkers = totalWorkers;
     }
 
+    public Long getActiveUsers() {
+        return activeUsers;
+    }
+
+    public void setActiveUsers(Long activeUsers) {
+        this.activeUsers = activeUsers;
+    }
+
+    public Long getSuspendedUsers() {
+        return suspendedUsers;
+    }
+
+    public void setSuspendedUsers(Long suspendedUsers) {
+        this.suspendedUsers = suspendedUsers;
+    }
+
+    public Long getDeactivatedUsers() {
+        return deactivatedUsers;
+    }
+
+    public void setDeactivatedUsers(Long deactivatedUsers) {
+        this.deactivatedUsers = deactivatedUsers;
+    }
+
     public Long getTotalServiceRequests() {
         return totalServiceRequests;
     }
@@ -89,6 +127,14 @@ public class PlatformOverviewSummary {
         this.assignedRequests = assignedRequests;
     }
 
+    public Long getActiveJobs() {
+        return activeJobs;
+    }
+
+    public void setActiveJobs(Long activeJobs) {
+        this.activeJobs = activeJobs;
+    }
+
     public Long getCompletedJobs() {
         return completedJobs;
     }
@@ -103,6 +149,22 @@ public class PlatformOverviewSummary {
 
     public void setCancelledRequests(Long cancelledRequests) {
         this.cancelledRequests = cancelledRequests;
+    }
+
+    public BigDecimal getCompletionRate() {
+        return completionRate;
+    }
+
+    public void setCompletionRate(BigDecimal completionRate) {
+        this.completionRate = completionRate;
+    }
+
+    public BigDecimal getCancellationRate() {
+        return cancellationRate;
+    }
+
+    public void setCancellationRate(BigDecimal cancellationRate) {
+        this.cancellationRate = cancellationRate;
     }
 
     public Long getTotalRatings() {
@@ -145,3 +207,4 @@ public class PlatformOverviewSummary {
         this.totalWorkerEarnings = totalWorkerEarnings;
     }
 }
+

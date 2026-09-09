@@ -29,4 +29,8 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
     List<ServiceRequest> findAllByOrderByCreatedAtDesc();
 
     long countByStatus(com.sih.cooperative.entity.ServiceRequestStatus status);
+
+    @EntityGraph(attributePaths = {"customer"})
+    List<ServiceRequest> findByStatusOrderByCreatedAtDesc(com.sih.cooperative.entity.ServiceRequestStatus status);
 }
+
