@@ -2,6 +2,7 @@ package com.sih.cooperative.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sih.cooperative.dto.CompletePaymentRequest;
 import com.sih.cooperative.entity.*;
 import com.sih.cooperative.repository.*;
 import com.sih.cooperative.dto.PaymentRequest;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 public class PaymentService {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
+    private static final BigDecimal PLATFORM_FEE_PERCENTAGE = new BigDecimal("10.00");
 
     private final PaymentRepository paymentRepository;
     private final JobRepository jobRepository;
@@ -62,10 +64,15 @@ public class PaymentService {
         return "GC-" + jobId + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
+    private String generateDemoTransactionId() {
+        String hex = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        return "SIM-TXN-" + hex;
+    }
+
     /**
-     * Step 1: Customer initiates payment.
-     * Creates a PENDING Payment record and calls PhonePe to get a checkout redirect URL.
-     * Returns PaymentResponse with redirectUrl for the frontend to navigate to.
+     * Initiates a demo payment for a COMPLETED job.
+     * Creates a PENDING payment record with a deterministic demo transaction ID.
+     * Does NOT call PhonePe or any external gateway.
      */
     @Transactional
     public PaymentResponse initiatePayment(String customerEmail, PaymentRequest request) {
@@ -84,31 +91,34 @@ public class PaymentService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Only COMPLETED jobs can be paid for");
         }
 
-        // If a SUCCESS payment already exists for this job, return it
+        // If a PAID/SUCCESS payment already exists for this job, return it (already paid)
         if (paymentRepository.existsByJobId(job.getId())) {
             Payment existing = paymentRepository.findByJobId(job.getId()).orElseThrow();
-            if (existing.getPaymentStatus() == PaymentStatus.SUCCESS) {
+            if (existing.getPaymentStatus().isPaid()) {
                 return PaymentResponse.fromEntity(existing);
             }
-            // If it exists but is not SUCCESS (failed/pending), we can retry
+            // If it exists but is PENDING, allow resuming (return it)
+            if (existing.getPaymentStatus() == PaymentStatus.PENDING) {
+                return PaymentResponse.fromEntity(existing);
+            }
+            // If it exists but is FAILED, allow a fresh retry
         }
 
         Earning earning = earningRepository.findByJobId(job.getId())
                 .orElseGet(() -> generateEarningForJob(job, customer));
 
         String merchantOrderId = generateMerchantOrderId(job.getId());
+        String transactionId = generateDemoTransactionId();
 
-        // Store PhonePe's transaction ID in transactionId for backward compat
         Payment payment = new Payment(
                 job, customer, earning,
                 earning.getGrossAmount(), earning.getPlatformFee(), earning.getWorkerEarning(),
-                "PHONEPE", PaymentStatus.PENDING, merchantOrderId
+                "PENDING", PaymentStatus.PENDING, transactionId
         );
         payment.setMerchantOrderId(merchantOrderId);
         payment.setPaymentInstrument("PENDING");
         Payment savedPayment = paymentRepository.save(payment);
 
-        // Notify customer
         notificationService.createNotification(
                 customer, NotificationType.PAYMENT_INITIATED,
                 "Payment initiated",
@@ -116,32 +126,119 @@ public class PaymentService {
                 "PAYMENT", savedPayment.getId()
         );
 
-        // Notify admin
         notificationService.createAdminNotification(
                 NotificationType.PAYMENT_INITIATED,
                 "Payment initiated",
                 customer.getName() + " initiated a payment of Rs." + earning.getGrossAmount().toPlainString() + " (Tnx: " + merchantOrderId + ").",
                 "PAYMENT", savedPayment.getId()
         );
-// Demo payment gateway
-// Simulates successful payment for UPI, Cards and Net Banking.
-savedPayment.setPaymentInstrument("DEMO_PAYMENT");
-savedPayment.setPaymentStatus(PaymentStatus.SUCCESS);
-paymentRepository.save(savedPayment);
 
-// Complete payment internally:
-//90% goes to worker and 10% remains as platform fee.
-completePaymentInternal(savedPayment);
+        logger.info("Demo payment initiated: paymentId={}, transactionId={}", savedPayment.getId(), transactionId);
 
-logger.info("Demo payment completed for paymentId={}, merchantOrderId={}",
-        savedPayment.getId(), merchantOrderId);
-
-               return PaymentResponse.fromEntity(savedPayment);
+        return PaymentResponse.fromEntity(savedPayment);
     }
 
     /**
-     * Step 5/6: Handle PhonePe's server-to-server webhook callback.
-     * This is the source-of-truth for payment status.
+     * Completes a demo payment using the selected payment method.
+     * Marks the payment PAID, generates the transaction ID (if not already set),
+     * updates earning status, and sets the job payment status.
+     */
+    @Transactional
+    public PaymentResponse completePayment(String customerEmail, Long paymentId, CompletePaymentRequest request) {
+        User customer = getAuthenticatedCustomer(customerEmail, Role.CUSTOMER);
+
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found"));
+
+        if (!payment.getCustomer().getId().equals(customer.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+
+        if (payment.getPaymentStatus() == PaymentStatus.PAID || payment.getPaymentStatus() == PaymentStatus.SUCCESS) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Payment already completed");
+        }
+
+        if (payment.getPaymentStatus() == PaymentStatus.FAILED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Payment already failed; please initiate a new payment");
+        }
+
+        if (payment.getPaymentStatus() != PaymentStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payment is not in a pending state");
+        }
+
+        // Validate and set payment method
+        PaymentMethod method;
+        try {
+            method = PaymentMethod.from(request.getPaymentMethod());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid payment method: " + request.getPaymentMethod());
+        }
+
+        // Store UPI ID if provided
+        if (method == PaymentMethod.UPI && request.getUpiId() != null && !request.getUpiId().isBlank()) {
+            payment.setPaymentInstrument(request.getUpiId().trim());
+        } else {
+            payment.setPaymentInstrument(method.name());
+        }
+
+        // Generate transaction ID if not already set
+        if (payment.getTransactionId() == null || payment.getTransactionId().isBlank()) {
+            payment.setTransactionId(generateDemoTransactionId());
+        }
+
+        payment.setPaymentMethod(method.name());
+        payment.setPaymentStatus(PaymentStatus.PAID);
+        payment.setPaidAt(LocalDateTime.now());
+
+        // Update earning status
+        Earning earning = payment.getEarning();
+        if (earning != null && earning.getStatus() == EarningStatus.PENDING) {
+            earning.setStatus(EarningStatus.AVAILABLE);
+            earningRepository.save(earning);
+        }
+
+        // Update job payment status
+        Job job = payment.getJob();
+        if (job != null) {
+            job.setPaymentStatus(PaymentStatus.PAID);
+        }
+
+        paymentRepository.save(payment);
+        if (job != null) {
+            jobRepository.save(job);
+        }
+
+        notificationService.createNotification(
+                payment.getCustomer(), NotificationType.PAYMENT_COMPLETED,
+                "Payment successful",
+                "Your payment of Rs." + payment.getAmount().toPlainString() + " is confirmed. Tnx: " + payment.getTransactionId(),
+                "PAYMENT", payment.getId()
+        );
+
+        User worker = payment.getJob().getWorker();
+        if (worker != null) {
+            notificationService.createNotification(
+                    worker, NotificationType.PAYMENT_COMPLETED,
+                    "Payment received",
+                    "A payment of Rs." + payment.getWorkerEarning().toPlainString() + " has been received for your completed job.",
+                    "PAYMENT", payment.getId()
+            );
+        }
+
+        notificationService.createAdminNotification(
+                NotificationType.PAYMENT_COMPLETED,
+                "Payment confirmed",
+                payment.getCustomer().getName() + " confirmed payment of Rs." + payment.getAmount().toPlainString() + " (Tnx: " + payment.getTransactionId() + ").",
+                "PAYMENT", payment.getId()
+        );
+
+        logger.info("Demo payment completed: paymentId={}, transactionId={}, method={}", payment.getId(), payment.getTransactionId(), method.name());
+
+        return PaymentResponse.fromEntity(payment);
+    }
+
+    /**
+     * Handles PhonePe's server-to-server webhook callback.
      * Also called internally by verifyPaymentStatus().
      */
     @Transactional
@@ -152,12 +249,11 @@ logger.info("Demo payment completed for paymentId={}, merchantOrderId={}",
                     return new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found");
                 });
 
-        if (payment.getPaymentStatus() == PaymentStatus.SUCCESS) {
-            logger.info("PhonePe callback: payment already SUCCESS, ignoring duplicate for merchantOrderId={}", merchantOrderId);
+        if (payment.getPaymentStatus().isTerminal()) {
+            logger.info("PhonePe callback: payment already terminal, ignoring duplicate for merchantOrderId={}", merchantOrderId);
             return;
         }
 
-        // Store raw response for audit
         try {
             payment.setGatewayResponse(objectMapper.writeValueAsString(
                     Map.of("state", state != null ? state : "UNKNOWN",
@@ -169,7 +265,7 @@ logger.info("Demo payment completed for paymentId={}, merchantOrderId={}",
         payment.setPaymentInstrument(instrumentType);
 
         if ("COMPLETED".equalsIgnoreCase(state)) {
-            completePaymentInternal(payment);
+            completePhonePePayment(payment);
         } else if ("FAILED".equalsIgnoreCase(state)) {
             failPaymentInternal(payment);
         } else {
@@ -193,20 +289,15 @@ logger.info("Demo payment completed for paymentId={}, merchantOrderId={}",
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
 
-        // If already in a terminal state, return as-is
-        if (payment.getPaymentStatus() == PaymentStatus.SUCCESS ||
-            payment.getPaymentStatus() == PaymentStatus.FAILED) {
+        if (payment.getPaymentStatus().isTerminal()) {
             return PaymentResponse.fromEntity(payment);
         }
 
-        // Call PhonePe to verify current status
         boolean isSuccess = phonePeService.verifyAndUpdatePaymentStatus(payment);
 
         if (isSuccess) {
-            completePaymentInternal(payment);
+            completePhonePePayment(payment);
         } else {
-            // Check if it's actually failed or just pending
-            // The verifyAndUpdatePaymentStatus already checked and logged
             paymentRepository.save(payment);
         }
 
@@ -214,27 +305,24 @@ logger.info("Demo payment completed for paymentId={}, merchantOrderId={}",
     }
 
     /**
-     * Internal: mark payment as SUCCESS, update earning, fire notifications.
-     * Package-private — called by handlePhonePeCallback and verifyPaymentStatus.
+     * Internal: mark PhonePe payment as SUCCESS (backward compat), update earning, fire notifications.
      */
     @Transactional
-    public void completePaymentInternal(Payment payment) {
-        if (payment.getPaymentStatus() == PaymentStatus.SUCCESS) {
-            return; // Idempotent
+    public void completePhonePePayment(Payment payment) {
+        if (payment.getPaymentStatus().isTerminal()) {
+            return;
         }
 
         payment.setPaymentStatus(PaymentStatus.SUCCESS);
         payment.setPaidAt(LocalDateTime.now());
         paymentRepository.save(payment);
 
-        // Update earning status
         Earning earning = payment.getEarning();
         if (earning != null && earning.getStatus() == EarningStatus.PENDING) {
             earning.setStatus(EarningStatus.AVAILABLE);
             earningRepository.save(earning);
         }
 
-        // Notify customer
         notificationService.createNotification(
                 payment.getCustomer(), NotificationType.PAYMENT_COMPLETED,
                 "Payment successful",
@@ -242,7 +330,6 @@ logger.info("Demo payment completed for paymentId={}, merchantOrderId={}",
                 "PAYMENT", payment.getId()
         );
 
-        // Notify worker
         User worker = payment.getJob().getWorker();
         if (worker != null) {
             notificationService.createNotification(
@@ -253,7 +340,6 @@ logger.info("Demo payment completed for paymentId={}, merchantOrderId={}",
             );
         }
 
-        // Notify admin
         notificationService.createAdminNotification(
                 NotificationType.PAYMENT_COMPLETED,
                 "Payment confirmed",
@@ -261,7 +347,7 @@ logger.info("Demo payment completed for paymentId={}, merchantOrderId={}",
                 "PAYMENT", payment.getId()
         );
 
-        logger.info("Payment completed: paymentId={}, merchantOrderId={}", payment.getId(), payment.getMerchantOrderId());
+        logger.info("PhonePe payment completed: paymentId={}, merchantOrderId={}", payment.getId(), payment.getMerchantOrderId());
     }
 
     /**
@@ -270,7 +356,7 @@ logger.info("Demo payment completed for paymentId={}, merchantOrderId={}",
     @Transactional
     public void failPaymentInternal(Payment payment) {
         if (payment.getPaymentStatus() == PaymentStatus.FAILED) {
-            return; // Idempotent
+            return;
         }
 
         payment.setPaymentStatus(PaymentStatus.FAILED);

@@ -53,6 +53,8 @@ public class ServiceRequestIntegrationTest {
 
     @Autowired
     private EarningRepository earningRepository;
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Autowired
     private NotificationRepository notificationRepository;
@@ -65,6 +67,7 @@ public class ServiceRequestIntegrationTest {
     void setUp() throws Exception {
         notificationRepository.deleteAll();
         ratingRepository.deleteAll();
+        paymentRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();

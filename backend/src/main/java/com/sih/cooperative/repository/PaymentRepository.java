@@ -35,4 +35,5 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findById(Long id);
 
     Optional<Payment> findByMerchantOrderId(String merchantOrderId);
+    long countByJobId(Long jobId);
 }

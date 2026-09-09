@@ -50,6 +50,8 @@ public class AuthIntegrationTest {
 
     @Autowired
     private EarningRepository earningRepository;
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Autowired
     private NotificationRepository notificationRepository;
@@ -58,6 +60,7 @@ public class AuthIntegrationTest {
     void setUp() {
         notificationRepository.deleteAll();
         ratingRepository.deleteAll();
+        paymentRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();

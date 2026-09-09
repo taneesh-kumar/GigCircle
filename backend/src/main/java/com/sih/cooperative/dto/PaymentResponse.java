@@ -19,6 +19,7 @@ public class PaymentResponse {
     private Long earningId;
     private BigDecimal amount;
     private BigDecimal platformFee;
+    private BigDecimal totalAmount;
     private BigDecimal workerEarning;
     private String paymentMethod;
     private PaymentStatus paymentStatus;
@@ -35,7 +36,7 @@ public class PaymentResponse {
 
     public PaymentResponse(Long id, Long jobId, Long serviceRequestId, Long customerId, String customerName,
                            Long workerId, String workerName, Long earningId, BigDecimal amount,
-                           BigDecimal platformFee, BigDecimal workerEarning, String paymentMethod,
+                           BigDecimal platformFee, BigDecimal totalAmount, BigDecimal workerEarning, String paymentMethod,
                            PaymentStatus paymentStatus, String transactionId, String merchantOrderId,
                            String phonepeTransactionId, String paymentInstrument, String redirectUrl,
                            LocalDateTime createdAt, LocalDateTime paidAt) {
@@ -49,6 +50,7 @@ public class PaymentResponse {
         this.earningId = earningId;
         this.amount = amount;
         this.platformFee = platformFee;
+        this.totalAmount = totalAmount;
         this.workerEarning = workerEarning;
         this.paymentMethod = paymentMethod;
         this.paymentStatus = paymentStatus;
@@ -70,6 +72,10 @@ public class PaymentResponse {
         String workerName = (job != null && job.getWorker() != null) ? job.getWorker().getName() : null;
         Long earningId = (payment.getEarning() != null) ? payment.getEarning().getId() : null;
 
+        BigDecimal totalAmount = (payment.getAmount() != null && payment.getPlatformFee() != null)
+                ? payment.getAmount().add(payment.getPlatformFee())
+                : null;
+
         return new PaymentResponse(
                 payment.getId(),
                 job != null ? job.getId() : null,
@@ -81,6 +87,7 @@ public class PaymentResponse {
                 earningId,
                 payment.getAmount(),
                 payment.getPlatformFee(),
+                totalAmount,
                 payment.getWorkerEarning(),
                 payment.getPaymentMethod(),
                 payment.getPaymentStatus(),
@@ -104,6 +111,7 @@ public class PaymentResponse {
     public Long getEarningId() { return earningId; }
     public BigDecimal getAmount() { return amount; }
     public BigDecimal getPlatformFee() { return platformFee; }
+    public BigDecimal getTotalAmount() { return totalAmount; }
     public BigDecimal getWorkerEarning() { return workerEarning; }
     public String getPaymentMethod() { return paymentMethod; }
     public PaymentStatus getPaymentStatus() { return paymentStatus; }
@@ -125,6 +133,7 @@ public class PaymentResponse {
     public void setEarningId(Long earningId) { this.earningId = earningId; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
     public void setPlatformFee(BigDecimal platformFee) { this.platformFee = platformFee; }
+    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
     public void setWorkerEarning(BigDecimal workerEarning) { this.workerEarning = workerEarning; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
