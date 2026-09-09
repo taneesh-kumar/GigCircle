@@ -102,7 +102,7 @@ export function AdminVerificationSection() {
   const fetchAuditActivities = useCallback(async () => {
     try {
       const logs = await getAdminActivityApi();
-      setActivities(logs || []);
+      setActivities(logs?.content || []);
     } catch {
       // Non-blocking audit load
     }

@@ -130,6 +130,9 @@ import type { Earning, PlatformRevenueSummary, WorkerEarningsSummary } from '@/t
 import type { PaymentResponse, AdminPaymentSummary } from '@/types/payment';
 import type {
   AdminActivity,
+  AdminFinancialSummary,
+  AdminFinancialTransaction,
+  AdminFinancialTransactionDetail,
   AdminJob,
   AdminRating,
   AdminServiceRequest,
@@ -140,6 +143,12 @@ import type {
   ServiceDemandResponse,
 } from '@/types/admin';
 import { AdminUserDetailModal } from '@/components/admin-user-detail-modal';
+import { AdminFinancialDetailModal } from '@/components/admin-financial-detail-modal';
+import {
+  getFinancialSummaryApi,
+  getFinancialTransactionsApi,
+  getFinancialTransactionDetailApi,
+} from '@/services/api/admin';
 import type { Notification } from '@/types/notification';
 import { useToast } from '@/hooks/use-toast';
 
@@ -308,6 +317,29 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [adminUserFilter, setAdminUserFilter] = useState<'ALL' | 'CUSTOMER' | 'WORKER' | 'ADMIN'>('ALL');
   const [adminNotifFilter, setAdminNotifFilter] = useState<'all' | 'unread' | 'alerts'>('all');
   const [operatingWorkerId, setOperatingWorkerId] = useState<number | null>(null);
+
+  // Phase 4: Financial Audit & Detail State
+  const [financialSummary, setFinancialSummary] = useState<AdminFinancialSummary | null>(null);
+  const [financialTransactions, setFinancialTransactions] = useState<AdminFinancialTransaction[]>([]);
+  const [financialPage, setFinancialPage] = useState<number>(0);
+  const [financialTotalPages, setFinancialTotalPages] = useState<number>(0);
+  const [financialTotalElements, setFinancialTotalElements] = useState<number>(0);
+  const [financialStatusFilter, setFinancialStatusFilter] = useState<string>('ALL');
+  const [financialSearch, setFinancialSearch] = useState<string>('');
+  const [financialFromDate, setFinancialFromDate] = useState<string>('');
+  const [financialToDate, setFinancialToDate] = useState<string>('');
+  const [selectedFinancialTxnId, setSelectedFinancialTxnId] = useState<number | null>(null);
+  const [isLoadingFinancial, setIsLoadingFinancial] = useState<boolean>(false);
+  const [financialError, setFinancialError] = useState<string | null>(null);
+
+  // Phase 4: Audit Activity Pagination & Filtering State
+  const [activityPage, setActivityPage] = useState<number>(0);
+  const [activityTotalPages, setActivityTotalPages] = useState<number>(0);
+  const [activityTotalElements, setActivityTotalElements] = useState<number>(0);
+  const [activityActionTypeFilter, setActivityActionTypeFilter] = useState<string>('ALL');
+  const [activitySearch, setActivitySearch] = useState<string>('');
+  const [activityFromDate, setActivityFromDate] = useState<string>('');
+  const [activityToDate, setActivityToDate] = useState<string>('');
 
 
   const fetchCustomerRequests = async () => {
@@ -485,11 +517,62 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     }
   };
 
+  const fetchFinancialData = async (page: number = financialPage) => {
+    if (role !== 'admin') return;
+    setIsLoadingFinancial(true);
+    setFinancialError(null);
+    try {
+      const [summary, txnsRes] = await Promise.all([
+        getFinancialSummaryApi(
+          financialFromDate.trim() || undefined,
+          financialToDate.trim() || undefined
+        ),
+        getFinancialTransactionsApi({
+          page,
+          size: 15,
+          status: financialStatusFilter === 'ALL' ? undefined : financialStatusFilter,
+          search: financialSearch.trim() || undefined,
+          from: financialFromDate.trim() || undefined,
+          to: financialToDate.trim() || undefined,
+        }),
+      ]);
+      setFinancialSummary(summary);
+      setFinancialTransactions(txnsRes.content);
+      setFinancialPage(txnsRes.page);
+      setFinancialTotalPages(txnsRes.totalPages);
+      setFinancialTotalElements(txnsRes.totalElements);
+    } catch (err: any) {
+      setFinancialError(err?.response?.data?.message || 'Failed to load financial audit data.');
+    } finally {
+      setIsLoadingFinancial(false);
+    }
+  };
+
+  const fetchAdminActivity = async (page: number = activityPage) => {
+    if (role !== 'admin') return;
+    try {
+      const activityRes = await getAdminActivityApi({
+        page,
+        size: 15,
+        actionType: activityActionTypeFilter === 'ALL' ? undefined : activityActionTypeFilter,
+        search: activitySearch.trim() || undefined,
+        from: activityFromDate.trim() || undefined,
+        to: activityToDate.trim() || undefined,
+      });
+      setAdminActivity(activityRes.content);
+      setActivityPage(activityRes.page);
+      setActivityTotalPages(activityRes.totalPages);
+      setActivityTotalElements(activityRes.totalElements);
+    } catch (err) {
+      console.error('Failed to fetch audit activity:', err);
+    }
+  };
+
   const fetchAdminData = async () => {
     if (role !== 'admin') return;
     setIsLoadingAdminData(true);
     try {
-      const [overview, userRes, workers, reqs, jobs, ratings, activity, revenueSummary, revenueLedger, payments, paymentSummary, demand, alerts] = await Promise.all([
+      const [overview, userRes, workers, reqs, jobs, ratings, activityRes, revenueSummary, revenueLedger, payments, paymentSummary, demand, alerts] = await Promise.all([
         getAdminOverviewApi(),
         getAdminUsersApi({
           role: adminUserFilter === 'ALL' ? undefined : adminUserFilter,
@@ -502,7 +585,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         getAdminServiceRequestsApi(),
         getAdminJobsApi(adminJobStatusFilter === 'ALL' ? undefined : adminJobStatusFilter),
         getAdminRatingsApi(),
-        getAdminActivityApi(),
+        getAdminActivityApi({ page: 0, size: 15 }),
         getAdminRevenueSummaryApi(),
         getAdminEarningsApi(),
         getAdminPaymentsApi(),
@@ -520,13 +603,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       setAdminRequests(reqs);
       setAdminJobs(jobs);
       setAdminRatings(ratings);
-      setAdminActivity(activity);
+      setAdminActivity(activityRes.content);
+      setActivityPage(activityRes.page);
+      setActivityTotalPages(activityRes.totalPages);
+      setActivityTotalElements(activityRes.totalElements);
       setAdminRevenueSummary(revenueSummary);
       setAdminEarningsLedger(revenueLedger);
       setAdminPayments(payments);
       setAdminPaymentSummary(paymentSummary);
       setServiceDemand(demand);
       setOperationalAlerts(alerts);
+
+      fetchFinancialData(0);
 
     } catch (err: any) {
       toast({
@@ -3123,6 +3211,276 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </>
               )}
 
+              {/* FINANCIAL AUDIT TAB */}
+              {activeTab === 'financial' && (
+                <div className="space-y-6">
+                  {/* Financial Overview Header */}
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                        <Wallet className="h-5 w-5 text-emerald-600" /> Financial Audit & Ledger Oversight
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Read-only administrative financial view with fee tracking and transaction breakdown
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => fetchFinancialData(0)}
+                      disabled={isLoadingFinancial}
+                      className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50 flex items-center gap-2 text-xs font-bold shadow-2xs"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoadingFinancial ? 'animate-spin' : ''}`} /> Refresh Financials
+                    </button>
+                  </div>
+
+                  {/* Summary Metric Cards */}
+                  {financialSummary && (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-emerald-300 transition-all">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Gross Transaction Volume</span>
+                          <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                            <IndianRupee className="h-4.5 w-4.5" />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-2xl font-black text-slate-900 font-mono">
+                            ₹{financialSummary.totalGrossVolume.toFixed(2)}
+                          </div>
+                          <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100/70 rounded-full px-2.5 py-0.5">
+                            Total Volume Processed
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-blue-300 transition-all">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Cooperative Fees (10%)</span>
+                          <div className="h-9 w-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                            <Wallet className="h-4.5 w-4.5" />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-2xl font-black text-slate-900 font-mono">
+                            ₹{financialSummary.totalPlatformFees.toFixed(2)}
+                          </div>
+                          <span className="inline-block text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-100/70 rounded-full px-2.5 py-0.5">
+                            Cooperative Platform Revenue
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-indigo-300 transition-all">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Worker Payouts (90%)</span>
+                          <div className="h-9 w-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                            <HandHeart className="h-4.5 w-4.5" />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-2xl font-black text-slate-900 font-mono">
+                            ₹{financialSummary.totalWorkerEarnings.toFixed(2)}
+                          </div>
+                          <span className="inline-block text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100/70 rounded-full px-2.5 py-0.5">
+                            Distributed to Workers
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-purple-200/90 bg-gradient-to-br from-purple-50/70 via-white to-violet-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-purple-300 transition-all">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Transaction Stats</span>
+                          <div className="h-9 w-9 rounded-lg bg-purple-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                            <Receipt className="h-4.5 w-4.5" />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-xl font-black text-slate-900 font-mono">
+                            {financialSummary.completedTransactions} Succ / {financialSummary.refundedTransactions} Ref
+                          </div>
+                          <span className="inline-block text-[10px] font-semibold text-purple-700 bg-purple-50 border border-purple-100/70 rounded-full px-2.5 py-0.5">
+                            Failed: {financialSummary.failedTransactions} | Total: {financialSummary.totalTransactions}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Financial Transactions Directory */}
+                  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900">Financial Audit Transactions</h3>
+                        <p className="text-xs text-slate-500">Filterable transaction audit ledger</p>
+                      </div>
+                    </div>
+
+                    {/* Filter Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80">
+                      <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder="Search by ref, customer, worker..."
+                            value={financialSearch}
+                            onChange={(e) => setFinancialSearch(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') fetchFinancialData(0);
+                            }}
+                            className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => fetchFinancialData(0)}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors"
+                        >
+                          Search
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select
+                          value={financialStatusFilter}
+                          onChange={(e) => {
+                            setFinancialStatusFilter(e.target.value);
+                            setTimeout(() => fetchFinancialData(0), 50);
+                          }}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        >
+                          <option value="ALL">All Statuses</option>
+                          <option value="SUCCESS">SUCCESS</option>
+                          <option value="REFUNDED">REFUNDED</option>
+                          <option value="FAILED">FAILED</option>
+                        </select>
+
+                        <input
+                          type="date"
+                          value={financialFromDate}
+                          onChange={(e) => setFinancialFromDate(e.target.value)}
+                          className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700"
+                        />
+                        <span className="text-xs text-slate-400 font-bold">to</span>
+                        <input
+                          type="date"
+                          value={financialToDate}
+                          onChange={(e) => setFinancialToDate(e.target.value)}
+                          className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700"
+                        />
+
+                        {(financialSearch || financialStatusFilter !== 'ALL' || financialFromDate || financialToDate) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFinancialSearch('');
+                              setFinancialStatusFilter('ALL');
+                              setFinancialFromDate('');
+                              setFinancialToDate('');
+                              setTimeout(() => fetchFinancialData(0), 50);
+                            }}
+                            className="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-800 font-bold"
+                          >
+                            Clear Filters
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Transactions Table */}
+                    <div className="divide-y divide-slate-100 overflow-x-auto">
+                      {financialTransactions.length === 0 ? (
+                        <div className="py-8 text-center text-xs text-slate-500">
+                          No financial transactions found matching the filter criteria.
+                        </div>
+                      ) : (
+                        financialTransactions.map((tx) => (
+                          <div key={tx.id} className="py-3.5 px-2 flex items-center justify-between text-xs min-w-[800px] hover:bg-slate-50/60 rounded-2xl transition-all gap-4">
+                            <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+                              <div className="h-9 w-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 text-emerald-600">
+                                <Receipt className="h-4.5 w-4.5" />
+                              </div>
+                              <div>
+                                <strong className="text-slate-800 font-extrabold text-xs block">{tx.jobTitle || 'Service Job'} • Job #{tx.jobId || tx.id}</strong>
+                                <span className="font-mono text-[11px] text-slate-400 font-semibold">{tx.transactionReference}</span>
+                              </div>
+                            </div>
+
+                            <div className="w-[140px] shrink-0">
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer ➔ Worker</span>
+                              <div className="mt-0.5 leading-snug">
+                                <span className="text-slate-800 font-extrabold block truncate">{tx.customerName || 'Customer'}</span>
+                                <span className="text-slate-500 font-semibold block truncate">to {tx.workerName || 'Worker'}</span>
+                              </div>
+                            </div>
+
+                            <div className="w-[130px] shrink-0">
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Gross / Fee / Net</span>
+                              <div className="mt-0.5 font-mono">
+                                <strong className="text-slate-900 font-extrabold">₹{tx.amount.toFixed(2)}</strong>
+                                <span className="text-[10px] text-slate-400 block">(Fee: ₹{tx.platformFee.toFixed(2)} | Net: ₹{tx.workerEarning.toFixed(2)})</span>
+                              </div>
+                            </div>
+
+                            <div className="w-[90px] shrink-0">
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Method</span>
+                              <span className="font-bold text-slate-600 block mt-0.5">{tx.paymentMethod}</span>
+                            </div>
+
+                            <div className="w-[80px] shrink-0 flex justify-end">
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase border ${
+                                tx.status === 'SUCCESS' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                tx.status === 'REFUNDED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                'bg-red-50 text-red-700 border-red-200'
+                              }`}>
+                                {tx.status}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setSelectedFinancialTxnId(tx.id)}
+                              className="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-700 transition-colors inline-flex items-center gap-1 shrink-0"
+                            >
+                              <Eye className="h-3 w-3 text-slate-400" /> View Audit
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {financialTotalPages > 1 && (
+                      <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
+                        <span>
+                          Showing Page <strong className="text-slate-800">{financialPage + 1}</strong> of <strong className="text-slate-800">{financialTotalPages}</strong> ({financialTotalElements} total transactions)
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={financialPage === 0}
+                            onClick={() => fetchFinancialData(financialPage - 1)}
+                            className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 font-bold"
+                          >
+                            Previous
+                          </button>
+                          <button
+                            type="button"
+                            disabled={financialPage >= financialTotalPages - 1}
+                            onClick={() => fetchFinancialData(financialPage + 1)}
+                            className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 font-bold"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* USERS DIRECTORY TABLE / LIST */}
               {(activeTab === 'users' || activeTab === 'overview') && (
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
@@ -3502,20 +3860,22 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Job Executions</h3>
-                      <p className="text-xs text-slate-500">Live worker performance and contract tracking</p>
+                      <h3 className="text-lg font-bold text-slate-900">Job Executions & Operational Status</h3>
+                      <p className="text-xs text-slate-500">Live worker performance, contract tracking, and operational status filters</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                       {activeTab === 'jobs' && (
-                        <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
-                          {(['ALL', 'ACTIVE', 'ACCEPTED', 'IN_PROGRESS', 'PAYMENT_REQUIRED', 'COMPLETED'] as const).map((st) => (
+                        <div className="flex items-center flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
+                          {(['ALL', 'ACTIVE', 'ACCEPTED', 'IN_PROGRESS', 'PAYMENT_REQUIRED', 'COMPLETED', 'UNASSIGNED', 'UNRESOLVED_DISPUTE', 'OVERDUE'] as const).map((st) => (
                             <button
                               key={st}
                               type="button"
                               onClick={async () => {
                                 setAdminJobStatusFilter(st);
                                 try {
-                                  const filtered = await getAdminJobsApi(st === 'ALL' ? undefined : st);
+                                  let filterParam: string | undefined = st;
+                                  if (st === 'ALL') filterParam = undefined;
+                                  const filtered = await getAdminJobsApi(filterParam);
                                   setAdminJobs(filtered);
                                 } catch {
                                   // Fallback
@@ -3527,7 +3887,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   : 'text-slate-600 hover:text-slate-900'
                               }`}
                             >
-                              {st}
+                              {st === 'UNASSIGNED' ? 'UNASSIGNED REQS' : st === 'UNRESOLVED_DISPUTE' ? 'DISPUTED' : st}
                             </button>
                           ))}
                         </div>
@@ -3570,7 +3930,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Assigned Worker</span>
                             <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-0.5">
                               <Wrench className="h-3 w-3 text-slate-400 shrink-0" />
-                              {j.workerName}
+                              {j.workerName || 'Unassigned'}
                             </span>
                           </div>
                           <div className="w-[100px] shrink-0 flex flex-col items-start">
@@ -3760,6 +4120,87 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       </button>
                     )}
                   </div>
+
+                  {/* Filter Bar for Activity Log (Active when activeTab === 'activity') */}
+                  {activeTab === 'activity' && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80">
+                      <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder="Search activity description or entity ID..."
+                            value={activitySearch}
+                            onChange={(e) => setActivitySearch(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') fetchAdminActivity(0);
+                            }}
+                            className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => fetchAdminActivity(0)}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors"
+                        >
+                          Search
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select
+                          value={activityActionTypeFilter}
+                          onChange={(e) => {
+                            setActivityActionTypeFilter(e.target.value);
+                            setTimeout(() => fetchAdminActivity(0), 50);
+                          }}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        >
+                          <option value="ALL">All Actions</option>
+                          <option value="USER_SUSPENDED">USER_SUSPENDED</option>
+                          <option value="USER_DEACTIVATED">USER_DEACTIVATED</option>
+                          <option value="USER_REACTIVATED">USER_REACTIVATED</option>
+                          <option value="WORKER_ACTIVATED">WORKER_ACTIVATED</option>
+                          <option value="WORKER_DEACTIVATED">WORKER_DEACTIVATED</option>
+                          <option value="WORKER_VERIFIED">WORKER_VERIFIED</option>
+                          <option value="WORKER_REJECTED">WORKER_REJECTED</option>
+                          <option value="DISPUTE_CREATED">DISPUTE_CREATED</option>
+                          <option value="DISPUTE_RESOLVED">DISPUTE_RESOLVED</option>
+                        </select>
+
+                        <input
+                          type="date"
+                          value={activityFromDate}
+                          onChange={(e) => setActivityFromDate(e.target.value)}
+                          className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700"
+                        />
+                        <span className="text-xs text-slate-400 font-bold">to</span>
+                        <input
+                          type="date"
+                          value={activityToDate}
+                          onChange={(e) => setActivityToDate(e.target.value)}
+                          className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700"
+                        />
+
+                        {(activitySearch || activityActionTypeFilter !== 'ALL' || activityFromDate || activityToDate) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActivitySearch('');
+                              setActivityActionTypeFilter('ALL');
+                              setActivityFromDate('');
+                              setActivityToDate('');
+                              setTimeout(() => fetchAdminActivity(0), 50);
+                            }}
+                            className="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-800 font-bold"
+                          >
+                            Clear Filters
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="divide-y divide-slate-100 overflow-x-auto">
                     {displayActivity.length === 0 ? (
                       <p className="text-xs text-slate-400 py-4 text-center">No trace activities recorded.</p>
@@ -3803,6 +4244,33 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       ))
                     )}
                   </div>
+
+                  {/* Pagination Controls for Activity Log */}
+                  {activeTab === 'activity' && activityTotalPages > 1 && (
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
+                      <span>
+                        Showing Page <strong className="text-slate-800">{activityPage + 1}</strong> of <strong className="text-slate-800">{activityTotalPages}</strong> ({activityTotalElements} total log entries)
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={activityPage === 0}
+                          onClick={() => fetchAdminActivity(activityPage - 1)}
+                          className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 font-bold"
+                        >
+                          Previous
+                        </button>
+                        <button
+                          type="button"
+                          disabled={activityPage >= activityTotalPages - 1}
+                          onClick={() => fetchAdminActivity(activityPage + 1)}
+                          className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 font-bold"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -3890,6 +4358,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           <AdminUserDetailModal
             userId={selectedDetailUserId}
             onClose={() => setSelectedDetailUserId(null)}
+          />
+
+          <AdminFinancialDetailModal
+            transactionId={selectedFinancialTxnId}
+            onClose={() => setSelectedFinancialTxnId(null)}
           />
 
           {/* Status Action Confirmation Modal */}

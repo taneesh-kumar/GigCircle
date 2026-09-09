@@ -1,6 +1,9 @@
 import api from './client';
 import type {
   AdminActivity,
+  AdminFinancialSummary,
+  AdminFinancialTransaction,
+  AdminFinancialTransactionDetail,
   AdminJob,
   AdminRating,
   AdminServiceRequest,
@@ -95,8 +98,45 @@ export const getAdminRatingsApi = async (): Promise<AdminRating[]> => {
   return response.data;
 };
 
-export const getAdminActivityApi = async (): Promise<AdminActivity[]> => {
-  const response = await api.get<AdminActivity[]>('/admin/activity');
+export const getAdminActivityApi = async (params?: {
+  actionType?: string;
+  adminId?: number;
+  targetUserId?: number;
+  search?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}): Promise<PageResponse<AdminActivity>> => {
+  const response = await api.get<PageResponse<AdminActivity>>('/admin/activity', { params });
+  return response.data;
+};
+
+export const getFinancialSummaryApi = async (from?: string, to?: string): Promise<AdminFinancialSummary> => {
+  const response = await api.get<AdminFinancialSummary>('/admin/financial/summary', {
+    params: { from, to },
+  });
+  return response.data;
+};
+
+export const getFinancialTransactionsApi = async (params?: {
+  page?: number;
+  size?: number;
+  sort?: string;
+  status?: string;
+  search?: string;
+  from?: string;
+  to?: string;
+  customerId?: number;
+  workerId?: number;
+}): Promise<PageResponse<AdminFinancialTransaction>> => {
+  const response = await api.get<PageResponse<AdminFinancialTransaction>>('/admin/financial/transactions', { params });
+  return response.data;
+};
+
+export const getFinancialTransactionDetailApi = async (transactionId: number): Promise<AdminFinancialTransactionDetail> => {
+  const response = await api.get<AdminFinancialTransactionDetail>(`/admin/financial/transactions/${transactionId}`);
   return response.data;
 };
 

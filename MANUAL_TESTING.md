@@ -166,4 +166,32 @@ Ensure test accounts exist in the database (or register via `/register`):
    - Attempt to call `GET /api/admin/users/{userId}` or `GET /api/admin/users` as Customer or Worker: Verify server returns `403 FORBIDDEN`.
    - Attempt unauthenticated request: Verify server returns `401 UNAUTHORIZED`.
 
+---
+
+### 9. Phase 4: Financial Audit and Operational Management
+1. Log in as **Admin** (`admin@gigcircle.com`).
+2. Navigate to **Financial Audit** tab (`/dashboard?tab=financial`):
+   - Verify summary metric cards display: Gross Transaction Volume, Cooperative Platform Fees (10%), Worker Payouts (90%), and Transaction Stats breakdown (`SUCCESS`, `REFUNDED`, `FAILED`, Total).
+   - Enter Date Range filters (`fromDate` and `toDate`): Click **Search** and verify metric cards and transaction list recalculate over specified range.
+3. **Transaction Audit Ledger & Filters**:
+   - Filter by Payment Status (`SUCCESS`, `REFUNDED`, `FAILED`): Verify ledger filters accordingly.
+   - Search by transaction reference, customer name, or worker name: Verify table filters dynamically.
+   - Click **Clear Filters**: Verify filters reset and list reloads.
+   - Verify pagination controls work smoothly for financial transactions.
+4. **Deep Financial Inspection Modal**:
+   - Click **View Audit** on any transaction:
+     - Verify transaction metadata (reference, payment method, status, currency, timestamp, paid/refunded timestamps).
+     - Verify financial breakdown (gross service amount, platform fee, net worker earning, refund amount).
+     - Verify customer & worker identity strips with quick contact details.
+     - Verify job contract info, linked invoice details, dispute status, and activity audit timeline.
+5. **Job Executions Operational Filters**:
+   - Navigate to **Job Executions** tab (`/dashboard?tab=jobs`).
+   - Select `UNASSIGNED REQS`: Verify unassigned service requests are retrieved.
+   - Select `DISPUTED`: Verify jobs with active disputes are filtered.
+   - Select `OVERDUE`: Verify stalled/overdue job executions are listed.
+6. **Activity Audit Trail Filter Bar**:
+   - Navigate to **Audit Activity** tab (`/dashboard?tab=activity`).
+   - Filter by action type (`USER_SUSPENDED`, `DISPUTE_CREATED`, etc.), search text, or date range.
+   - Verify audit trail logs update accordingly with page navigation controls.
+
 

@@ -140,9 +140,52 @@ public class AdminOperationsController {
     }
 
     @GetMapping("/activity")
-    public ResponseEntity<List<AdminActivityResponse>> getActivity(Principal principal) {
-        List<AdminActivityResponse> activities = adminOperationsService.getActivity(principal.getName());
+    public ResponseEntity<PageResponse<AdminActivityResponse>> getActivity(
+            @RequestParam(required = false) String actionType,
+            @RequestParam(required = false) Long adminId,
+            @RequestParam(required = false) Long targetUserId,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            Principal principal) {
+        PageResponse<AdminActivityResponse> activities = adminOperationsService.getActivityPaginated(actionType, adminId, targetUserId, search, from, to, page, size, sort, principal.getName());
         return ResponseEntity.ok(activities);
+    }
+
+    @GetMapping("/financial/summary")
+    public ResponseEntity<AdminFinancialSummaryResponse> getFinancialSummary(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate to,
+            Principal principal) {
+        AdminFinancialSummaryResponse response = adminOperationsService.getFinancialSummary(from, to, principal.getName());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/financial/transactions")
+    public ResponseEntity<PageResponse<AdminFinancialTransactionResponse>> getFinancialTransactions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(required = false) com.sih.cooperative.entity.PaymentStatus status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate to,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) Long workerId,
+            Principal principal) {
+        PageResponse<AdminFinancialTransactionResponse> response = adminOperationsService.getFinancialTransactions(page, size, sort, status, search, from, to, customerId, workerId, principal.getName());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/financial/transactions/{transactionId}")
+    public ResponseEntity<AdminFinancialTransactionDetailResponse> getFinancialTransactionDetail(
+            @PathVariable Long transactionId,
+            Principal principal) {
+        AdminFinancialTransactionDetailResponse response = adminOperationsService.getFinancialTransactionDetail(transactionId, principal.getName());
+        return ResponseEntity.ok(response);
     }
 }
 

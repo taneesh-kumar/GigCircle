@@ -61,6 +61,12 @@ public class AdminOperationsIntegrationTest {
     private com.sih.cooperative.repository.PaymentRepository paymentRepository;
 
     @Autowired
+    private InvoiceRepository invoiceRepository;
+
+    @Autowired
+    private DisputeRepository disputeRepository;
+
+    @Autowired
     private AdminActivityRepository adminActivityRepository;
 
     @Autowired
@@ -78,6 +84,8 @@ public class AdminOperationsIntegrationTest {
     void setUp() throws Exception {
         adminActivityRepository.deleteAll();
         notificationRepository.deleteAll();
+        invoiceRepository.deleteAll();
+        disputeRepository.deleteAll();
         paymentRepository.deleteAll();
         ratingRepository.deleteAll();
         earningRepository.deleteAll();
@@ -346,8 +354,8 @@ public class AdminOperationsIntegrationTest {
         mockMvc.perform(get("/api/admin/activity")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].actionType").value("WORKER_DEACTIVATED"));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].actionType").value("WORKER_DEACTIVATED"));
     }
 
     @Test
@@ -684,8 +692,171 @@ public class AdminOperationsIntegrationTest {
         mockMvc.perform(get("/api/admin/activity")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].actionType").value("USER_SUSPENDED"));
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].actionType").value("USER_SUSPENDED"));
+    }
+
+    @Test
+    void test40_AdminCanAccessFinancialSummaryAndMetricsAreAccurate() throws Exception {
+        ServiceRequest req = new ServiceRequest(customerUser, ServiceCategory.PLUMBING, "Fix leaking sink", "Delhi", new BigDecimal("1000.00"), LocalDateTime.now());
+        serviceRequestRepository.save(req);
+
+        Job job = new Job(req, workerUser, JobStatus.COMPLETED);
+        jobRepository.save(job);
+
+        Payment payment = new Payment(job, customerUser, new BigDecimal("900.00"), new BigDecimal("100.00"), new BigDecimal("1000.00"), PaymentMethod.UPI, "UPI-REF-12345", PaymentStatus.SUCCESS, "TXN-SUCCESS-100");
+        paymentRepository.save(payment);
+
+        mockMvc.perform(get("/api/admin/financial/summary")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalGrossVolume").value(1000.00))
+                .andExpect(jsonPath("$.totalPlatformFees").value(100.00))
+                .andExpect(jsonPath("$.totalWorkerEarnings").value(900.00))
+                .andExpect(jsonPath("$.completedPaymentAmount").value(1000.00))
+                .andExpect(jsonPath("$.totalTransactions").value(1))
+                .andExpect(jsonPath("$.completedTransactions").value(1));
+    }
+
+    @Test
+    void test41_NonAdminCannotAccessFinancialSummary() throws Exception {
+        mockMvc.perform(get("/api/admin/financial/summary")
+                        .header("Authorization", "Bearer " + customerToken))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/admin/financial/summary")
+                        .header("Authorization", "Bearer " + workerToken))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/admin/financial/summary"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void test42_AdminCanAccessFinancialTransactionsWithPaginationAndFilters() throws Exception {
+        ServiceRequest req = new ServiceRequest(customerUser, ServiceCategory.ELECTRICAL, "Fix wiring", "Mumbai", new BigDecimal("2000.00"), LocalDateTime.now());
+        serviceRequestRepository.save(req);
+
+        Job job = new Job(req, workerUser, JobStatus.COMPLETED);
+        jobRepository.save(job);
+
+        Payment p1 = new Payment(job, customerUser, new BigDecimal("1800.00"), new BigDecimal("200.00"), new BigDecimal("2000.00"), PaymentMethod.CARD, "CARD-REF-999", PaymentStatus.SUCCESS, "TXN-SUCC-200");
+        paymentRepository.save(p1);
+
+        Payment p2 = new Payment(job, customerUser, new BigDecimal("1800.00"), new BigDecimal("200.00"), new BigDecimal("2000.00"), PaymentMethod.UPI, "UPI-REF-888", PaymentStatus.FAILED, "TXN-FAIL-201");
+        paymentRepository.save(p2);
+
+        // Filter by SUCCESS status
+        mockMvc.perform(get("/api/admin/financial/transactions?status=SUCCESS&page=0&size=10")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].transactionReference").value("TXN-SUCC-200"))
+                .andExpect(jsonPath("$.content[0].customerName").value("Customer One"))
+                .andExpect(jsonPath("$.content[0].workerName").value("Worker One"));
+
+        // Search by reference
+        mockMvc.perform(get("/api/admin/financial/transactions?search=FAIL-201")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].status").value("FAILED"));
+    }
+
+    @Test
+    void test43_NonAdminCannotAccessFinancialTransactions() throws Exception {
+        mockMvc.perform(get("/api/admin/financial/transactions")
+                        .header("Authorization", "Bearer " + customerToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void test44_AdminCanAccessTransactionDetails() throws Exception {
+        ServiceRequest req = new ServiceRequest(customerUser, ServiceCategory.CLEANING, "Deep house clean", "Delhi", new BigDecimal("1500.00"), LocalDateTime.now());
+        serviceRequestRepository.save(req);
+
+        Job job = new Job(req, workerUser, JobStatus.COMPLETED);
+        jobRepository.save(job);
+
+        Payment p = new Payment(job, customerUser, new BigDecimal("1350.00"), new BigDecimal("150.00"), new BigDecimal("1500.00"), PaymentMethod.CARD, "CARD-REF-777", PaymentStatus.SUCCESS, "TXN-DET-300");
+        paymentRepository.save(p);
+
+        Invoice inv = new Invoice("INV-2026-001", job, customerUser, workerUser, "Cleaning Service", "Deep house clean", new BigDecimal("1350.00"), new BigDecimal("150.00"), BigDecimal.ZERO, BigDecimal.ZERO, new BigDecimal("1500.00"), PaymentStatus.SUCCESS, "TXN-DET-300", LocalDateTime.now(), LocalDateTime.now());
+        invoiceRepository.save(inv);
+
+        mockMvc.perform(get("/api/admin/financial/transactions/" + p.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(p.getId()))
+                .andExpect(jsonPath("$.transactionReference").value("TXN-DET-300"))
+                .andExpect(jsonPath("$.amount").value(1500.00))
+                .andExpect(jsonPath("$.platformFee").value(150.00))
+                .andExpect(jsonPath("$.workerEarning").value(1350.00))
+                .andExpect(jsonPath("$.customerEmail").value("customer1@test.com"))
+                .andExpect(jsonPath("$.workerEmail").value("worker1@test.com"))
+                .andExpect(jsonPath("$.invoiceNumber").value("INV-2026-001"));
+    }
+
+    @Test
+    void test45_NonAdminCannotAccessTransactionDetailsAndMissingReturns404() throws Exception {
+        mockMvc.perform(get("/api/admin/financial/transactions/99999")
+                        .header("Authorization", "Bearer " + customerToken))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/admin/financial/transactions/99999")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void test46_DateRangeValidationAndFilteringOnFinancialSummaryAndTransactions() throws Exception {
+        // Invalid date range from > to
+        mockMvc.perform(get("/api/admin/financial/summary?from=2026-09-10&to=2026-09-01")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/admin/financial/transactions?from=2026-09-10&to=2026-09-01")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void test47_SensitiveFieldsAreAbsentFromFinancialResponses() throws Exception {
+        ServiceRequest req = new ServiceRequest(customerUser, ServiceCategory.GARDENING, "Lawn mowing", "Delhi", new BigDecimal("500.00"), LocalDateTime.now());
+        serviceRequestRepository.save(req);
+
+        Job job = new Job(req, workerUser, JobStatus.COMPLETED);
+        jobRepository.save(job);
+
+        Payment p = new Payment(job, customerUser, new BigDecimal("450.00"), new BigDecimal("50.00"), new BigDecimal("500.00"), PaymentMethod.CARD, "CARD-SECRET-1234", PaymentStatus.SUCCESS, "TXN-SAFE-400");
+        paymentRepository.save(p);
+
+        MvcResult result = mockMvc.perform(get("/api/admin/financial/transactions/" + p.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        assertFalse(body.contains("password"));
+        assertFalse(body.contains("secret"));
+        assertFalse(body.contains("cardNumber"));
+        assertFalse(body.contains("cvv"));
+    }
+
+    @Test
+    void test48_PaginatedAndFilteredAuditActivityEndpoint() throws Exception {
+        mockMvc.perform(post("/api/admin/users/" + customerUser.getId() + "/suspend")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Policy audit test\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/admin/activity?actionType=USER_SUSPENDED&page=0&size=10")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].actionType").value("USER_SUSPENDED"))
+                .andExpect(jsonPath("$.content[0].description").value(org.hamcrest.Matchers.containsString("Policy audit test")));
     }
 }
 

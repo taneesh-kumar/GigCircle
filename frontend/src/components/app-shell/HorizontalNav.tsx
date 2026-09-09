@@ -45,6 +45,7 @@ const workerNav: NavItem[] = [
 
 const adminNav: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'financial', label: 'Financial Audit', icon: Wallet },
   { id: 'verifications', label: 'Verifications', icon: ShieldCheck },
   { id: 'users', label: 'Users', icon: UsersRound },
   { id: 'workers', label: 'Workers', icon: HandHeart },

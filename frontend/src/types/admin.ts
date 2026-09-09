@@ -180,3 +180,87 @@ export interface AdminUserDetail extends AdminUser {
   recentActivity?: AdminActivity[];
 }
 
+export type PaymentStatus = 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'REFUNDED';
+export type PaymentMethod = 'UPI' | 'CARD' | 'CASH';
+
+export interface AdminFinancialSummary {
+  totalGrossVolume: number;
+  totalPlatformFees: number;
+  totalWorkerEarnings: number;
+  completedPaymentAmount: number;
+  pendingPaymentAmount: number;
+  failedPaymentAmount: number;
+  refundedAmount: number;
+  totalTransactions: number;
+  completedTransactions: number;
+  pendingTransactions: number;
+  failedTransactions: number;
+  refundedTransactions: number;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface AdminFinancialTransaction {
+  id: number;
+  jobId?: number;
+  serviceRequestId?: number;
+  jobTitle?: string;
+  customerId?: number;
+  customerName?: string;
+  workerId?: number;
+  workerName?: string;
+  amount: number;
+  platformFee: number;
+  workerEarning: number;
+  status: PaymentStatus;
+  paymentMethod: PaymentMethod;
+  transactionReference: string;
+  invoiceId?: number;
+  invoiceNumber?: string;
+  hasDispute?: boolean;
+  disputeId?: number;
+  disputeStatus?: string;
+  createdAt: string;
+  paidAt?: string;
+}
+
+export interface AdminFinancialTransactionDetail {
+  id: number;
+  transactionReference: string;
+  status: PaymentStatus;
+  paymentMethod: PaymentMethod;
+  paymentMethodDetails?: string;
+  currency?: string;
+  serviceAmount: number;
+  platformFee: number;
+  amount: number;
+  workerEarning: number;
+  refundAmount?: number;
+  createdAt: string;
+  paidAt?: string;
+  refundedAt?: string;
+  failureReason?: string;
+  customerId?: number;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  workerId?: number;
+  workerName?: string;
+  workerEmail?: string;
+  workerPhone?: string;
+  jobId?: number;
+  serviceRequestId?: number;
+  jobTitle?: string;
+  jobStatus?: string;
+  invoiceId?: number;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  invoiceStatus?: string;
+  disputeId?: number;
+  disputeReason?: string;
+  disputeStatus?: string;
+  disputeResolution?: string;
+  auditLogs?: AdminActivity[];
+}
+
+

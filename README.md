@@ -85,8 +85,8 @@ The **GigCircle Cooperative Gig Services Platform** provides a structured digita
 | **Phase 1** | **Account Status & Governance** | `AccountStatus` enum (`ACTIVE`, `SUSPENDED`, `DEACTIVATED`), login enforcement, admin user activation/deactivation/suspension controls, self-deactivation protection, audit logging. | **COMPLETE** |
 | **Phase 2** | **Full Admin Dashboard & Analytics** | Enhanced Overview KPIs, backend completion & cancellation rate calculations, service demand by category API, filterable active jobs API, dynamic operational alerts API, and UI sections. | **COMPLETE** |
 | **Phase 3** | **Dispute Management Backend** | Single active dispute constraint per job, participant dispute creation/response, admin dispute resolution workflow, audit logging & history. | **COMPLETE** |
-| **Phase 4** | **Frontend Integration** | TypeScript DTO interfaces, Axios API clients, `ChatPanel` with auto-polling, `DisputeCreateForm`, `DisputeDetailPanel`, and `AdminDisputesPage`. | **COMPLETE** |
-| **Phase 5** | **Validation & Security Hardening** | Full backend test suite pass, frontend typecheck/production build pass, security audit, E2E manual role testing. | **COMPLETE** |
+| **Phase 4** | **Financial Audit & Operational Management** | Read-only administrative financial metrics DTO, paginated financial audit transaction list, deep transaction inspection modal, job operational status filters (`UNASSIGNED`, `UNRESOLVED_DISPUTE`, `OVERDUE`), audit activity filter bar. | **COMPLETE** |
+| **Phase 5** | **Validation & Security Hardening** | Full backend test suite pass (231/231 tests), frontend typecheck/production build pass, security audit, E2E manual role testing. | **COMPLETE** |
 
 
 ---
@@ -98,14 +98,15 @@ GigCircle/
 ├── .env.example             # Git-safe environment template
 ├── .gitignore               # Ignored files (node_modules, target, .env)
 ├── README.md                # Project documentation & onboarding guide
+├── MANUAL_TESTING.md        # Comprehensive step-by-step manual testing guide
 ├── package.json             # Root NPM configuration & convenience scripts
 ├── schema.sql               # Database schema & initial seeds
 │
 ├── frontend/                # React + TypeScript + Vite client application
 │   ├── src/
-│   │   ├── components/      # Layout elements, ChatPanel, Dispute components, Modals
+│   │   ├── components/      # Layout elements, ChatPanel, Dispute components, Modals (User Detail, Financial Detail)
 │   │   ├── pages/           # Customer, Worker, Admin dashboards & AdminDisputesPage
-│   │   ├── services/api/    # Axios API services for auth, chat, dispute, jobs, payments
+│   │   ├── services/api/    # Axios API services for auth, chat, dispute, jobs, payments, admin
 │   │   ├── types/           # TypeScript DTO interfaces (chat, dispute, admin, etc.)
 │   │   ├── App.tsx          # Router setup
 │   │   └── main.tsx         # Entry point
@@ -116,14 +117,14 @@ GigCircle/
     ├── src/
     │   ├── main/java/com/sih/cooperative/
     │   │   ├── config/       # Security, CORS, and DatabaseMigrationRunner
-    │   │   ├── controller/   # REST Controllers (Auth, Chat, Dispute, AdminDispute, Requests, Worker, Rating, Payment)
-    │   │   ├── dto/          # Data Transfer Objects
-    │   │   ├── entity/       # JPA Entities (User, Job, ChatConversation, ChatMessage, Dispute, DisputeHistory, DisputeEvidence, AdminActivity)
-    │   │   ├── repository/   # Spring Data JPA Repositories
+    │   │   ├── controller/   # REST Controllers (Auth, Chat, Dispute, AdminDispute, AdminOperations, Requests, Worker, Rating, Payment)
+    │   │   ├── dto/          # Data Transfer Objects (AdminFinancialSummaryResponse, AdminFinancialTransactionResponse, etc.)
+    │   │   ├── entity/       # JPA Entities (User, Job, ChatConversation, ChatMessage, Dispute, DisputeHistory, DisputeEvidence, AdminActivity, Invoice, Payment)
+    │   │   ├── repository/   # Spring Data JPA Repositories (Specification Executors)
     │   │   ├── security/     # JwtTokenProvider, JwtAuthFilter
     │   │   └── service/      # Business logic & transaction handlers
     │   └── test/java/com/sih/cooperative/
-    │       └── *IntegrationTest.java # 15 Integration Test Suites (185 tests)
+    │       └── *IntegrationTest.java # 16 Integration Test Suites (231 tests)
     └── pom.xml              # Maven dependencies
 ```
 
@@ -197,7 +198,7 @@ cd backend
 mvn clean test
 ```
 
-- **Tests Executed**: **209**
+- **Tests Executed**: **231**
 - **Failures**: **0**
 - **Errors**: **0**
 - **Skipped**: **0**
@@ -243,11 +244,30 @@ npm run build
 | **Admin Ops** | `POST` | `/api/admin/users/{userId}/deactivate` | ADMIN | Deactivate target user account with reason |
 | **Admin Ops** | `POST` | `/api/admin/users/{userId}/suspend` | ADMIN | Suspend target user account with reason |
 | **Admin Ops** | `POST` | `/api/admin/users/{userId}/reactivate` | ADMIN | Reactivate target user account |
+| **Financial Audit** | `GET` | `/api/admin/financial/summary` | ADMIN | Aggregated gross volume, platform fees, worker payouts, and transaction metrics |
+| **Financial Audit** | `GET` | `/api/admin/financial/transactions` | ADMIN | Paginated transaction list with status, search, and date range filters |
+| **Financial Audit** | `GET` | `/api/admin/financial/transactions/{id}` | ADMIN | Full read-only financial audit detail inspection for transaction |
+| **Audit Activity** | `GET` | `/api/admin/activity` | ADMIN | Paginated activity audit trail with action type, search, and date range filters |
 | **Admin Disputes**| `GET` | `/api/admin/disputes` | ADMIN | List all platform disputes (filterable) |
 | **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/review` | ADMIN | Move dispute under review |
 | **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/request-response`| ADMIN | Request additional info |
 | **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/resolve` | ADMIN | Resolve dispute with resolution notes |
 | **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/dismiss` | ADMIN | Dismiss dispute with dismissal notes |
+
+---
+
+## 💳 Phase 4 Financial Audit & Operational Management
+
+1. **Read-Only Financial Metrics (`GET /api/admin/financial/summary`)**:
+   - Calculates gross transaction volume, 10% cooperative platform fees, 90% worker payouts, payment status breakdowns, and transaction counts over optional date ranges.
+2. **Filterable Transaction Audit Ledger (`GET /api/admin/financial/transactions`)**:
+   - Supports page controls, payment status filter (`SUCCESS`, `REFUNDED`, `FAILED`), customer/worker/reference search, and date range filtering.
+3. **Deep Financial Inspection Modal (`GET /api/admin/financial/transactions/{id}`)**:
+   - Displays full payment method info, sanitized method details, customer/worker metadata, job contract info, linked invoice details, dispute status, and timeline audit logs.
+4. **Enhanced Active Job Filtering**:
+   - Operational filters for `UNASSIGNED` (unassigned service requests), `UNRESOLVED_DISPUTE` (jobs with active disputes), and `OVERDUE` (stalled job executions).
+5. **Security & Financial Integrity**:
+   - Strictly read-only views for administrators. No secret gateway credentials or card details exposed; no unverified financial mutations permitted.
 
 ---
 

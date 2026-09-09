@@ -34,6 +34,8 @@ public class AdminOperationsService {
     private final NotificationService notificationService;
     private final WorkerVerificationRepository workerVerificationRepository;
     private final DisputeRepository disputeRepository;
+    private final PaymentRepository paymentRepository;
+    private final InvoiceRepository invoiceRepository;
 
 
     public AdminOperationsService(UserRepository userRepository,
@@ -45,7 +47,9 @@ public class AdminOperationsService {
                                   AdminActivityRepository adminActivityRepository,
                                   NotificationService notificationService,
                                   WorkerVerificationRepository workerVerificationRepository,
-                                  DisputeRepository disputeRepository) {
+                                  DisputeRepository disputeRepository,
+                                  PaymentRepository paymentRepository,
+                                  InvoiceRepository invoiceRepository) {
         this.userRepository = userRepository;
         this.workerProfileRepository = workerProfileRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -56,6 +60,8 @@ public class AdminOperationsService {
         this.notificationService = notificationService;
         this.workerVerificationRepository = workerVerificationRepository;
         this.disputeRepository = disputeRepository;
+        this.paymentRepository = paymentRepository;
+        this.invoiceRepository = invoiceRepository;
     }
 
 
@@ -702,6 +708,316 @@ public class AdminOperationsService {
 
         Page<User> userPage = userRepository.findAll(spec, pageable);
         Page<AdminUserResponse> dtoPage = userPage.map(AdminUserResponse::fromEntity);
+
+        return PageResponse.fromPage(dtoPage);
+    }
+
+    private void validateDateRange(java.time.LocalDate from, java.time.LocalDate to) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start date ('from') cannot be after end date ('to')");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public AdminFinancialSummaryResponse getFinancialSummary(java.time.LocalDate from, java.time.LocalDate to, String adminEmail) {
+        getAuthenticatedAdmin(adminEmail);
+        validateDateRange(from, to);
+
+        Specification<Payment> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            if (from != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from.atStartOfDay()));
+            }
+            if (to != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), to.atTime(23, 59, 59)));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        List<Payment> payments = paymentRepository.findAll(spec);
+
+        BigDecimal totalGrossVolume = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalPlatformFees = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalWorkerEarnings = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal completedAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal pendingAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal failedAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal refundedAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+        long totalTxns = payments.size();
+        long completedTxns = 0;
+        long pendingTxns = 0;
+        long failedTxns = 0;
+        long refundedTxns = 0;
+
+        for (Payment p : payments) {
+            BigDecimal amt = p.getAmount() != null ? p.getAmount() : BigDecimal.ZERO;
+            BigDecimal fee = p.getPlatformFee() != null ? p.getPlatformFee() : BigDecimal.ZERO;
+            BigDecimal serviceAmt = p.getServiceAmount() != null ? p.getServiceAmount() : amt.subtract(fee);
+
+            if (p.getStatus() == PaymentStatus.SUCCESS) {
+                completedTxns++;
+                completedAmount = completedAmount.add(amt);
+                totalGrossVolume = totalGrossVolume.add(amt);
+                totalPlatformFees = totalPlatformFees.add(fee);
+                totalWorkerEarnings = totalWorkerEarnings.add(serviceAmt);
+            } else if (p.getStatus() == PaymentStatus.PENDING || p.getStatus() == PaymentStatus.PROCESSING) {
+                pendingTxns++;
+                pendingAmount = pendingAmount.add(amt);
+            } else if (p.getStatus() == PaymentStatus.FAILED || p.getStatus() == PaymentStatus.CANCELLED) {
+                failedTxns++;
+                failedAmount = failedAmount.add(amt);
+            } else if (p.getStatus() == PaymentStatus.REFUNDED) {
+                refundedTxns++;
+                BigDecimal refAmt = p.getRefundAmount() != null ? p.getRefundAmount() : amt;
+                refundedAmount = refundedAmount.add(refAmt);
+            }
+        }
+
+        return new AdminFinancialSummaryResponse(
+                totalGrossVolume,
+                totalPlatformFees,
+                totalWorkerEarnings,
+                completedAmount,
+                pendingAmount,
+                failedAmount,
+                refundedAmount,
+                totalTxns,
+                completedTxns,
+                pendingTxns,
+                failedTxns,
+                refundedTxns,
+                from,
+                to
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<AdminFinancialTransactionResponse> getFinancialTransactions(
+            int page, int size, String sort, PaymentStatus status, String search,
+            java.time.LocalDate from, java.time.LocalDate to, Long customerId, Long workerId, String adminEmail) {
+
+        getAuthenticatedAdmin(adminEmail);
+        validateDateRange(from, to);
+
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(100, Math.max(1, size));
+
+        Sort sortOrder = Sort.by(Sort.Direction.DESC, "createdAt");
+        if ("amount".equalsIgnoreCase(sort)) {
+            sortOrder = Sort.by(Sort.Direction.DESC, "amount");
+        } else if ("status".equalsIgnoreCase(sort)) {
+            sortOrder = Sort.by(Sort.Direction.ASC, "status");
+        }
+
+        Pageable pageable = PageRequest.of(safePage, safeSize, sortOrder);
+
+        Specification<Payment> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (customerId != null) {
+                predicates.add(cb.equal(root.get("customer").get("id"), customerId));
+            }
+            if (workerId != null) {
+                predicates.add(cb.equal(root.get("job").get("worker").get("id"), workerId));
+            }
+            if (from != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from.atStartOfDay()));
+            }
+            if (to != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), to.atTime(23, 59, 59)));
+            }
+            if (search != null && !search.isBlank()) {
+                String q = "%" + search.toLowerCase().trim() + "%";
+                jakarta.persistence.criteria.Predicate refLike = cb.like(cb.lower(root.get("transactionReference")), q);
+                jakarta.persistence.criteria.Predicate customerLike = cb.like(cb.lower(root.get("customer").get("name")), q);
+                jakarta.persistence.criteria.Predicate workerLike = cb.like(cb.lower(root.get("job").get("worker").get("name")), q);
+                jakarta.persistence.criteria.Predicate titleLike = cb.like(cb.lower(root.get("job").get("serviceRequest").get("description")), q);
+                predicates.add(cb.or(refLike, customerLike, workerLike, titleLike));
+            }
+
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        Page<Payment> paymentPage = paymentRepository.findAll(spec, pageable);
+
+        Page<AdminFinancialTransactionResponse> dtoPage = paymentPage.map(p -> {
+            AdminFinancialTransactionResponse res = new AdminFinancialTransactionResponse();
+            res.setId(p.getId());
+            res.setTransactionReference(p.getTransactionReference());
+            res.setAmount(p.getAmount());
+            res.setPlatformFee(p.getPlatformFee());
+            res.setWorkerEarning(p.getServiceAmount() != null ? p.getServiceAmount() : p.getAmount().subtract(p.getPlatformFee()));
+            res.setStatus(p.getStatus());
+            res.setPaymentMethod(p.getPaymentMethod());
+            res.setCreatedAt(p.getCreatedAt());
+            res.setPaidAt(p.getPaidAt());
+
+            if (p.getCustomer() != null) {
+                res.setCustomerId(p.getCustomer().getId());
+                res.setCustomerName(p.getCustomer().getName());
+            }
+
+            if (p.getJob() != null) {
+                Job j = p.getJob();
+                res.setJobId(j.getId());
+                if (j.getServiceRequest() != null) {
+                    res.setServiceRequestId(j.getServiceRequest().getId());
+                    res.setJobTitle(j.getServiceRequest().getDescription());
+                }
+                if (j.getWorker() != null) {
+                    res.setWorkerId(j.getWorker().getId());
+                    res.setWorkerName(j.getWorker().getName());
+                }
+
+                invoiceRepository.findByJobId(j.getId()).ifPresent(inv -> {
+                    res.setInvoiceId(inv.getId());
+                    res.setInvoiceNumber(inv.getInvoiceNumber());
+                });
+
+                disputeRepository.findByJobIdOrderByCreatedAtDesc(j.getId()).stream().findFirst().ifPresent(disp -> {
+                    res.setHasDispute(true);
+                    res.setDisputeId(disp.getId());
+                    res.setDisputeStatus(disp.getStatus().name());
+                });
+            }
+
+            if (res.getHasDispute() == null) {
+                res.setHasDispute(false);
+            }
+
+            return res;
+        });
+
+        return PageResponse.fromPage(dtoPage);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminFinancialTransactionDetailResponse getFinancialTransactionDetail(Long transactionId, String adminEmail) {
+        getAuthenticatedAdmin(adminEmail);
+
+        Payment p = paymentRepository.findById(transactionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Transaction not found with ID: " + transactionId));
+
+        AdminFinancialTransactionDetailResponse res = new AdminFinancialTransactionDetailResponse();
+        res.setId(p.getId());
+        res.setTransactionReference(p.getTransactionReference());
+        res.setStatus(p.getStatus());
+        res.setPaymentMethod(p.getPaymentMethod());
+        res.setPaymentMethodDetails(p.getPaymentMethodDetails());
+        res.setCurrency(p.getCurrency());
+        res.setServiceAmount(p.getServiceAmount());
+        res.setPlatformFee(p.getPlatformFee());
+        res.setAmount(p.getAmount());
+        res.setWorkerEarning(p.getServiceAmount() != null ? p.getServiceAmount() : p.getAmount().subtract(p.getPlatformFee()));
+        res.setRefundAmount(p.getRefundAmount());
+        res.setCreatedAt(p.getCreatedAt());
+        res.setPaidAt(p.getPaidAt());
+        res.setRefundedAt(p.getRefundedAt());
+        res.setFailureReason(p.getFailureReason());
+
+        if (p.getCustomer() != null) {
+            res.setCustomerId(p.getCustomer().getId());
+            res.setCustomerName(p.getCustomer().getName());
+            res.setCustomerEmail(p.getCustomer().getEmail());
+            res.setCustomerPhone(p.getCustomer().getPhone());
+        }
+
+        if (p.getJob() != null) {
+            Job j = p.getJob();
+            res.setJobId(j.getId());
+            res.setJobStatus(j.getStatus() != null ? j.getStatus().name() : null);
+
+            if (j.getServiceRequest() != null) {
+                res.setServiceRequestId(j.getServiceRequest().getId());
+                res.setJobTitle(j.getServiceRequest().getDescription());
+            }
+
+            if (j.getWorker() != null) {
+                res.setWorkerId(j.getWorker().getId());
+                res.setWorkerName(j.getWorker().getName());
+                res.setWorkerEmail(j.getWorker().getEmail());
+                res.setWorkerPhone(j.getWorker().getPhone());
+            }
+
+            invoiceRepository.findByJobId(j.getId()).ifPresent(inv -> {
+                res.setInvoiceId(inv.getId());
+                res.setInvoiceNumber(inv.getInvoiceNumber());
+                res.setInvoiceDate(inv.getCreatedAt());
+                res.setInvoiceStatus(inv.getPaymentStatus() != null ? inv.getPaymentStatus().name() : null);
+            });
+
+            disputeRepository.findByJobIdOrderByCreatedAtDesc(j.getId()).stream().findFirst().ifPresent(disp -> {
+                res.setDisputeId(disp.getId());
+                res.setDisputeReason(disp.getReason() != null ? disp.getReason().name() : null);
+                res.setDisputeStatus(disp.getStatus() != null ? disp.getStatus().name() : null);
+                res.setDisputeResolution(disp.getResolutionNotes());
+            });
+
+            List<AdminActivity> activities = adminActivityRepository.findAll().stream()
+                    .filter(act -> ("PAYMENT".equalsIgnoreCase(act.getEntityType()) && p.getId().equals(act.getEntityId()))
+                            || ("JOB".equalsIgnoreCase(act.getEntityType()) && j.getId().equals(act.getEntityId())))
+                    .collect(Collectors.toList());
+
+            res.setAuditLogs(activities.stream().map(AdminActivityResponse::fromEntity).collect(Collectors.toList()));
+        } else {
+            res.setAuditLogs(List.of());
+        }
+
+        return res;
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<AdminActivityResponse> getActivityPaginated(
+            String actionType, Long adminId, Long targetUserId, String search,
+            java.time.LocalDate from, java.time.LocalDate to, int page, int size, String sort, String adminEmail) {
+
+        getAuthenticatedAdmin(adminEmail);
+        validateDateRange(from, to);
+
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(100, Math.max(1, size));
+
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Specification<AdminActivity> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+
+            if (actionType != null && !actionType.isBlank()) {
+                predicates.add(cb.equal(cb.upper(root.get("actionType")), actionType.trim().toUpperCase()));
+            }
+            if (adminId != null) {
+                predicates.add(cb.equal(root.get("adminId"), adminId));
+            }
+            if (targetUserId != null) {
+                predicates.add(cb.and(
+                        cb.equal(cb.upper(root.get("entityType")), "USER"),
+                        cb.equal(root.get("entityId"), targetUserId)
+                ));
+            }
+            if (from != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from.atStartOfDay()));
+            }
+            if (to != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), to.atTime(23, 59, 59)));
+            }
+            if (search != null && !search.isBlank()) {
+                String q = "%" + search.toLowerCase().trim() + "%";
+                jakarta.persistence.criteria.Predicate actionLike = cb.like(cb.lower(root.get("actionType")), q);
+                jakarta.persistence.criteria.Predicate descLike = cb.like(cb.lower(root.get("description")), q);
+                jakarta.persistence.criteria.Predicate entityLike = cb.like(cb.lower(root.get("entityType")), q);
+                predicates.add(cb.or(actionLike, descLike, entityLike));
+            }
+
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        Page<AdminActivity> activityPage = adminActivityRepository.findAll(spec, pageable);
+        Page<AdminActivityResponse> dtoPage = activityPage.map(AdminActivityResponse::fromEntity);
 
         return PageResponse.fromPage(dtoPage);
     }
