@@ -10,10 +10,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 @Service
 public class AdminOperationsService {
@@ -583,5 +589,120 @@ public class AdminOperationsService {
         return activities.stream()
                 .map(AdminActivityResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public AdminUserDetailResponse getUserDetail(Long userId, String adminEmail) {
+        getAuthenticatedAdmin(adminEmail);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with ID: " + userId));
+
+        AdminUserDetailResponse detail = new AdminUserDetailResponse();
+        detail.setId(user.getId());
+        detail.setName(user.getName());
+        detail.setEmail(user.getEmail());
+        detail.setPhone(user.getPhone());
+        detail.setRole(user.getRole());
+        detail.setActive(user.isActive());
+        detail.setStatus(user.getStatus());
+        detail.setCreatedAt(user.getCreatedAt());
+
+        // Customer & Job metrics
+        List<ServiceRequest> userRequests = serviceRequestRepository.findByCustomerIdOrderByCreatedAtDesc(user.getId());
+        detail.setServiceRequestsCreatedCount((long) userRequests.size());
+        detail.setOpenRequestsCount(userRequests.stream().filter(r -> r.getStatus() == ServiceRequestStatus.OPEN).count());
+        detail.setCompletedRequestsCount(userRequests.stream().filter(r -> r.getStatus() != ServiceRequestStatus.OPEN && r.getStatus() != ServiceRequestStatus.CANCELLED).count());
+        detail.setCancelledRequestsCount(userRequests.stream().filter(r -> r.getStatus() == ServiceRequestStatus.CANCELLED).count());
+
+        List<Job> workerJobs = jobRepository.findByWorkerIdOrderByCreatedAtDesc(user.getId());
+        detail.setJobsAssignedCount((long) workerJobs.size());
+        detail.setJobsCompletedCount(workerJobs.stream().filter(j -> j.getStatus() == JobStatus.COMPLETED).count());
+        detail.setActiveJobsCount(workerJobs.stream().filter(j -> j.getStatus() == JobStatus.ACCEPTED || j.getStatus() == JobStatus.IN_PROGRESS || j.getStatus() == JobStatus.PAYMENT_REQUIRED).count());
+
+        // Ratings metrics
+        List<Rating> submittedRatings = ratingRepository.findAll().stream().filter(r -> r.getCustomer().getId().equals(user.getId())).collect(Collectors.toList());
+        detail.setRatingsSubmittedCount((long) submittedRatings.size());
+        Long ratingsRecCount = ratingRepository.countByWorkerId(user.getId());
+        detail.setRatingsReceivedCount(ratingsRecCount != null ? ratingsRecCount : 0L);
+        detail.setAverageRatingReceived(ratingRepository.findAverageScoreByWorkerId(user.getId()));
+
+        // Earnings metrics
+        BigDecimal workerGross = earningRepository.sumGrossAmountByWorkerId(user.getId());
+        BigDecimal workerEarnings = earningRepository.sumWorkerEarningByWorkerId(user.getId());
+        BigDecimal workerPlatformFees = earningRepository.sumPlatformFeeByWorkerId(user.getId());
+
+        detail.setTotalGrossVolume(workerGross != null ? workerGross : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+        detail.setTotalWorkerEarnings(workerEarnings != null ? workerEarnings : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+        detail.setTotalPlatformFees(workerPlatformFees != null ? workerPlatformFees : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+
+        // Worker Profile details if applicable
+        if (user.getRole() == Role.WORKER) {
+            workerProfileRepository.findByWorkerId(user.getId()).ifPresent(profile -> {
+                detail.setWorkerProfileId(profile.getId());
+                detail.setBio(profile.getBio());
+                detail.setExperienceYears(profile.getExperienceYears());
+                detail.setHourlyRate(profile.getHourlyRate());
+                detail.setSkills(profile.getSkills());
+                detail.setServiceCategories(profile.getServiceCategories());
+                detail.setAvailable(profile.isAvailable());
+                detail.setServiceLocation(profile.getServiceLocation());
+                detail.setServiceRadiusKm(profile.getServiceRadiusKm());
+            });
+
+            workerVerificationRepository.findByWorkerId(user.getId()).ifPresent(verif -> {
+                detail.setVerificationStatus(verif.getStatus());
+                detail.setVerificationSubmittedAt(verif.getSubmittedAt());
+                detail.setVerificationReviewedAt(verif.getReviewedAt());
+            });
+        }
+
+        // Audit & activity history
+        List<AdminActivity> activities = adminActivityRepository.findByEntityTypeAndEntityIdOrderByCreatedAtDesc("USER", user.getId());
+        if (user.getRole() == Role.WORKER && activities.isEmpty()) {
+            activities = adminActivityRepository.findByEntityTypeAndEntityIdOrderByCreatedAtDesc("WORKER", user.getId());
+        }
+        detail.setRecentActivity(activities.stream().map(AdminActivityResponse::fromEntity).collect(Collectors.toList()));
+
+        return detail;
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<AdminUserResponse> getUsersPaginated(Role roleFilter, AccountStatus statusFilter, Boolean activeFilter, String search, int page, int size, String sort, String adminEmail) {
+        getAuthenticatedAdmin(adminEmail);
+
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(100, Math.max(1, size));
+
+        Pageable pageable = PageRequest.of(
+                safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        Specification<User> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+
+            if (roleFilter != null) {
+                predicates.add(cb.equal(root.get("role"), roleFilter));
+            }
+            if (statusFilter != null) {
+                predicates.add(cb.equal(root.get("status"), statusFilter));
+            }
+            if (activeFilter != null) {
+                predicates.add(cb.equal(root.get("active"), activeFilter));
+            }
+            if (search != null && !search.isBlank()) {
+                String q = "%" + search.toLowerCase().trim() + "%";
+                jakarta.persistence.criteria.Predicate nameLike = cb.like(cb.lower(root.get("name")), q);
+                jakarta.persistence.criteria.Predicate emailLike = cb.like(cb.lower(root.get("email")), q);
+                predicates.add(cb.or(nameLike, emailLike));
+            }
+
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        Page<User> userPage = userRepository.findAll(spec, pageable);
+        Page<AdminUserResponse> dtoPage = userPage.map(AdminUserResponse::fromEntity);
+
+        return PageResponse.fromPage(dtoPage);
     }
 }

@@ -134,3 +134,49 @@ export interface AdminActivity {
   description: string;
   createdAt: string;
 }
+
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+export interface AdminUserDetail extends AdminUser {
+  serviceRequestsCreatedCount?: number;
+  openRequestsCount?: number;
+  completedRequestsCount?: number;
+  cancelledRequestsCount?: number;
+
+  jobsAssignedCount?: number;
+  jobsCompletedCount?: number;
+  activeJobsCount?: number;
+
+  ratingsSubmittedCount?: number;
+  ratingsReceivedCount?: number;
+  averageRatingReceived?: number;
+
+  totalGrossVolume?: number;
+  totalPlatformFees?: number;
+  totalWorkerEarnings?: number;
+
+  workerProfileId?: number;
+  bio?: string;
+  experienceYears?: number;
+  hourlyRate?: number;
+  skills?: string[];
+  serviceCategories?: ServiceCategory[];
+  available?: boolean;
+  serviceLocation?: string;
+  serviceRadiusKm?: number;
+
+  verificationStatus?: string;
+  verificationSubmittedAt?: string;
+  verificationReviewedAt?: string;
+
+  recentActivity?: AdminActivity[];
+}
+

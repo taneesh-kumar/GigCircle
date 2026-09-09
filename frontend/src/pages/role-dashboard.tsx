@@ -139,6 +139,7 @@ import type {
   PlatformOverviewSummary,
   ServiceDemandResponse,
 } from '@/types/admin';
+import { AdminUserDetailModal } from '@/components/admin-user-detail-modal';
 import type { Notification } from '@/types/notification';
 import { useToast } from '@/hooks/use-toast';
 
@@ -280,6 +281,19 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [adminEarningsLedger, setAdminEarningsLedger] = useState<Earning[]>([]);
   const [adminOverview, setAdminOverview] = useState<PlatformOverviewSummary | null>(null);
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [adminUserSearch, setAdminUserSearch] = useState<string>('');
+  const [adminUserStatusFilter, setAdminUserStatusFilter] = useState<'ALL' | 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED'>('ALL');
+  const [adminUserPage, setAdminUserPage] = useState<number>(0);
+  const [adminUserTotalElements, setAdminUserTotalElements] = useState<number>(0);
+  const [adminUserTotalPages, setAdminUserTotalPages] = useState<number>(1);
+  const [selectedDetailUserId, setSelectedDetailUserId] = useState<number | null>(null);
+
+  // Status Action Modal State
+  const [statusModalUser, setStatusModalUser] = useState<AdminUser | null>(null);
+  const [statusModalAction, setStatusModalAction] = useState<'suspend' | 'deactivate' | null>(null);
+  const [statusModalReason, setStatusModalReason] = useState<string>('');
+  const [isSubmittingStatus, setIsSubmittingStatus] = useState<boolean>(false);
+
   const [adminWorkers, setAdminWorkers] = useState<AdminWorker[]>([]);
   const [adminRequests, setAdminRequests] = useState<AdminServiceRequest[]>([]);
   const [adminJobs, setAdminJobs] = useState<AdminJob[]>([]);
@@ -452,13 +466,38 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     }
   };
 
+  const fetchAdminUsers = async (page: number = adminUserPage) => {
+    if (role !== 'admin') return;
+    try {
+      const userRes = await getAdminUsersApi({
+        role: adminUserFilter === 'ALL' ? undefined : adminUserFilter,
+        status: adminUserStatusFilter === 'ALL' ? undefined : adminUserStatusFilter,
+        search: adminUserSearch.trim() || undefined,
+        page,
+        size: 10,
+      });
+      setAdminUsers(userRes.content);
+      setAdminUserPage(userRes.page);
+      setAdminUserTotalElements(userRes.totalElements);
+      setAdminUserTotalPages(userRes.totalPages);
+    } catch (err: any) {
+      console.error('Failed to fetch admin users:', err);
+    }
+  };
+
   const fetchAdminData = async () => {
     if (role !== 'admin') return;
     setIsLoadingAdminData(true);
     try {
-      const [overview, users, workers, reqs, jobs, ratings, activity, revenueSummary, revenueLedger, payments, paymentSummary, demand, alerts] = await Promise.all([
+      const [overview, userRes, workers, reqs, jobs, ratings, activity, revenueSummary, revenueLedger, payments, paymentSummary, demand, alerts] = await Promise.all([
         getAdminOverviewApi(),
-        getAdminUsersApi(),
+        getAdminUsersApi({
+          role: adminUserFilter === 'ALL' ? undefined : adminUserFilter,
+          status: adminUserStatusFilter === 'ALL' ? undefined : adminUserStatusFilter,
+          search: adminUserSearch.trim() || undefined,
+          page: adminUserPage,
+          size: 10,
+        }),
         getAdminWorkersApi(),
         getAdminServiceRequestsApi(),
         getAdminJobsApi(adminJobStatusFilter === 'ALL' ? undefined : adminJobStatusFilter),
@@ -473,7 +512,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         getOperationalAlertsApi(),
       ]);
       setAdminOverview(overview);
-      setAdminUsers(users);
+      setAdminUsers(userRes.content);
+      setAdminUserPage(userRes.page);
+      setAdminUserTotalElements(userRes.totalElements);
+      setAdminUserTotalPages(userRes.totalPages);
       setAdminWorkers(workers);
       setAdminRequests(reqs);
       setAdminJobs(jobs);
@@ -3087,136 +3129,220 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-bold text-slate-900">User Directory</h3>
-                      <p className="text-xs text-slate-500">System user registrations and active roles</p>
+                      <p className="text-xs text-slate-500">System user registrations, status management, and detail inspection</p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      {activeTab === 'overview' && (
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'users' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Users →
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filters and Search Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80">
+                    <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Search users by name or email..."
+                          value={adminUserSearch}
+                          onChange={(e) => setAdminUserSearch(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') fetchAdminUsers(0);
+                          }}
+                          className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => fetchAdminUsers(0)}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors"
+                      >
+                        Search
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Role Filter */}
+                      <select
+                        value={adminUserFilter}
+                        onChange={(e) => {
+                          const val = e.target.value as any;
+                          setAdminUserFilter(val);
+                          setTimeout(() => fetchAdminUsers(0), 50);
+                        }}
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="ALL">All Roles</option>
+                        <option value="CUSTOMER">Customer</option>
+                        <option value="WORKER">Worker</option>
+                        <option value="ADMIN">Admin</option>
+                      </select>
+
+                      {/* Status Filter */}
+                      <select
+                        value={adminUserStatusFilter}
+                        onChange={(e) => {
+                          const val = e.target.value as any;
+                          setAdminUserStatusFilter(val);
+                          setTimeout(() => fetchAdminUsers(0), 50);
+                        }}
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="ALL">All Statuses</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="SUSPENDED">Suspended</option>
+                        <option value="DEACTIVATED">Deactivated</option>
+                      </select>
+
+                      {(adminUserSearch || adminUserFilter !== 'ALL' || adminUserStatusFilter !== 'ALL') && (
                         <button
                           type="button"
-                          onClick={() => setSearchParams({ tab: 'users' })}
-                          className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors mr-2"
+                          onClick={() => {
+                            setAdminUserSearch('');
+                            setAdminUserFilter('ALL');
+                            setAdminUserStatusFilter('ALL');
+                            setTimeout(() => fetchAdminUsers(0), 50);
+                          }}
+                          className="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-800 font-bold"
                         >
-                          View All Users →
+                          Clear Filters
                         </button>
                       )}
-                      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
-                        {(['ALL', 'CUSTOMER', 'WORKER', 'ADMIN'] as const).map((r) => (
-                          <button
-                            key={r}
-                            type="button"
-                            onClick={() => setAdminUserFilter(r)}
-                            className={`rounded-lg px-3 py-1.5 font-bold transition-all ${
-                              adminUserFilter === r
-                                ? 'bg-emerald-600 text-white shadow-xs'
-                                : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            {r}
-                          </button>
-                        ))}
-                      </div>
                     </div>
                   </div>
 
+                  {/* Users List */}
                   <div className="divide-y divide-slate-100 overflow-x-auto">
-                    {displayUsers.map((u) => (
-                      <div key={u.id} className="py-3 px-2 flex items-center justify-between text-xs min-w-[650px] hover:bg-slate-50/60 rounded-2xl transition-all gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 text-blue-600">
-                            <User className="h-4.5 w-4.5" />
-                          </div>
-                          <div>
-                            <strong className="text-slate-800 font-extrabold text-sm block">{u.name}</strong>
-                            <span className="text-[11px] text-slate-500 font-mono block mt-0.5">{u.email}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className={`inline-block border rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
-                            u.role === 'ADMIN'
-                              ? 'bg-purple-50 text-purple-700 border-purple-100'
-                              : u.role === 'WORKER'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                              : 'bg-blue-50 text-blue-700 border-blue-100'
-                          }`}>
-                            {u.role}
-                          </span>
-
-                          <span className={`inline-block border rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
-                            u.status === 'ACTIVE'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : u.status === 'SUSPENDED'
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : 'bg-rose-50 text-rose-700 border-rose-200'
-                          }`}>
-                            {u.status || (u.active ? 'ACTIVE' : 'DEACTIVATED')}
-                          </span>
-
-                          <span className="text-slate-500 font-mono text-[11px] bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-1">
-                            📞 {u.phone}
-                          </span>
-
-                          {user?.id !== u.id && (
-                            <div className="flex items-center gap-1.5 ml-2">
-                              {(u.status === 'SUSPENDED' || u.status === 'DEACTIVATED' || !u.active) ? (
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    try {
-                                      await reactivateUserApi(u.id);
-                                      toast({ title: 'User Reactivated', description: `${u.name} is now active.` });
-                                      fetchAdminData();
-                                    } catch (err: any) {
-                                      toast({ title: 'Action Failed', description: err?.response?.data?.message || 'Error', variant: 'destructive' });
-                                    }
-                                  }}
-                                  className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
-                                >
-                                  Reactivate
-                                </button>
-                              ) : (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      const reason = window.prompt(`Enter reason for suspending ${u.name}:`);
-                                      if (!reason || !reason.trim()) return;
-                                      try {
-                                        await suspendUserApi(u.id, reason.trim());
-                                        toast({ title: 'User Suspended', description: `${u.name} has been suspended.` });
-                                        fetchAdminData();
-                                      } catch (err: any) {
-                                        toast({ title: 'Action Failed', description: err?.response?.data?.message || 'Error', variant: 'destructive' });
-                                      }
-                                    }}
-                                    className="rounded-lg bg-amber-500 hover:bg-amber-600 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
-                                  >
-                                    Suspend
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      const reason = window.prompt(`Enter reason for deactivating ${u.name}:`);
-                                      if (!reason || !reason.trim()) return;
-                                      try {
-                                        await deactivateUserApi(u.id, reason.trim());
-                                        toast({ title: 'User Deactivated', description: `${u.name} has been deactivated.` });
-                                        fetchAdminData();
-                                      } catch (err: any) {
-                                        toast({ title: 'Action Failed', description: err?.response?.data?.message || 'Error', variant: 'destructive' });
-                                      }
-                                    }}
-                                    className="rounded-lg bg-rose-600 hover:bg-rose-700 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
-                                  >
-                                    Deactivate
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                    {adminUsers.length === 0 ? (
+                      <div className="py-8 text-center text-xs text-slate-500">
+                        No users match the selected search criteria.
                       </div>
-                    ))}
+                    ) : (
+                      adminUsers.map((u) => (
+                        <div key={u.id} className="py-3.5 px-2 flex items-center justify-between text-xs min-w-[750px] hover:bg-slate-50/60 rounded-2xl transition-all gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 text-blue-600">
+                              <User className="h-4.5 w-4.5" />
+                            </div>
+                            <div>
+                              <strong className="text-slate-800 font-extrabold text-sm block">{u.name}</strong>
+                              <span className="text-[11px] text-slate-500 font-mono block mt-0.5">{u.email}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span className={`inline-block border rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
+                              u.role === 'ADMIN'
+                                ? 'bg-purple-50 text-purple-700 border-purple-100'
+                                : u.role === 'WORKER'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                : 'bg-blue-50 text-blue-700 border-blue-100'
+                            }`}>
+                              {u.role}
+                            </span>
+
+                            <span className={`inline-block border rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
+                              u.status === 'ACTIVE'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : u.status === 'SUSPENDED'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-rose-50 text-rose-700 border-rose-200'
+                            }`}>
+                              {u.status || (u.active ? 'ACTIVE' : 'DEACTIVATED')}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => setSelectedDetailUserId(u.id)}
+                              className="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-700 transition-colors inline-flex items-center gap-1"
+                            >
+                              <Eye className="h-3 w-3 text-slate-400" /> View Details
+                            </button>
+
+                            {user?.id !== u.id && (
+                              <div className="flex items-center gap-1.5 ml-2">
+                                {(u.status === 'SUSPENDED' || u.status === 'DEACTIVATED' || !u.active) ? (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        await reactivateUserApi(u.id);
+                                        toast({ title: 'User Reactivated', description: `${u.name} is now active.` });
+                                        fetchAdminUsers();
+                                      } catch (err: any) {
+                                        toast({ title: 'Action Failed', description: err?.response?.data?.message || 'Error', variant: 'destructive' });
+                                      }
+                                    }}
+                                    className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
+                                  >
+                                    Reactivate
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setStatusModalUser(u);
+                                        setStatusModalAction('suspend');
+                                        setStatusModalReason('');
+                                      }}
+                                      className="rounded-lg bg-amber-500 hover:bg-amber-600 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
+                                    >
+                                      Suspend
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setStatusModalUser(u);
+                                        setStatusModalAction('deactivate');
+                                        setStatusModalReason('');
+                                      }}
+                                      className="rounded-lg bg-rose-600 hover:bg-rose-700 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
+                                    >
+                                      Deactivate
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
+
+                  {/* Pagination Controls */}
+                  {activeTab === 'users' && adminUserTotalPages > 1 && (
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
+                      <span>
+                        Showing Page <strong className="text-slate-800">{adminUserPage + 1}</strong> of <strong className="text-slate-800">{adminUserTotalPages}</strong> ({adminUserTotalElements} total users)
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={adminUserPage === 0}
+                          onClick={() => fetchAdminUsers(adminUserPage - 1)}
+                          className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 font-bold"
+                        >
+                          Previous
+                        </button>
+                        <button
+                          type="button"
+                          disabled={adminUserPage >= adminUserTotalPages - 1}
+                          onClick={() => fetchAdminUsers(adminUserPage + 1)}
+                          className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 font-bold"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -3755,6 +3881,104 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             onStatusChange={fetchWorkerJobs}
             showCancelButton={false}
           />
+        </>
+      )}
+
+      {/* Admin Modals */}
+      {role === 'admin' && (
+        <>
+          <AdminUserDetailModal
+            userId={selectedDetailUserId}
+            onClose={() => setSelectedDetailUserId(null)}
+          />
+
+          {/* Status Action Confirmation Modal */}
+          {statusModalUser && statusModalAction && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-gray-900 border border-gray-800 text-gray-100 rounded-xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-4">
+                <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+                  <h3 className="text-lg font-bold text-white capitalize">
+                    {statusModalAction} User Account
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setStatusModalUser(null);
+                      setStatusModalAction(null);
+                    }}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-300">
+                  Are you sure you want to <strong>{statusModalAction}</strong> user <strong>{statusModalUser.name}</strong> ({statusModalUser.email})?
+                  Current status: <span className="font-semibold">{statusModalUser.status || (statusModalUser.active ? 'ACTIVE' : 'DEACTIVATED')}</span>.
+                </p>
+
+                <div>
+                  <label className="text-xs text-gray-400 font-semibold block mb-1">
+                    Reason for {statusModalAction} <span className="text-rose-400">*</span>
+                  </label>
+                  <textarea
+                    value={statusModalReason}
+                    onChange={(e) => setStatusModalReason(e.target.value)}
+                    placeholder={`Enter explicit administrative reason to ${statusModalAction} user...`}
+                    rows={3}
+                    className="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatusModalUser(null);
+                      setStatusModalAction(null);
+                    }}
+                    className="px-3.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSubmittingStatus || !statusModalReason.trim()}
+                    onClick={async () => {
+                      if (!statusModalReason.trim()) return;
+                      setIsSubmittingStatus(true);
+                      try {
+                        if (statusModalAction === 'suspend') {
+                          await suspendUserApi(statusModalUser.id, statusModalReason.trim());
+                          toast({ title: 'User Suspended', description: `${statusModalUser.name} suspended.` });
+                        } else {
+                          await deactivateUserApi(statusModalUser.id, statusModalReason.trim());
+                          toast({ title: 'User Deactivated', description: `${statusModalUser.name} deactivated.` });
+                        }
+                        setStatusModalUser(null);
+                        setStatusModalAction(null);
+                        fetchAdminUsers();
+                      } catch (err: any) {
+                        toast({
+                          title: 'Action Failed',
+                          description: err?.response?.data?.message || 'Status change failed.',
+                          variant: 'destructive',
+                        });
+                      } finally {
+                        setIsSubmittingStatus(false);
+                      }
+                    }}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold text-white transition-all disabled:opacity-50 ${
+                      statusModalAction === 'suspend'
+                        ? 'bg-amber-600 hover:bg-amber-700'
+                        : 'bg-rose-600 hover:bg-rose-700'
+                    }`}
+                  >
+                    {isSubmittingStatus ? 'Processing...' : `Confirm ${statusModalAction}`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </PlatformShell>

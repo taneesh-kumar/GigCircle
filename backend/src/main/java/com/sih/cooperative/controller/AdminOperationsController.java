@@ -28,13 +28,25 @@ public class AdminOperationsController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<AdminUserResponse>> getUsers(
+    public ResponseEntity<PageResponse<AdminUserResponse>> getUsers(
             @RequestParam(required = false) Role role,
+            @RequestParam(required = false) com.sih.cooperative.entity.AccountStatus status,
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
             Principal principal) {
-        List<AdminUserResponse> users = adminOperationsService.getUsers(role, active, search, principal.getName());
+        PageResponse<AdminUserResponse> users = adminOperationsService.getUsersPaginated(role, status, active, search, page, size, sort, principal.getName());
         return ResponseEntity.ok(users);
+    }
+
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<AdminUserDetailResponse> getUserDetail(
+            @PathVariable Long userId,
+            Principal principal) {
+        AdminUserDetailResponse response = adminOperationsService.getUserDetail(userId, principal.getName());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/workers")

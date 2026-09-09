@@ -169,8 +169,9 @@ public class AdminOperationsIntegrationTest {
         mockMvc.perform(get("/api/admin/users")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].email").exists());
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.content.length()").value(3))
+                .andExpect(jsonPath("$.content[0].email").exists());
     }
 
     @Test
@@ -579,6 +580,112 @@ public class AdminOperationsIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].alertType").value("UNASSIGNED_SERVICE_REQUESTS"))
                 .andExpect(jsonPath("$[0].severity").value("WARNING"));
+    }
+
+    // ==========================================
+    // PHASE 3 TESTS
+    // ==========================================
+
+    @Test
+    void test32_AdminCanRetrieveCustomerDetails() throws Exception {
+        mockMvc.perform(get("/api/admin/users/" + customerUser.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(customerUser.getId()))
+                .andExpect(jsonPath("$.email").value("customer1@test.com"))
+                .andExpect(jsonPath("$.role").value("CUSTOMER"))
+                .andExpect(jsonPath("$.serviceRequestsCreatedCount").value(0))
+                .andExpect(jsonPath("$.passwordHash").doesNotExist())
+                .andExpect(jsonPath("$.token").doesNotExist());
+    }
+
+    @Test
+    void test33_AdminCanRetrieveWorkerDetails() throws Exception {
+        mockMvc.perform(get("/api/admin/users/" + workerUser.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(workerUser.getId()))
+                .andExpect(jsonPath("$.email").value("worker1@test.com"))
+                .andExpect(jsonPath("$.role").value("WORKER"))
+                .andExpect(jsonPath("$.skills").exists())
+                .andExpect(jsonPath("$.bio").value("Experienced Electrician"));
+    }
+
+    @Test
+    void test34_AdminCanRetrieveAnotherAdminDetails() throws Exception {
+        User admin2 = new User("Second Admin", "admin2@test.com", "9888888888", passwordEncoder.encode("AdminPass123!"), Role.ADMIN);
+        userRepository.save(admin2);
+
+        mockMvc.perform(get("/api/admin/users/" + admin2.getId())
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(admin2.getId()))
+                .andExpect(jsonPath("$.role").value("ADMIN"));
+    }
+
+    @Test
+    void test35_NonAdminCannotRetrieveUserDetails() throws Exception {
+        mockMvc.perform(get("/api/admin/users/" + customerUser.getId())
+                        .header("Authorization", "Bearer " + customerToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void test36_MissingUserReturns404() throws Exception {
+        mockMvc.perform(get("/api/admin/users/999999")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void test37_UserSearchByNameAndEmail() throws Exception {
+        mockMvc.perform(get("/api/admin/users?search=Customer")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].email").value("customer1@test.com"));
+
+        mockMvc.perform(get("/api/admin/users?search=worker1@test.com")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Worker One"));
+    }
+
+    @Test
+    void test38_RoleAndStatusFilteringAndPaginationMetadata() throws Exception {
+        mockMvc.perform(get("/api/admin/users?role=WORKER&status=ACTIVE&page=0&size=10")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true))
+                .andExpect(jsonPath("$.content[0].role").value("WORKER"));
+    }
+
+    @Test
+    void test39_StatusChangesCreateAuditRecordsAndRepeatedStatusHandledSafely() throws Exception {
+        mockMvc.perform(post("/api/admin/users/" + customerUser.getId() + "/suspend")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Repeated violation check\"}"))
+                .andExpect(status().isOk());
+
+        // Repeated suspension
+        mockMvc.perform(post("/api/admin/users/" + customerUser.getId() + "/suspend")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Repeated violation check again\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/admin/activity")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].actionType").value("USER_SUSPENDED"));
     }
 }
 

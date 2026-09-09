@@ -125,9 +125,45 @@ Ensure test accounts exist in the database (or register via `/register`):
 
 ---
 
-### 7. Security & Access Boundary Verification
-- **Unrelated Job Access**: Attempt to access a job chat, dispute, or invoice belonging to another user. Verify API returns `403 FORBIDDEN`.
-- **Non-Admin Access**: Attempt to navigate to `/admin/disputes` or call `/api/admin/overview` as Customer or Worker. Verify client redirects or returns `403 Access Denied`.
-- **Closed Dispute Protection**: Verify participant response input is disabled on `RESOLVED` or `DISMISSED` disputes.
-- **Session Refresh**: Refresh page (F5) during an active chat/dispute/invoice view. Verify authenticated session restores and data reloads cleanly.
+### 8. Phase 3: Advanced Admin User Management and Unified Dashboard UX
+1. Log in as **Admin** (`admin@gigcircle.com`).
+2. **User Search and Dynamic Filtering**:
+   - Navigate to **User Directory** tab (`/dashboard?tab=users`).
+   - Enter name search (e.g., `"John"`) or email search (e.g., `"customer1@test.com"`): Verify list filters dynamically at database level.
+   - Filter by Role (`CUSTOMER`, `WORKER`, `ADMIN`): Verify table filters accordingly.
+   - Filter by Account Status (`ACTIVE`, `SUSPENDED`, `DEACTIVATED`): Verify table filters accordingly.
+   - Click **Clear Filters**: Verify filters reset and list reloads.
+3. **Database Pagination**:
+   - Verify pagination bar displays current page index, total page count, and total result count.
+   - Click **Next** and **Previous** buttons: Verify user list pages smoothly.
+4. **User Detail Inspection Modal**:
+   - Click **View Details** on any Customer account:
+     - Verify basic profile info (Name, Email, Phone, Created Date, Role, Account Status).
+     - Verify Customer service request metrics (Created, Open, Completed, Cancelled).
+     - Verify Customer financial summary and ratings submitted.
+     - Verify sensitive fields (password hash, JWT tokens) are **never** present.
+   - Click **View Details** on any Worker account:
+     - Verify Worker profile details (Bio, Skills, Categories, Experience, Hourly Rate, Availability).
+     - Verify Worker verification status, submission/review timestamps.
+     - Verify Worker job execution metrics (Assigned, Completed, Active) and Earnings summary (Gross, Net, Platform Fees).
+     - Verify audit history log of recent admin actions affecting this worker.
+   - Click **View Details** on another Admin account:
+     - Verify admin profile details display cleanly without exposing security credentials.
+5. **Enhanced Account Status Management & Dialog Confirmations**:
+   - Select an active user and click **Suspend** or **Deactivate**:
+     - Verify action opens a modal confirmation dialog displaying target user name and current status.
+     - Attempt submit with blank reason: Verify submit button is disabled.
+     - Enter non-blank reason (e.g., `"Suspicious account activity"`) and click Confirm:
+       - Verify loading indicator while request is processing.
+       - Verify success feedback toast and user list reloads.
+       - Verify AdminActivity audit log records acting admin ID, target user ID, action, reason, and timestamp.
+   - Select a suspended/deactivated user and click **Reactivate**:
+     - Verify user returns to `ACTIVE` status and audit log entry is saved.
+   - Self-Action and Final Admin Protections:
+     - Verify suspend/deactivate actions are hidden for logged-in admin user.
+     - Deactivate all other admin accounts, then attempt to deactivate the final active admin via direct API: Verify API rejects with error protection.
+6. **Non-Admin Security Verification**:
+   - Attempt to call `GET /api/admin/users/{userId}` or `GET /api/admin/users` as Customer or Worker: Verify server returns `403 FORBIDDEN`.
+   - Attempt unauthenticated request: Verify server returns `401 UNAUTHORIZED`.
+
 

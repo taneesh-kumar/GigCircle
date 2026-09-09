@@ -10,4 +10,7 @@ import java.util.List;
 public interface AdminActivityRepository extends JpaRepository<AdminActivity, Long> {
 
     List<AdminActivity> findAllByOrderByCreatedAtDesc();
+
+    List<AdminActivity> findByEntityTypeAndEntityIdOrderByCreatedAtDesc(String entityType, Long entityId);
 }
+

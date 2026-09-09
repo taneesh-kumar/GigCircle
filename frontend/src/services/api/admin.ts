@@ -5,8 +5,10 @@ import type {
   AdminRating,
   AdminServiceRequest,
   AdminUser,
+  AdminUserDetail,
   AdminWorker,
   OperationalAlertResponse,
+  PageResponse,
   PlatformOverviewSummary,
   ServiceDemandResponse,
 } from '@/types/admin';
@@ -18,10 +20,18 @@ export const getAdminOverviewApi = async (): Promise<PlatformOverviewSummary> =>
 
 export const getAdminUsersApi = async (params?: {
   role?: string;
+  status?: string;
   active?: boolean;
   search?: string;
-}): Promise<AdminUser[]> => {
-  const response = await api.get<AdminUser[]>('/admin/users', { params });
+  page?: number;
+  size?: number;
+}): Promise<PageResponse<AdminUser>> => {
+  const response = await api.get<PageResponse<AdminUser>>('/admin/users', { params });
+  return response.data;
+};
+
+export const getAdminUserDetailApi = async (userId: number): Promise<AdminUserDetail> => {
+  const response = await api.get<AdminUserDetail>(`/admin/users/${userId}`);
   return response.data;
 };
 

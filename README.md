@@ -236,6 +236,13 @@ npm run build
 | **Disputes** | `GET` | `/api/disputes/my-disputes` | Authenticated | List disputes involving current user |
 | **Disputes** | `GET` | `/api/disputes/job/{jobId}` | Authenticated | Get dispute details for job |
 | **Disputes** | `POST` | `/api/disputes/{id}/respond` | Authenticated | Respond to active dispute |
+| **Admin Ops** | `GET` | `/api/admin/overview` | ADMIN | Enhanced platform overview KPIs & analytics |
+| **Admin Ops** | `GET` | `/api/admin/users` | ADMIN | Database-level paginated & filtered user directory |
+| **Admin Ops** | `GET` | `/api/admin/users/{userId}` | ADMIN | Detailed administrative user inspection |
+| **Admin Ops** | `POST` | `/api/admin/users/{userId}/activate` | ADMIN | Activate target user account |
+| **Admin Ops** | `POST` | `/api/admin/users/{userId}/deactivate` | ADMIN | Deactivate target user account with reason |
+| **Admin Ops** | `POST` | `/api/admin/users/{userId}/suspend` | ADMIN | Suspend target user account with reason |
+| **Admin Ops** | `POST` | `/api/admin/users/{userId}/reactivate` | ADMIN | Reactivate target user account |
 | **Admin Disputes**| `GET` | `/api/admin/disputes` | ADMIN | List all platform disputes (filterable) |
 | **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/review` | ADMIN | Move dispute under review |
 | **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/request-response`| ADMIN | Request additional info |
@@ -244,14 +251,22 @@ npm run build
 
 ---
 
-## 💬 Chat & Dispute Management Workflow
+## 🛠️ Phase 3 Advanced Admin User Management & Unified UX
 
-1. **Job-Scoped Communication**: Each assigned `Job` gets exactly one `ChatConversation`. Only the Customer and assigned Worker can send/read messages. Identity is strictly derived from the JWT authentication context.
-2. **Dispute Resolution Flow**:
-   - Customer or Worker can raise a dispute (`OPEN`) if an issue arises. Only one active dispute (`OPEN`, `UNDER_REVIEW`, `ACTION_REQUIRED`) is permitted per Job.
-   - Participants can view the dispute history timeline and post response updates.
-   - Admin reviews the dispute via `/admin/disputes`, transitions status (`UNDER_REVIEW` / `ACTION_REQUIRED`), and finalizes it with required resolution or dismissal notes (`RESOLVED` / `DISMISSED`).
-   - Every status change logs a `DisputeHistory` entry, and every admin action records an `AdminActivity` audit entry.
+1. **User Detail Inspection (`GET /api/admin/users/{userId}`)**:
+   - Returns complete administrative overview (profile, request/job metrics, financial volume, rating stats, worker verification status, recent audit history).
+   - Sensitive fields (password hashes, tokens) are strictly excluded.
+2. **Database-Level User Search & Pagination (`GET /api/admin/users`)**:
+   - Supports filtering by `role` (`CUSTOMER`, `WORKER`, `ADMIN`), `status` (`ACTIVE`, `SUSPENDED`, `DEACTIVATED`), `active` flag, and string `search` (name & email).
+   - Returns structured `PageResponse` containing page index, size, total elements, total pages, first/last flags, and content array.
+3. **Status Management & Protection Rules**:
+   - Requires non-blank reason for deactivation or suspension.
+   - Enforces self-deactivation/suspension prevention and final active admin protection.
+   - Every status change records an `AdminActivity` audit log entry.
+4. **Unified Frontend UX**:
+   - Reusable `AdminUserDetailModal` for deep inspection.
+   - Explicit confirmation dialog for suspension and deactivation (replacing browser `prompt()`).
+   - Integrated search bar, role filter dropdown, status filter dropdown, and page controls.
 
 ---
 
@@ -261,4 +276,5 @@ GigCircle V1 is fully prepared for **Smart India Hackathon** evaluation:
 - Demonstrates transparent local household service matching.
 - Implements worker cooperative fee economic distribution.
 - Features integrated Customer–Worker Job Chat and Dispute Resolution workflows.
+- Features complete Admin Dashboard KPIs, analytics, operational alerts, and Advanced User Governance.
 - Enforces multi-tier security, database notifications, and administrative platform governance.
