@@ -28,7 +28,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.math.BigDecimal;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -66,8 +65,11 @@ public class WorkerVerificationStorageSecurityTest {
     private String worker2Token;
     private String customerToken;
 
+    @SuppressWarnings("unused")
     private User worker1User;
+    @SuppressWarnings("unused")
     private User worker2User;
+    @SuppressWarnings("unused")
     private User customerUser;
     private User adminUser;
 

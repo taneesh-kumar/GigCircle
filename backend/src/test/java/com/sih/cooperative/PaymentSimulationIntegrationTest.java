@@ -63,6 +63,7 @@ public class PaymentSimulationIntegrationTest {
 
     private String customerToken;
     private String workerToken;
+    @SuppressWarnings("unused")
     private String adminToken;
     private Long jobId;
 

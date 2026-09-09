@@ -1,6 +1,5 @@
 package com.sih.cooperative;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sih.cooperative.dto.AdminVerificationReviewRequest;
 import com.sih.cooperative.dto.CreateWorkerProfileRequest;

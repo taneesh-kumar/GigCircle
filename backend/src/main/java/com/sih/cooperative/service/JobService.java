@@ -25,7 +25,6 @@ public class JobService {
     private final WorkerProfileRepository workerProfileRepository;
     private final UserRepository userRepository;
     private final WorkerMatchingService workerMatchingService;
-    private final EarningService earningService;
     private final NotificationService notificationService;
     private final PaymentService paymentService;
 
@@ -34,7 +33,6 @@ public class JobService {
                       WorkerProfileRepository workerProfileRepository,
                       UserRepository userRepository,
                       WorkerMatchingService workerMatchingService,
-                      EarningService earningService,
                       NotificationService notificationService,
                       PaymentService paymentService) {
         this.jobRepository = jobRepository;
@@ -42,7 +40,6 @@ public class JobService {
         this.workerProfileRepository = workerProfileRepository;
         this.userRepository = userRepository;
         this.workerMatchingService = workerMatchingService;
-        this.earningService = earningService;
         this.notificationService = notificationService;
         this.paymentService = paymentService;
     }

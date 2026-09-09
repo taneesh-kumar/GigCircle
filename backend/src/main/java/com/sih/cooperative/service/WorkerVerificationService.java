@@ -75,10 +75,6 @@ public class WorkerVerificationService {
         }
     }
 
-    private void validateFileReference(String fileReference) {
-        verificationStorageService.validateFileReference(fileReference);
-    }
-
     @Transactional(readOnly = true)
     public WorkerVerificationResponse getWorkerVerification(String workerEmail) {
         User worker = getAuthenticatedWorker(workerEmail);
@@ -113,7 +109,7 @@ public class WorkerVerificationService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot modify documents for an already verified profile without a resubmission review flow");
         }
 
-        String physicalFilename = verificationStorageService.storeDocumentFile(request.getFileReference(), null);
+        verificationStorageService.storeDocumentFile(request.getFileReference(), null);
 
         Optional<VerificationDocument> existingDocOpt = verification.getDocuments().stream()
                 .filter(d -> d.getDocumentType() == request.getDocumentType())

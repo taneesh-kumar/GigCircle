@@ -8,7 +8,6 @@ import com.sih.cooperative.dto.UpdateVerificationDocumentRequest;
 import com.sih.cooperative.entity.Role;
 import com.sih.cooperative.entity.User;
 import com.sih.cooperative.entity.VerificationDocumentType;
-import com.sih.cooperative.entity.VerificationStatus;
 import com.sih.cooperative.repository.UserRepository;
 import com.sih.cooperative.repository.VerificationDocumentRepository;
 import com.sih.cooperative.repository.WorkerProfileRepository;
@@ -25,7 +24,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -64,6 +62,7 @@ public class WorkerVerificationApiIntegrationTest {
     private String customerToken;
 
     private User worker1User;
+    @SuppressWarnings("unused")
     private User worker2User;
 
     @BeforeEach

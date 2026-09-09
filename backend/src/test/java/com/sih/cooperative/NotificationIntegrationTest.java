@@ -17,11 +17,9 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -67,6 +65,7 @@ public class NotificationIntegrationTest {
     private String customerToken2;
     private String workerToken1;
     private String workerToken2;
+    @SuppressWarnings("unused")
     private String adminToken;
 
     @BeforeEach

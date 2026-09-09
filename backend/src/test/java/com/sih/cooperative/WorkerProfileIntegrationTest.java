@@ -62,6 +62,7 @@ public class WorkerProfileIntegrationTest {
     private com.sih.cooperative.repository.PaymentRepository paymentRepository;
 
     private String workerAToken;
+    @SuppressWarnings("unused")
     private String workerBToken;
     private String customerToken;
 
