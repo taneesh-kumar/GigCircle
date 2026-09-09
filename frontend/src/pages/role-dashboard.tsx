@@ -1419,7 +1419,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   <div className="flex items-center gap-2 flex-wrap">
                                     {(() => {
                                       const payment = req.jobId ? customerJobPayments[req.jobId] : undefined;
-                                      const isPaid = payment?.paymentStatus === 'SUCCESS';
+                                      const isPaid = payment?.paymentStatus === 'SUCCESS' || payment?.paymentStatus === 'PAID';
                                       if (!isPaid) {
                                         return (
                                           <button

@@ -1,6 +1,6 @@
 export type PaymentMethod = 'PHONEPE';
 
-export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'INITIATED' | 'CANCELLED';
+export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'INITIATED' | 'CANCELLED' | 'PAID';
 
 export interface Payment {
   id: number;
@@ -28,3 +28,4 @@ export interface Payment {
 export interface PaymentRequest {
   jobId: number;
 }
+
