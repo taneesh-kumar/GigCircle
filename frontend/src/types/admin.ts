@@ -18,6 +18,8 @@ export interface PlatformOverviewSummary {
   totalWorkerEarnings: number;
 }
 
+export type AccountStatus = 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
+
 export interface AdminUser {
   id: number;
   name: string;
@@ -25,6 +27,7 @@ export interface AdminUser {
   phone: string;
   role: Role;
   active: boolean;
+  status: AccountStatus;
   createdAt: string;
 }
 

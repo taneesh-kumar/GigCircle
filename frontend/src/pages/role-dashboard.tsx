@@ -60,6 +60,10 @@ import {
   completeWorkerJobApi,
   declineWorkerJobApi,
   deactivateWorkerApi,
+  activateUserApi,
+  deactivateUserApi,
+  suspendUserApi,
+  reactivateUserApi,
   getAdminActivityApi,
   getAdminEarningsApi,
   getAdminJobsApi,
@@ -3002,7 +3006,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                   <div className="divide-y divide-slate-100 overflow-x-auto">
                     {displayUsers.map((u) => (
-                      <div key={u.id} className="py-3 px-2 flex items-center justify-between text-xs min-w-[500px] hover:bg-slate-50/60 rounded-2xl transition-all gap-4">
+                      <div key={u.id} className="py-3 px-2 flex items-center justify-between text-xs min-w-[650px] hover:bg-slate-50/60 rounded-2xl transition-all gap-4">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 text-blue-600">
                             <User className="h-4.5 w-4.5" />
@@ -3022,9 +3026,79 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           }`}>
                             {u.role}
                           </span>
+
+                          <span className={`inline-block border rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
+                            u.status === 'ACTIVE'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : u.status === 'SUSPENDED'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : 'bg-rose-50 text-rose-700 border-rose-200'
+                          }`}>
+                            {u.status || (u.active ? 'ACTIVE' : 'DEACTIVATED')}
+                          </span>
+
                           <span className="text-slate-500 font-mono text-[11px] bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-1">
                             📞 {u.phone}
                           </span>
+
+                          {user?.id !== u.id && (
+                            <div className="flex items-center gap-1.5 ml-2">
+                              {(u.status === 'SUSPENDED' || u.status === 'DEACTIVATED' || !u.active) ? (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      await reactivateUserApi(u.id);
+                                      toast({ title: 'User Reactivated', description: `${u.name} is now active.` });
+                                      fetchAdminData();
+                                    } catch (err: any) {
+                                      toast({ title: 'Action Failed', description: err?.response?.data?.message || 'Error', variant: 'destructive' });
+                                    }
+                                  }}
+                                  className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
+                                >
+                                  Reactivate
+                                </button>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const reason = window.prompt(`Enter reason for suspending ${u.name}:`);
+                                      if (!reason || !reason.trim()) return;
+                                      try {
+                                        await suspendUserApi(u.id, reason.trim());
+                                        toast({ title: 'User Suspended', description: `${u.name} has been suspended.` });
+                                        fetchAdminData();
+                                      } catch (err: any) {
+                                        toast({ title: 'Action Failed', description: err?.response?.data?.message || 'Error', variant: 'destructive' });
+                                      }
+                                    }}
+                                    className="rounded-lg bg-amber-500 hover:bg-amber-600 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
+                                  >
+                                    Suspend
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const reason = window.prompt(`Enter reason for deactivating ${u.name}:`);
+                                      if (!reason || !reason.trim()) return;
+                                      try {
+                                        await deactivateUserApi(u.id, reason.trim());
+                                        toast({ title: 'User Deactivated', description: `${u.name} has been deactivated.` });
+                                        fetchAdminData();
+                                      } catch (err: any) {
+                                        toast({ title: 'Action Failed', description: err?.response?.data?.message || 'Error', variant: 'destructive' });
+                                      }
+                                    }}
+                                    className="rounded-lg bg-rose-600 hover:bg-rose-700 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
+                                  >
+                                    Deactivate
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}

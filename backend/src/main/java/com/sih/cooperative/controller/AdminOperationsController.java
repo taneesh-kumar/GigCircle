@@ -59,6 +59,42 @@ public class AdminOperationsController {
         return ResponseEntity.ok(worker);
     }
 
+    @PostMapping("/users/{userId}/activate")
+    public ResponseEntity<AdminUserResponse> activateUser(
+            @PathVariable Long userId,
+            Principal principal) {
+        AdminUserResponse response = adminOperationsService.activateUser(userId, principal.getName());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/users/{userId}/deactivate")
+    public ResponseEntity<AdminUserResponse> deactivateUser(
+            @PathVariable Long userId,
+            @RequestBody(required = false) UpdateUserStatusRequest request,
+            Principal principal) {
+        String reason = request != null ? request.getReason() : null;
+        AdminUserResponse response = adminOperationsService.deactivateUser(userId, reason, principal.getName());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/users/{userId}/suspend")
+    public ResponseEntity<AdminUserResponse> suspendUser(
+            @PathVariable Long userId,
+            @RequestBody(required = false) UpdateUserStatusRequest request,
+            Principal principal) {
+        String reason = request != null ? request.getReason() : null;
+        AdminUserResponse response = adminOperationsService.suspendUser(userId, reason, principal.getName());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/users/{userId}/reactivate")
+    public ResponseEntity<AdminUserResponse> reactivateUser(
+            @PathVariable Long userId,
+            Principal principal) {
+        AdminUserResponse response = adminOperationsService.reactivateUser(userId, principal.getName());
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/service-requests")
     public ResponseEntity<List<AdminServiceRequestResponse>> getServiceRequests(Principal principal) {
         List<AdminServiceRequestResponse> requests = adminOperationsService.getServiceRequests(principal.getName());

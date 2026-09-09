@@ -38,6 +38,26 @@ export const deactivateWorkerApi = async (workerId: number): Promise<AdminWorker
   return response.data;
 };
 
+export const activateUserApi = async (userId: number): Promise<AdminUser> => {
+  const response = await api.post<AdminUser>(`/admin/users/${userId}/activate`);
+  return response.data;
+};
+
+export const deactivateUserApi = async (userId: number, reason: string): Promise<AdminUser> => {
+  const response = await api.post<AdminUser>(`/admin/users/${userId}/deactivate`, { reason });
+  return response.data;
+};
+
+export const suspendUserApi = async (userId: number, reason: string): Promise<AdminUser> => {
+  const response = await api.post<AdminUser>(`/admin/users/${userId}/suspend`, { reason });
+  return response.data;
+};
+
+export const reactivateUserApi = async (userId: number): Promise<AdminUser> => {
+  const response = await api.post<AdminUser>(`/admin/users/${userId}/reactivate`);
+  return response.data;
+};
+
 export const getAdminServiceRequestsApi = async (): Promise<AdminServiceRequest[]> => {
   const response = await api.get<AdminServiceRequest[]>('/admin/service-requests');
   return response.data;

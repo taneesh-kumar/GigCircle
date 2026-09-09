@@ -171,12 +171,11 @@ public class AdminOperationsService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user is not a worker");
         }
 
-        workerUser.setActive(true);
+        workerUser.setStatus(AccountStatus.ACTIVE);
         userRepository.save(workerUser);
 
         recordActivity(admin, "WORKER_ACTIVATED", "WORKER", workerUser.getId(), "Activated worker account for " + workerUser.getEmail());
 
-        // Segment 8 Notification to worker
         try {
             notificationService.createNotification(
                     workerUser,
@@ -187,7 +186,6 @@ public class AdminOperationsService {
                     profile.getId()
             );
         } catch (Exception ignored) {
-            // Notification failure must not break activation
         }
 
         Double avgRating = ratingRepository.findAverageScoreByWorkerId(workerUser.getId());
@@ -208,12 +206,15 @@ public class AdminOperationsService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user is not a worker");
         }
 
-        workerUser.setActive(false);
+        if (admin.getId().equals(workerUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Administrators cannot deactivate their own account.");
+        }
+
+        workerUser.setStatus(AccountStatus.DEACTIVATED);
         userRepository.save(workerUser);
 
         recordActivity(admin, "WORKER_DEACTIVATED", "WORKER", workerUser.getId(), "Deactivated worker account for " + workerUser.getEmail());
 
-        // Segment 8 Notification to worker
         try {
             notificationService.createNotification(
                     workerUser,
@@ -224,12 +225,109 @@ public class AdminOperationsService {
                     profile.getId()
             );
         } catch (Exception ignored) {
-            // Notification failure must not break deactivation
         }
 
         Double avgRating = ratingRepository.findAverageScoreByWorkerId(workerUser.getId());
         Long totalRatings = ratingRepository.countByWorkerId(workerUser.getId());
         return AdminWorkerResponse.fromEntity(profile, avgRating, totalRatings);
+    }
+
+    @Transactional
+    public AdminUserResponse activateUser(Long userId, String adminEmail) {
+        User admin = getAuthenticatedAdmin(adminEmail);
+        User target = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with ID: " + userId));
+
+        AccountStatus prevStatus = target.getStatus();
+        target.setStatus(AccountStatus.ACTIVE);
+        User saved = userRepository.save(target);
+
+        recordActivity(admin, "USER_ACTIVATED", "USER", target.getId(),
+                "Activated user " + target.getEmail() + " (Previous status: " + prevStatus + ")");
+
+        return AdminUserResponse.fromEntity(saved);
+    }
+
+    @Transactional
+    public AdminUserResponse deactivateUser(Long userId, String reason, String adminEmail) {
+        User admin = getAuthenticatedAdmin(adminEmail);
+        if (admin.getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Administrators cannot deactivate their own account.");
+        }
+
+        User target = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with ID: " + userId));
+
+        if (target.getRole() == Role.ADMIN) {
+            long activeAdminCount = userRepository.findAll().stream()
+                    .filter(u -> u.getRole() == Role.ADMIN && u.getStatus() == AccountStatus.ACTIVE)
+                    .count();
+            if (activeAdminCount <= 1) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot deactivate the final active administrator account.");
+            }
+        }
+
+        if (reason == null || reason.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A non-blank reason is required for account deactivation.");
+        }
+
+        AccountStatus prevStatus = target.getStatus();
+        target.setStatus(AccountStatus.DEACTIVATED);
+        User saved = userRepository.save(target);
+
+        recordActivity(admin, "USER_DEACTIVATED", "USER", target.getId(),
+                "Deactivated user " + target.getEmail() + " (Previous status: " + prevStatus + "). Reason: " + reason.trim());
+
+        return AdminUserResponse.fromEntity(saved);
+    }
+
+    @Transactional
+    public AdminUserResponse suspendUser(Long userId, String reason, String adminEmail) {
+        User admin = getAuthenticatedAdmin(adminEmail);
+        if (admin.getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Administrators cannot suspend their own account.");
+        }
+
+        User target = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with ID: " + userId));
+
+        if (target.getRole() == Role.ADMIN) {
+            long activeAdminCount = userRepository.findAll().stream()
+                    .filter(u -> u.getRole() == Role.ADMIN && u.getStatus() == AccountStatus.ACTIVE)
+                    .count();
+            if (activeAdminCount <= 1) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot suspend the final active administrator account.");
+            }
+        }
+
+        if (reason == null || reason.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A non-blank reason is required for account suspension.");
+        }
+
+        AccountStatus prevStatus = target.getStatus();
+        target.setStatus(AccountStatus.SUSPENDED);
+        User saved = userRepository.save(target);
+
+        recordActivity(admin, "USER_SUSPENDED", "USER", target.getId(),
+                "Suspended user " + target.getEmail() + " (Previous status: " + prevStatus + "). Reason: " + reason.trim());
+
+        return AdminUserResponse.fromEntity(saved);
+    }
+
+    @Transactional
+    public AdminUserResponse reactivateUser(Long userId, String adminEmail) {
+        User admin = getAuthenticatedAdmin(adminEmail);
+        User target = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with ID: " + userId));
+
+        AccountStatus prevStatus = target.getStatus();
+        target.setStatus(AccountStatus.ACTIVE);
+        User saved = userRepository.save(target);
+
+        recordActivity(admin, "USER_REACTIVATED", "USER", target.getId(),
+                "Reactivated user " + target.getEmail() + " (Previous status: " + prevStatus + ")");
+
+        return AdminUserResponse.fromEntity(saved);
     }
 
     @Transactional(readOnly = true)

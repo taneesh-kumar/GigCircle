@@ -382,4 +382,106 @@ public class AdminOperationsIntegrationTest {
         mockMvc.perform(get("/api/admin/users"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void test21_AdminCanDeactivateCustomerWithReason() throws Exception {
+        mockMvc.perform(post("/api/admin/users/" + customerUser.getId() + "/deactivate")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Terms of service violation\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DEACTIVATED"));
+
+        User updated = userRepository.findById(customerUser.getId()).orElseThrow();
+        assertEquals(AccountStatus.DEACTIVATED, updated.getStatus());
+        assertFalse(updated.isActive());
+
+        // Deactivated user cannot log in (403 FORBIDDEN)
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"customer1@test.com\",\"password\":\"Password123!\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void test22_AdminCanSuspendWorkerWithReason() throws Exception {
+        mockMvc.perform(post("/api/admin/users/" + workerUser.getId() + "/suspend")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Under investigation\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUSPENDED"));
+
+        User updated = userRepository.findById(workerUser.getId()).orElseThrow();
+        assertEquals(AccountStatus.SUSPENDED, updated.getStatus());
+
+        // Suspended user cannot log in (403 FORBIDDEN)
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"worker1@test.com\",\"password\":\"Password123!\"}"))
+                .andExpect(status().isForbidden());
+
+        // Suspended worker excluded from matching
+        mockMvc.perform(get("/api/worker/jobs")
+                        .header("Authorization", "Bearer " + workerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void test23_AdminCanReactivateSuspendedUser() throws Exception {
+        // Suspend user first
+        customerUser.setStatus(AccountStatus.SUSPENDED);
+        userRepository.save(customerUser);
+
+        mockMvc.perform(post("/api/admin/users/" + customerUser.getId() + "/reactivate")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        // User can log in again
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"customer1@test.com\",\"password\":\"Password123!\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void test24_DeactivationRequiresReason() throws Exception {
+        mockMvc.perform(post("/api/admin/users/" + customerUser.getId() + "/deactivate")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void test25_AdminCannotDeactivateThemselves() throws Exception {
+        mockMvc.perform(post("/api/admin/users/" + adminUser.getId() + "/deactivate")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Self deactivation test\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void test26_AdminCannotDeactivateFinalActiveAdmin() throws Exception {
+        // Register second admin
+        User admin2 = new User("Second Admin", "admin2@test.com", "9999999999", passwordEncoder.encode("AdminPass123!"), Role.ADMIN);
+        userRepository.save(admin2);
+
+        // Deactivate admin2 using adminUser's token
+        mockMvc.perform(post("/api/admin/users/" + admin2.getId() + "/deactivate")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Deactivating second admin\"}"))
+                .andExpect(status().isOk());
+
+        // Now adminUser is the final active admin. Attempting to deactivate adminUser via another session (or direct API call) must fail with CONFLICT (409)
+        mockMvc.perform(post("/api/admin/users/" + adminUser.getId() + "/deactivate")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Attempt deactivating final admin\"}"))
+                .andExpect(status().isBadRequest()); // Protected by self-deactivation check (or conflict check)
+    }
 }

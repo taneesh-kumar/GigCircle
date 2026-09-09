@@ -1,5 +1,6 @@
 package com.sih.cooperative.dto;
 
+import com.sih.cooperative.entity.AccountStatus;
 import com.sih.cooperative.entity.Role;
 import com.sih.cooperative.entity.User;
 
@@ -13,18 +14,20 @@ public class AdminUserResponse {
     private String phone;
     private Role role;
     private boolean active;
+    private AccountStatus status;
     private LocalDateTime createdAt;
 
     public AdminUserResponse() {
     }
 
-    public AdminUserResponse(Long id, String name, String email, String phone, Role role, boolean active, LocalDateTime createdAt) {
+    public AdminUserResponse(Long id, String name, String email, String phone, Role role, boolean active, AccountStatus status, LocalDateTime createdAt) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.phone = phone;
         this.role = role;
         this.active = active;
+        this.status = status;
         this.createdAt = createdAt;
     }
 
@@ -37,6 +40,7 @@ public class AdminUserResponse {
                 user.getPhone(),
                 user.getRole(),
                 user.isActive(),
+                user.getStatus(),
                 user.getCreatedAt()
         );
     }
@@ -87,6 +91,14 @@ public class AdminUserResponse {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public AccountStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(AccountStatus status) {
+        this.status = status;
     }
 
     public LocalDateTime getCreatedAt() {

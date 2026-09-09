@@ -30,6 +30,10 @@ public class User {
     @Column(name = "active", nullable = false, columnDefinition = "boolean default true")
     private boolean active = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 30)
+    private AccountStatus status = AccountStatus.ACTIVE;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -45,6 +49,8 @@ public class User {
         this.phone = phone;
         this.password = password;
         this.role = role;
+        this.status = AccountStatus.ACTIVE;
+        this.active = true;
     }
 
     @PrePersist
@@ -52,11 +58,19 @@ public class User {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
+        if (this.status == null) {
+            this.status = this.active ? AccountStatus.ACTIVE : AccountStatus.DEACTIVATED;
+        }
+        this.active = (this.status == AccountStatus.ACTIVE);
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+        if (this.status == null) {
+            this.status = this.active ? AccountStatus.ACTIVE : AccountStatus.DEACTIVATED;
+        }
+        this.active = (this.status == AccountStatus.ACTIVE);
     }
 
     public Long getId() {
@@ -108,11 +122,28 @@ public class User {
     }
 
     public boolean isActive() {
-        return active;
+        return this.status == AccountStatus.ACTIVE && this.active;
     }
 
     public void setActive(boolean active) {
         this.active = active;
+        if (active) {
+            this.status = AccountStatus.ACTIVE;
+        } else if (this.status == AccountStatus.ACTIVE) {
+            this.status = AccountStatus.DEACTIVATED;
+        }
+    }
+
+    public AccountStatus getStatus() {
+        if (this.status == null) {
+            this.status = this.active ? AccountStatus.ACTIVE : AccountStatus.DEACTIVATED;
+        }
+        return status;
+    }
+
+    public void setStatus(AccountStatus status) {
+        this.status = status;
+        this.active = (status == AccountStatus.ACTIVE);
     }
 
     public LocalDateTime getCreatedAt() {

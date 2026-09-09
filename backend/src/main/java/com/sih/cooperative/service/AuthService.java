@@ -60,6 +60,14 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
         }
 
+        if (user.getStatus() == com.sih.cooperative.entity.AccountStatus.SUSPENDED) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account has been suspended by administration.");
+        }
+
+        if (user.getStatus() == com.sih.cooperative.entity.AccountStatus.DEACTIVATED || !user.isActive()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account has been deactivated by administration.");
+        }
+
         String token = jwtTokenProvider.generateToken(user);
         return new AuthResponse(token, UserResponse.fromEntity(user));
     }

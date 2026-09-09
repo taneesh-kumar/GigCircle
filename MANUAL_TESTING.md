@@ -82,9 +82,29 @@ Ensure test accounts exist in the database (or register via `/register`):
    - Query `/api/invoices/admin` or view invoice by job ID.
    - Verify full platform invoice governance access.
 
+### 5. Account Status Management & Admin User Controls
+1. Log in as **Admin** (`admin@gigcircle.com`).
+2. Navigate to **User Directory** tab (`/dashboard?tab=users`).
+3. Search for customer account `customer1@test.com`.
+4. Click **Deactivate**:
+   - Prompt requests a non-blank deactivation reason: Enter `"TOS violation"`.
+   - Verify user status badge changes to **`DEACTIVATED`**.
+   - Attempt login as `customer1@test.com`: Verify API rejects login with `403 FORBIDDEN` ("Account has been deactivated by administration.").
+5. Search for worker account `worker1@test.com`.
+6. Click **Suspend**:
+   - Prompt requests reason: Enter `"Investigation pending"`.
+   - Verify worker status badge changes to **`SUSPENDED`**.
+   - Attempt login as `worker1@test.com`: Verify API rejects login with `403 FORBIDDEN` ("Account has been suspended by administration.").
+   - Verify worker is automatically excluded from worker job matching feed.
+7. Reactivate Users:
+   - Click **Reactivate** for both accounts.
+   - Verify both users return to **`ACTIVE`** status and can log in normally.
+8. Admin Self-Deactivation Protection:
+   - Verify action buttons are disabled for the currently logged-in Admin account.
+
 ---
 
-### 5. Security & Access Boundary Verification
+### 6. Security & Access Boundary Verification
 - **Unrelated Job Access**: Attempt to access a job chat, dispute, or invoice belonging to another user. Verify API returns `403 FORBIDDEN`.
 - **Non-Admin Access**: Attempt to navigate to `/admin/disputes` or call `/api/invoices/admin` as Customer or Worker. Verify client redirects or returns `403 Access Denied`.
 - **Closed Dispute Protection**: Verify participant response input is disabled on `RESOLVED` or `DISMISSED` disputes.

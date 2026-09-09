@@ -28,9 +28,15 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check");
             logger.info("Database migration: Successfully dropped legacy notifications_type_check constraint if present.");
 
-            // Ensure users active column exists for legacy databases
+            // Ensure users active column and status column exist for legacy databases
             jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE");
-            logger.info("Database migration: Successfully verified users active column.");
+            try {
+                jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE'");
+                jdbcTemplate.execute("UPDATE users SET status = 'DEACTIVATED' WHERE active = FALSE AND (status IS NULL OR status = 'ACTIVE')");
+                logger.info("Database migration: Successfully verified users status column.");
+            } catch (Exception ex) {
+                logger.debug("Users status column migration skipped or existing: {}", ex.getMessage());
+            }
 
             // Drop outdated PostgreSQL check constraints for worker verification enums if present
             jdbcTemplate.execute("ALTER TABLE worker_verifications DROP CONSTRAINT IF EXISTS worker_verifications_status_check");
