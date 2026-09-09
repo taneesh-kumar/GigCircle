@@ -108,6 +108,12 @@ import { CustomerPaymentHistoryModal } from '@/components/customer-payment-histo
 import { WorkerVerificationSection } from '@/components/worker-verification-section';
 import { AdminVerificationSection } from '@/components/admin-verification-section';
 import { VerifiedWorkerBadge } from '@/components/verified-worker-badge';
+import { ChatPanel } from '@/components/chat/ChatPanel';
+import { DisputeCreateForm } from '@/components/dispute/DisputeCreateForm';
+import { DisputeDetailPanel } from '@/components/dispute/DisputeDetailPanel';
+import { AdminDisputeControls } from '@/components/dispute/AdminDisputeControls';
+import { getDisputeForJobApi } from '@/services/api/dispute';
+import type { DisputeDetailResponse } from '@/types/dispute';
 
 
 import { CATEGORY_LABELS, type ServiceRequest } from '@/types/service-request';
