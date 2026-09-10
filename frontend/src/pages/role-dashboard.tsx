@@ -2424,47 +2424,47 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       </p>
                     </div>
                   ) : (
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="grid gap-6 lg:grid-cols-2">
                       {availableJobs.map((job) => (
                         <div
                           key={job.id}
-                          className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all space-y-4 group"
+                          className="rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/50 p-6 shadow-sm flex flex-col justify-between hover:border-emerald-500/40 hover:shadow-lg hover:-translate-y-0.5 transition-all space-y-5 group"
                         >
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                          <div className="space-y-5">
+                            <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                              <span className="rounded-xl bg-emerald-50 border border-emerald-200/60 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
                                 {CATEGORY_LABELS[job.category]?.label || job.category}
                               </span>
-                              <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2.5 py-0.5 text-[10px] font-extrabold text-slate-700 uppercase tracking-wider">
-                                <Clock3 className="h-3 w-3 text-slate-600 animate-pulse" /> OPEN
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-200 px-3 py-1 text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">
+                                <Clock3 className="h-3.5 w-3.5 text-emerald-600 animate-pulse" /> OPEN
                               </span>
                             </div>
 
                             <div className="flex items-start gap-4">
-                              <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                              <div className="h-12 w-12 rounded-2xl bg-slate-900 text-emerald-400 border border-slate-800 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
                                 {getCategoryIcon(job.category)}
                               </div>
-                              <div className="flex-1 min-w-0 space-y-1.5">
-                                <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">{job.description}</h3>
-                                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-slate-500">
-                                  <span className="flex items-center gap-1 font-medium text-slate-600">
+                              <div className="flex-1 min-w-0 space-y-2">
+                                <h3 className="text-lg font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">{job.description}</h3>
+                                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-slate-600">
+                                  <span className="flex items-center gap-1.5 font-medium bg-slate-100/80 px-2.5 py-1 rounded-lg border border-slate-200/60">
                                     <MapPin className="h-3.5 w-3.5 text-slate-400" /> {job.location || 'Goa'}
                                   </span>
-                                  <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
-                                    Budget: <strong className="text-emerald-800 font-extrabold font-mono text-sm">₹{job.budget.toLocaleString()}</strong>
+                                  <span className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
+                                    Budget: <strong className="text-emerald-900 font-extrabold font-mono text-sm ml-1">₹{job.budget.toLocaleString()}</strong>
                                   </span>
                                 </div>
                               </div>
                             </div>
                           </div>
 
-                          <div className="pt-3 border-t border-slate-100 flex items-center gap-3">
+                          <div className="pt-4 border-t border-slate-100 flex items-center gap-3">
                             <button
                               type="button"
                               onClick={() => handleOpenDetail(job)}
-                              className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+                              className="flex-1 rounded-xl border border-slate-300 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
                             >
-                              <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
+                              <Eye className="h-4 w-4 text-slate-400" /> Details
                             </button>
 
                             <button
@@ -2475,7 +2475,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             >
                               {acceptingRequestId === job.id ? (
                                 <>
-                                  <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Accepting...
+                                  <RefreshCw className="h-4 w-4 animate-spin" /> Accepting...
                                 </>
                               ) : (
                                 'Accept Job'
@@ -2544,7 +2544,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       </p>
                     </div>
                   ) : (
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="grid gap-6 lg:grid-cols-2">
                       {filteredAssignedJobs.map((job) => {
                         const isCompleted = job.jobStatus === 'COMPLETED';
                         const isPaymentRequired = job.jobStatus === 'PAYMENT_REQUIRED';
@@ -2555,73 +2555,73 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         return (
                           <div
                             key={job.id}
-                            className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all space-y-4 group"
+                            className="rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/50 p-6 shadow-sm flex flex-col justify-between hover:border-emerald-500/40 hover:shadow-lg hover:-translate-y-0.5 transition-all space-y-5 group"
                           >
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                            <div className="space-y-5">
+                              <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                                <span className="rounded-xl bg-emerald-50 border border-emerald-200/60 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
                                   {CATEGORY_LABELS[job.category]?.label || job.category}
                                 </span>
                                 <span
-                                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
+                                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider ${
                                     isCompleted
-                                      ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-200'
+                                      ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-300'
                                       : isPaymentRequired
                                       ? 'bg-amber-100/90 text-amber-900 border border-amber-300 font-black'
                                       : isInProgress
-                                      ? 'bg-blue-100/90 text-blue-800 border border-blue-200'
-                                      : 'bg-amber-100/90 text-amber-800 border border-amber-200'
+                                      ? 'bg-blue-100/90 text-blue-800 border border-blue-300'
+                                      : 'bg-slate-100 text-slate-800 border border-slate-300'
                                   }`}
                                 >
                                   {isCompleted ? (
-                                    <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                                   ) : isPaymentRequired ? (
-                                    <IndianRupee className="h-3 w-3 text-amber-700" />
+                                    <IndianRupee className="h-3.5 w-3.5 text-amber-700" />
                                   ) : isInProgress ? (
-                                    <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
+                                    <Activity className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
                                   ) : (
-                                    <Clock3 className="h-3 w-3 text-amber-600" />
+                                    <Clock3 className="h-3.5 w-3.5 text-slate-600" />
                                   )}
                                   {isPaymentRequired ? 'AWAITING PAYMENT' : status}
                                 </span>
                               </div>
 
                               <div className="flex items-start gap-4">
-                                <div className="h-10 w-10 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                                <div className="h-12 w-12 rounded-2xl bg-slate-900 text-emerald-400 border border-slate-800 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
                                   {getCategoryIcon(job.category)}
                                 </div>
-                                <div className="flex-1 min-w-0 space-y-1.5">
-                                  <h3 className="text-base font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">
+                                <div className="flex-1 min-w-0 space-y-2">
+                                  <h3 className="text-lg font-bold text-slate-900 leading-snug group-hover:text-emerald-950 transition-colors">
                                     {job.description}
                                   </h3>
-                                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-slate-500">
-                                    <span className="flex items-center gap-1">
-                                      <User className="h-3.5 w-3.5 text-slate-400" /> Customer: <strong className="text-slate-800 font-semibold">{job.customerName || 'Customer'}</strong>
+                                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-slate-600">
+                                    <span className="flex items-center gap-1.5 font-medium bg-slate-100/80 px-2.5 py-1 rounded-lg border border-slate-200/60">
+                                      <User className="h-3.5 w-3.5 text-slate-400" /> Customer: <strong className="text-slate-900 font-bold">{job.customerName || 'Customer'}</strong>
                                     </span>
-                                    <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
-                                      Budget: <strong className="text-emerald-800 font-extrabold font-mono text-sm">₹{job.budget.toLocaleString()}</strong>
+                                    <span className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
+                                      Budget: <strong className="text-emerald-900 font-extrabold font-mono text-sm ml-1">₹{job.budget.toLocaleString()}</strong>
                                     </span>
                                   </div>
                                 </div>
                               </div>
 
                               {/* 4-STAGE WORKER EXECUTION PIPELINE LINE */}
-                              <div className="pt-2.5 space-y-2">
+                              <div className="pt-2 space-y-2.5 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100">
                                 <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wide">
                                   <span className="text-emerald-700 flex items-center gap-1">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Assigned
+                                    <span className="h-2 w-2 rounded-full bg-emerald-500" /> Assigned
                                   </span>
                                   <span className={isInProgress || isPaymentRequired || isCompleted ? 'text-blue-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
-                                    <span className={`h-1.5 w-1.5 rounded-full ${isInProgress || isPaymentRequired || isCompleted ? 'bg-blue-500' : 'bg-slate-300'}`} /> In Progress
+                                    <span className={`h-2 w-2 rounded-full ${isInProgress || isPaymentRequired || isCompleted ? 'bg-blue-500' : 'bg-slate-300'}`} /> In Progress
                                   </span>
                                   <span className={isPaymentRequired || isCompleted ? 'text-amber-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
-                                    <span className={`h-1.5 w-1.5 rounded-full ${isPaymentRequired || isCompleted ? 'bg-amber-500' : 'bg-slate-300'}`} /> Awaiting Payment
+                                    <span className={`h-2 w-2 rounded-full ${isPaymentRequired || isCompleted ? 'bg-amber-500' : 'bg-slate-300'}`} /> Awaiting Payment
                                   </span>
                                   <span className={isCompleted ? 'text-emerald-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
-                                    <span className={`h-1.5 w-1.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Completed
+                                    <span className={`h-2 w-2 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Completed
                                   </span>
                                 </div>
-                                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex p-0.5 border border-slate-200/40">
+                                <div className="h-2.5 w-full bg-slate-200/70 rounded-full overflow-hidden flex p-0.5 border border-slate-200/60">
                                   <div
                                     className={`h-full rounded-full transition-all duration-500 ${
                                       isCompleted
@@ -2637,54 +2637,20 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               </div>
                             </div>
 
-                             <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenDetail({
-                                  id: job.serviceRequestId,
-                                  category: job.category,
-                                  description: job.description,
-                                  location: job.location,
-                                  budget: job.budget,
-                                  preferredTime: job.preferredTime,
-                                  status: job.requestStatus || 'OPEN',
-                                  createdAt: job.createdAt,
-                                  updatedAt: job.createdAt,
-                                  customerId: job.customerId,
-                                  customerName: job.customerName,
-                                  assignmentStatus: 'ASSIGNED',
-                                  jobId: job.id,
-                                  workerId: job.workerId,
-                                  workerName: job.workerName,
-                                  jobStatus: job.jobStatus,
-                                  startedAt: job.startedAt,
-                                  completedAt: job.completedAt,
-                                })}
-                                className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
-                              >
-                                <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleOpenChatModal(job.id, job.customerName || 'Customer', job.description)}
-                                className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2.5 text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
-                              >
-                                <MessageSquare className="h-3.5 w-3.5 text-emerald-400" />
-                                <span>Chat</span>
-                              </button>
-
+                            {/* ACTION BUTTONS: Clean 2-Row Hierarchy */}
+                            <div className="pt-4 border-t border-slate-100 space-y-2.5">
+                              {/* Row 1: Primary Status Actions (Full Width) */}
                               {isAccepted && (
-                                <div className="flex-1 flex gap-2">
+                                <div className="flex gap-2">
                                   <button
                                     type="button"
                                     onClick={() => handleStartJob(job.id)}
                                     disabled={operatingJobId === job.id}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 py-2.5 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50"
+                                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 py-2.5 px-4 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50 cursor-pointer"
                                   >
                                     {operatingJobId === job.id ? (
                                       <>
-                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Starting...
+                                        <RefreshCw className="h-4 w-4 animate-spin" /> Starting Execution...
                                       </>
                                     ) : (
                                       'Start Job Execution'
@@ -2694,7 +2660,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     type="button"
                                     onClick={() => handleDeclineJob(job.id)}
                                     disabled={operatingJobId === job.id}
-                                    className="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 px-3.5 py-2.5 text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-2xs"
+                                    className="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 px-4 py-2.5 text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                                   >
                                     Decline
                                   </button>
@@ -2702,16 +2668,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               )}
 
                               {isInProgress && (
-                                <div className="flex-1 flex gap-2">
+                                <div className="flex gap-2">
                                   <button
                                     type="button"
                                     onClick={() => handleCompleteJob(job.id)}
                                     disabled={operatingJobId === job.id}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50"
+                                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 px-4 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50 cursor-pointer"
                                   >
                                     {operatingJobId === job.id ? (
                                       <>
-                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Requesting...
+                                        <RefreshCw className="h-4 w-4 animate-spin" /> Submitting Completion...
                                       </>
                                     ) : (
                                       'Complete Job'
@@ -2721,7 +2687,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     type="button"
                                     onClick={() => handleDeclineJob(job.id)}
                                     disabled={operatingJobId === job.id}
-                                    className="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 px-3.5 py-2.5 text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-2xs"
+                                    className="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 px-4 py-2.5 text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                                   >
                                     Decline
                                   </button>
@@ -2729,11 +2695,50 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               )}
 
                               {isPaymentRequired && (
-                                <div className="flex-1 rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2 text-xs font-bold text-amber-800 flex items-center gap-2">
+                                <div className="rounded-xl bg-amber-50/90 border border-amber-200 p-2.5 text-xs font-bold text-amber-900 flex items-center justify-center gap-2 shadow-2xs">
                                   <Clock3 className="h-4 w-4 text-amber-600 shrink-0" />
                                   <span>Awaiting Customer Payment</span>
                                 </div>
                               )}
+
+                              {/* Row 2: Supporting Actions (Details & Chat) */}
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenDetail({
+                                    id: job.serviceRequestId,
+                                    category: job.category,
+                                    description: job.description,
+                                    location: job.location,
+                                    budget: job.budget,
+                                    preferredTime: job.preferredTime,
+                                    status: job.requestStatus || 'OPEN',
+                                    createdAt: job.createdAt,
+                                    updatedAt: job.createdAt,
+                                    customerId: job.customerId,
+                                    customerName: job.customerName,
+                                    assignmentStatus: 'ASSIGNED',
+                                    jobId: job.id,
+                                    workerId: job.workerId,
+                                    workerName: job.workerName,
+                                    jobStatus: job.jobStatus,
+                                    startedAt: job.startedAt,
+                                    completedAt: job.completedAt,
+                                  })}
+                                  className="flex-1 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition-colors inline-flex items-center justify-center gap-1.5 shadow-2xs"
+                                >
+                                  <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenChatModal(job.id, job.customerName || 'Customer', job.description)}
+                                  className="flex-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 text-xs font-bold transition-all shadow-2xs inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                                >
+                                  <MessageSquare className="h-3.5 w-3.5 text-emerald-400" />
+                                  <span>Open Chat</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         );
