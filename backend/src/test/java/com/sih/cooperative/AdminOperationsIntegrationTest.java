@@ -60,9 +60,6 @@ public class AdminOperationsIntegrationTest {
     private NotificationRepository notificationRepository;
 
     @Autowired
-    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
-
-    @Autowired
     private InvoiceRepository invoiceRepository;
 
     @Autowired

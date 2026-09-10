@@ -123,7 +123,10 @@ public class InvoiceService {
         BigDecimal totalAmount = serviceCharge.add(platformFee).setScale(2, RoundingMode.HALF_UP);
 
         // Read payment status and reference from Payment repository
-        Optional<Payment> successPayment = paymentRepository.findFirstByJobIdAndStatusOrderByCreatedAtDesc(jobId, PaymentStatus.SUCCESS);
+        Optional<Payment> successPayment = paymentRepository.findFirstByJobIdAndPaymentStatusOrderByCreatedAtDesc(jobId, PaymentStatus.SUCCESS);
+        if (!successPayment.isPresent()) {
+            successPayment = paymentRepository.findFirstByJobIdAndPaymentStatusOrderByCreatedAtDesc(jobId, PaymentStatus.PAID);
+        }
         Optional<Payment> latestPayment = paymentRepository.findFirstByJobIdOrderByCreatedAtDesc(jobId);
 
         PaymentStatus paymentStatus;

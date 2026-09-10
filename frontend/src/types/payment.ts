@@ -1,6 +1,6 @@
-export type PaymentMethod = 'PHONEPE';
+export type PaymentMethod = 'DEMO_UPI' | 'DEMO_CARD' | 'DEMO_NETBANKING' | 'UPI' | 'CARD' | 'NETBANKING' | 'CASH';
 
-export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'INITIATED' | 'CANCELLED' | 'PAID';
+export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'INITIATED' | 'CANCELLED' | 'PAID' | 'REFUNDED';
 
 export interface Payment {
   id: number;
@@ -16,7 +16,12 @@ export interface Payment {
   workerEarning: number;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
+  status?: PaymentStatus;
+  refundAmount?: number;
+  serviceCategory?: any;
   transactionId: string;
+  transactionReference?: string;
+  paymentMethodDetails?: string;
   merchantOrderId?: string;
   phonepeTransactionId?: string;
   paymentInstrument?: string;
@@ -27,5 +32,18 @@ export interface Payment {
 
 export interface PaymentRequest {
   jobId: number;
+}
+
+export type PaymentResponse = Payment;
+
+export interface AdminPaymentSummary {
+  totalTransactions: number;
+  successfulTransactions: number;
+  failedTransactions: number;
+  refundedTransactions: number;
+  totalVolume: number;
+  platformFees: number;
+  totalSimulatedVolume?: number;
+  totalSimulatedPlatformFees?: number;
 }
 

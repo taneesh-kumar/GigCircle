@@ -354,7 +354,7 @@ public class DemoPaymentIntegrationTest {
         MvcResult init = initiatePayment(customerToken, jobId);
         Long paymentId = objectMapper.readTree(init.getResponse().getContentAsString()).get("id").asLong();
 
-        MvcResult result = completePayment(customerToken, paymentId, "NETBANKING", null);
+        MvcResult result = completePayment(customerToken, paymentId, "INVALID_METHOD", null);
 
         assertEquals(400, result.getResponse().getStatus());
         assertTrue(result.getResponse().getContentAsString().contains("Invalid payment method"));

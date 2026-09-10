@@ -25,8 +25,8 @@ public class Payment {
     @JoinColumn(name = "customer_id", nullable = false)
     private User customer;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "earning_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY, optional = true, cascade = CascadeType.ALL)
+    @JoinColumn(name = "earning_id", nullable = true)
     private Earning earning;
 
     @Column(name = "amount", nullable = false, precision = 12, scale = 2)
@@ -89,6 +89,32 @@ public class Payment {
         this.transactionId = transactionId;
     }
 
+    public Payment(Job job, User customer, BigDecimal workerEarning, BigDecimal platformFee, BigDecimal amount,
+                   PaymentMethod paymentMethod, String paymentInstrument, PaymentStatus paymentStatus, String transactionId) {
+        this.job = job;
+        this.customer = customer;
+        this.workerEarning = workerEarning;
+        this.platformFee = platformFee;
+        this.amount = amount;
+        this.paymentMethod = paymentMethod != null ? paymentMethod.name() : "UPI";
+        this.paymentInstrument = paymentInstrument;
+        this.paymentStatus = paymentStatus;
+        this.transactionId = transactionId;
+    }
+
+    public Payment(Job job, User customer, BigDecimal workerEarning, BigDecimal platformFee, BigDecimal amount,
+                   String paymentMethod, String paymentInstrument, PaymentStatus paymentStatus, String transactionId) {
+        this.job = job;
+        this.customer = customer;
+        this.workerEarning = workerEarning;
+        this.platformFee = platformFee;
+        this.amount = amount;
+        this.paymentMethod = paymentMethod;
+        this.paymentInstrument = paymentInstrument;
+        this.paymentStatus = paymentStatus;
+        this.transactionId = transactionId;
+    }
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -136,4 +162,14 @@ public class Payment {
     public void setGatewayResponse(String gatewayResponse) { this.gatewayResponse = gatewayResponse; }
     public String getRedirectUrl() { return redirectUrl; }
     public void setRedirectUrl(String redirectUrl) { this.redirectUrl = redirectUrl; }
+
+    // Compatibility helpers for Admin/Invoice services
+    public PaymentStatus getStatus() { return paymentStatus; }
+    public BigDecimal getServiceAmount() { return amount; }
+    public String getTransactionReference() { return transactionId; }
+    public String getCurrency() { return "INR"; }
+    public BigDecimal getRefundAmount() { return BigDecimal.ZERO; }
+    public LocalDateTime getRefundedAt() { return null; }
+    public String getFailureReason() { return null; }
+    public String getPaymentMethodDetails() { return paymentInstrument != null ? paymentInstrument : paymentMethod; }
 }

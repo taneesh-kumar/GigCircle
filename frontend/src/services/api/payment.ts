@@ -32,3 +32,18 @@ export const getPaymentByIdApi = async (paymentId: number): Promise<Payment> => 
   const response = await api.get<Payment>(`/payments/${paymentId}`);
   return response.data;
 };
+
+export const getAdminPaymentsApi = async (): Promise<Payment[]> => {
+  const response = await api.get<Payment[]>('/admin/payments');
+  return response.data;
+};
+
+export const getAdminPaymentSummaryApi = async (): Promise<any> => {
+  const response = await api.get('/admin/payments/summary');
+  return response.data;
+};
+
+export const refundPaymentApi = async (paymentId: number): Promise<Payment> => {
+  const response = await api.post<Payment>(`/payments/${paymentId}/refund`);
+  return response.data;
+};

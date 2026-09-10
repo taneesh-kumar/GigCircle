@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   ArrowRight,
   BellRing,
@@ -1776,7 +1776,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   ) : (
                     <div className="space-y-4">
                       {customerPayments.map((p) => {
-                        const categoryLabel = p.serviceCategory ? CATEGORY_LABELS[p.serviceCategory]?.label : 'Service';
+                        const categoryLabel = p.serviceCategory ? (CATEGORY_LABELS as any)[p.serviceCategory]?.label : 'Service';
                         return (
                           <div
                             key={p.id}
@@ -4349,7 +4349,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           />
           <PaymentModal
             isOpen={isPaymentModalOpen}
-            jobId={paymentJobId}
+            jobId={paymentJobId || 0}
             onClose={() => {
               setIsPaymentModalOpen(false);
               setPaymentJobId(null);

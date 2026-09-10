@@ -102,7 +102,7 @@ export default function PaymentCallback() {
             <div>
               <h1 className="text-xl font-black text-slate-900">Verifying Payment...</h1>
               <p className="text-sm text-slate-500 mt-2">
-                Checking payment status with PhonePe. Please wait.
+                Checking payment status. Please wait.
               </p>
               {pollCount > 0 && (
                 <p className="text-xs text-slate-400 mt-1">Attempt {pollCount}/{MAX_POLL_ATTEMPTS}</p>
@@ -133,7 +133,7 @@ export default function PaymentCallback() {
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-slate-500">Payment Method</span>
-                <span className="font-bold text-slate-700">{payment.paymentInstrument || 'PhonePe'}</span>
+                <span className="font-bold text-slate-700">{payment.paymentInstrument || 'Demo Payment'}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-slate-500">Worker Earnings</span>

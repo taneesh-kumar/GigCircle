@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   Receipt,
   X,
@@ -118,7 +118,7 @@ export function CustomerPaymentHistoryModal({ isOpen, onClose }: CustomerPayment
           ) : (
             <div className="space-y-3">
               {payments.map((p) => {
-                const categoryLabel = p.serviceCategory ? CATEGORY_LABELS[p.serviceCategory]?.label : 'Service';
+                const categoryLabel = p.serviceCategory ? (CATEGORY_LABELS as any)[p.serviceCategory]?.label : 'Service';
                 return (
                   <div
                     key={p.id}

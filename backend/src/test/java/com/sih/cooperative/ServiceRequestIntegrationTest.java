@@ -59,9 +59,6 @@ public class ServiceRequestIntegrationTest {
     @Autowired
     private NotificationRepository notificationRepository;
 
-    @Autowired
-    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
-
     private String customerAToken;
     private String customerBToken;
     private String workerToken;

@@ -853,7 +853,7 @@ public class AdminOperationsService {
             res.setPlatformFee(p.getPlatformFee());
             res.setWorkerEarning(p.getServiceAmount() != null ? p.getServiceAmount() : p.getAmount().subtract(p.getPlatformFee()));
             res.setStatus(p.getStatus());
-            res.setPaymentMethod(p.getPaymentMethod());
+            res.setPaymentMethod(PaymentMethod.from(p.getPaymentMethod()));
             res.setCreatedAt(p.getCreatedAt());
             res.setPaidAt(p.getPaidAt());
 
@@ -907,7 +907,7 @@ public class AdminOperationsService {
         res.setId(p.getId());
         res.setTransactionReference(p.getTransactionReference());
         res.setStatus(p.getStatus());
-        res.setPaymentMethod(p.getPaymentMethod());
+        res.setPaymentMethod(PaymentMethod.from(p.getPaymentMethod()));
         res.setPaymentMethodDetails(p.getPaymentMethodDetails());
         res.setCurrency(p.getCurrency());
         res.setServiceAmount(p.getServiceAmount());

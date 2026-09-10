@@ -58,9 +58,6 @@ public class NotificationIntegrationTest {
     private NotificationRepository notificationRepository;
 
     @Autowired
-    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
-
-    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String customerToken1;

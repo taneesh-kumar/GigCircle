@@ -32,15 +32,13 @@ public class CustomerPaymentController {
     }
 
     /**
-     * Frontend polls this endpoint after redirect-back from PhonePe to check
-     * whether the webhook has already updated the payment to a terminal state.
-     * If still PENDING, it triggers a fresh status verification against PhonePe.
+     * Retrieves status details for a given payment.
      */
     @GetMapping("/{paymentId}/status")
     public ResponseEntity<PaymentResponse> getPaymentStatus(
             @PathVariable Long paymentId,
             Principal principal) {
-        PaymentResponse payment = paymentService.verifyPaymentStatus(principal.getName(), paymentId);
+        PaymentResponse payment = paymentService.getPaymentById(principal.getName(), paymentId);
         return ResponseEntity.ok(payment);
     }
 

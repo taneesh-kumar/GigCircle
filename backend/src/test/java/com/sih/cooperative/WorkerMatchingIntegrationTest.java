@@ -63,9 +63,6 @@ public class WorkerMatchingIntegrationTest {
     @Autowired
     private NotificationRepository notificationRepository;
 
-    @Autowired
-    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
-
     private String customerToken;
     private String workerToken1;
     private String workerToken2;

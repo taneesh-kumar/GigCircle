@@ -1,17 +1,18 @@
-import { useState } from 'react';
+ï»¿import { useState } from 'react';
 import { X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { initiatePaymentApi, completePaymentApi } from '@/services/api/payment';
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess?: () => void;
+  onPaymentSuccess?: () => void;
   jobId: number;
-  jobDescription: string;
-  workerName: string;
-  amount: number;
-  categoryLabel: string;
-  customerName: string;
+  jobDescription?: string;
+  workerName?: string;
+  amount?: number;
+  categoryLabel?: string;
+  customerName?: string;
 }
 
 type Stage = 'select' | 'success' | 'error';
@@ -19,11 +20,11 @@ type Stage = 'select' | 'success' | 'error';
 export function PaymentModal({
   isOpen,
   onClose,
-  onSuccess,
+  onSuccess = () => {},
   jobId,
   jobDescription,
   workerName,
-  amount,
+  amount = 0,
   categoryLabel,
 }: PaymentModalProps) {
   const [stage, setStage] = useState<Stage>('select');
@@ -107,7 +108,7 @@ export function PaymentModal({
             </div>
 
             <div className="border-b border-emerald-100 bg-emerald-50 px-6 py-3 text-sm font-semibold text-emerald-700">
-              Demo Payment — No real money will be charged.
+              Demo Payment ï¿½ No real money will be charged.
             </div>
 
             <div className="space-y-5 p-6">

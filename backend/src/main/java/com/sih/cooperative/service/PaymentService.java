@@ -32,7 +32,6 @@ public class PaymentService {
     private final EarningRepository earningRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
-    private final PhonePeService phonePeService;
     private final ObjectMapper objectMapper;
 
     public PaymentService(PaymentRepository paymentRepository,
@@ -40,14 +39,12 @@ public class PaymentService {
                           EarningRepository earningRepository,
                           UserRepository userRepository,
                           NotificationService notificationService,
-                          PhonePeService phonePeService,
                           ObjectMapper objectMapper) {
         this.paymentRepository = paymentRepository;
         this.jobRepository = jobRepository;
         this.earningRepository = earningRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
-        this.phonePeService = phonePeService;
         this.objectMapper = objectMapper;
     }
 
@@ -87,8 +84,8 @@ public class PaymentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: this job does not belong to you");
         }
 
-        if (job.getStatus() != JobStatus.COMPLETED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only COMPLETED jobs can be paid for");
+        if (job.getStatus() != JobStatus.COMPLETED && job.getStatus() != JobStatus.PAYMENT_REQUIRED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only COMPLETED or PAYMENT_REQUIRED jobs can be paid for");
         }
 
         // If a PAID/SUCCESS payment already exists for this job, return it (already paid)
@@ -138,6 +135,28 @@ public class PaymentService {
         return PaymentResponse.fromEntity(savedPayment);
     }
 
+    @Transactional
+    public Payment ensurePendingPaymentForJob(Job job) {
+        if (paymentRepository.existsByJobId(job.getId())) {
+            return paymentRepository.findByJobId(job.getId()).orElseThrow();
+        }
+        User customer = job.getServiceRequest() != null ? job.getServiceRequest().getCustomer() : null;
+        if (customer == null) return null;
+
+        Earning earning = earningRepository.findByJobId(job.getId())
+                .orElseGet(() -> generateEarningForJob(job, customer));
+        String merchantOrderId = generateMerchantOrderId(job.getId());
+        String transactionId = generateDemoTransactionId();
+        Payment payment = new Payment(
+                job, customer, earning,
+                earning.getGrossAmount(), earning.getPlatformFee(), earning.getWorkerEarning(),
+                "PENDING", PaymentStatus.PENDING, transactionId
+        );
+        payment.setMerchantOrderId(merchantOrderId);
+        payment.setPaymentInstrument("PENDING");
+        return paymentRepository.save(payment);
+    }
+
     /**
      * Completes a demo payment using the selected payment method.
      * Marks the payment PAID, generates the transaction ID (if not already set),
@@ -170,7 +189,7 @@ public class PaymentService {
         PaymentMethod method;
         try {
             method = PaymentMethod.from(request.getPaymentMethod());
-        } catch (IllegalArgumentException ex) {
+        } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid payment method: " + request.getPaymentMethod());
         }
 
@@ -237,118 +256,7 @@ public class PaymentService {
         return PaymentResponse.fromEntity(payment);
     }
 
-    /**
-     * Handles PhonePe's server-to-server webhook callback.
-     * Also called internally by verifyPaymentStatus().
-     */
-    @Transactional
-    public void handlePhonePeCallback(String merchantOrderId, String state, Object paymentInstrument) {
-        Payment payment = paymentRepository.findByMerchantOrderId(merchantOrderId)
-                .orElseThrow(() -> {
-                    logger.warn("PhonePe callback: payment not found for merchantOrderId={}", merchantOrderId);
-                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found");
-                });
 
-        if (payment.getPaymentStatus().isTerminal()) {
-            logger.info("PhonePe callback: payment already terminal, ignoring duplicate for merchantOrderId={}", merchantOrderId);
-            return;
-        }
-
-        try {
-            payment.setGatewayResponse(objectMapper.writeValueAsString(
-                    Map.of("state", state != null ? state : "UNKNOWN",
-                           "paymentInstrument", paymentInstrument != null ? paymentInstrument : Map.of())
-            ));
-        } catch (JsonProcessingException ignored) {}
-
-        String instrumentType = phonePeService.extractPaymentInstrument(paymentInstrument);
-        payment.setPaymentInstrument(instrumentType);
-
-        if ("COMPLETED".equalsIgnoreCase(state)) {
-            completePhonePePayment(payment);
-        } else if ("FAILED".equalsIgnoreCase(state)) {
-            failPaymentInternal(payment);
-        } else {
-            logger.info("PhonePe callback: non-terminal state '{}' for merchantOrderId={}, ignoring", state, merchantOrderId);
-            paymentRepository.save(payment);
-        }
-    }
-
-    /**
-     * Verifies payment status via PhonePe API and updates our record.
-     * Called by frontend polling or admin reconciliation.
-     */
-    @Transactional
-    public PaymentResponse verifyPaymentStatus(String customerEmail, Long paymentId) {
-        User customer = getAuthenticatedCustomer(customerEmail, Role.CUSTOMER);
-
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found"));
-
-        if (!payment.getCustomer().getId().equals(customer.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
-        }
-
-        if (payment.getPaymentStatus().isTerminal()) {
-            return PaymentResponse.fromEntity(payment);
-        }
-
-        boolean isSuccess = phonePeService.verifyAndUpdatePaymentStatus(payment);
-
-        if (isSuccess) {
-            completePhonePePayment(payment);
-        } else {
-            paymentRepository.save(payment);
-        }
-
-        return PaymentResponse.fromEntity(payment);
-    }
-
-    /**
-     * Internal: mark PhonePe payment as SUCCESS (backward compat), update earning, fire notifications.
-     */
-    @Transactional
-    public void completePhonePePayment(Payment payment) {
-        if (payment.getPaymentStatus().isTerminal()) {
-            return;
-        }
-
-        payment.setPaymentStatus(PaymentStatus.SUCCESS);
-        payment.setPaidAt(LocalDateTime.now());
-        paymentRepository.save(payment);
-
-        Earning earning = payment.getEarning();
-        if (earning != null && earning.getStatus() == EarningStatus.PENDING) {
-            earning.setStatus(EarningStatus.AVAILABLE);
-            earningRepository.save(earning);
-        }
-
-        notificationService.createNotification(
-                payment.getCustomer(), NotificationType.PAYMENT_COMPLETED,
-                "Payment successful",
-                "Your payment of Rs." + payment.getAmount().toPlainString() + " is confirmed. Tnx: " + payment.getTransactionId(),
-                "PAYMENT", payment.getId()
-        );
-
-        User worker = payment.getJob().getWorker();
-        if (worker != null) {
-            notificationService.createNotification(
-                    worker, NotificationType.PAYMENT_COMPLETED,
-                    "Payment received",
-                    "A payment of Rs." + payment.getWorkerEarning().toPlainString() + " has been received for your completed job.",
-                    "PAYMENT", payment.getId()
-            );
-        }
-
-        notificationService.createAdminNotification(
-                NotificationType.PAYMENT_COMPLETED,
-                "Payment confirmed",
-                payment.getCustomer().getName() + " confirmed payment of Rs." + payment.getAmount().toPlainString() + " (Tnx: " + payment.getTransactionId() + ").",
-                "PAYMENT", payment.getId()
-        );
-
-        logger.info("PhonePe payment completed: paymentId={}, merchantOrderId={}", payment.getId(), payment.getMerchantOrderId());
-    }
 
     /**
      * Internal: mark payment as FAILED and notify customer.
@@ -418,8 +326,8 @@ public class PaymentService {
     }
 
     private Earning generateEarningForJob(Job job, User customer) {
-        if (job.getStatus() != JobStatus.COMPLETED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Earning can only be generated for COMPLETED jobs");
+        if (job.getStatus() != JobStatus.COMPLETED && job.getStatus() != JobStatus.PAYMENT_REQUIRED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Earning can only be generated for completed or payment-required jobs");
         }
         if (earningRepository.existsByJobId(job.getId())) {
             return earningRepository.findByJobId(job.getId()).orElseThrow();

@@ -60,9 +60,6 @@ public class WorkerProfileIntegrationTest {
     @Autowired
     private NotificationRepository notificationRepository;
 
-    @Autowired
-    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
-
     private String workerAToken;
     @SuppressWarnings("unused")
     private String workerBToken;
