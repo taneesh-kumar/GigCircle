@@ -8,9 +8,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 interface ChatPanelProps {
   jobId: number;
   hideHeader?: boolean;
+  refreshTrigger?: number;
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false }) => {
+export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false, refreshTrigger, onLoadingChange }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
   const [inputText, setInputText] = useState('');
@@ -20,7 +22,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchMessages = async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
+    if (!isBackground) {
+      setLoading(true);
+      onLoadingChange?.(true);
+    }
     try {
       const data = await getMessagesForJobApi(jobId);
       setMessages(data);
@@ -36,7 +41,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false 
         setError(msg);
       }
     } finally {
-      if (!isBackground) setLoading(false);
+      if (!isBackground) {
+        setLoading(false);
+        setTimeout(() => onLoadingChange?.(false), 400);
+      }
     }
   };
 
@@ -51,6 +59,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false 
       clearInterval(timer);
     };
   }, [jobId]);
+
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      fetchMessages(false);
+    }
+  }, [refreshTrigger]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

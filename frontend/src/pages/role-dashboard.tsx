@@ -1889,85 +1889,105 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             {/* TAB: PROFILE */}
             {activeTab === 'profile' && (
               <div className="space-y-6 max-w-3xl mx-auto">
-                {/* PROFILE IDENTITY HEADER */}
-                <div className="rounded-3xl border border-slate-200/90 bg-gradient-to-br from-slate-50/65 via-white to-emerald-50/20 p-6 md:p-8 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6 hover:shadow-sm transition-all">
-                  <div className="relative shrink-0">
-                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-950 text-white font-black text-2xl flex items-center justify-center shadow-md">
-                      {user?.name ? user.name.substring(0, 2).toUpperCase() : 'JC'}
+                {/* UNIFIED THEME PROFILE HEADER */}
+                <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 p-6 md:p-8 shadow-md text-white">
+                  <div className="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
+                  <div className="relative flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                    <div className="h-18 w-18 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-lg shrink-0">
+                      <div className="h-full w-full rounded-[14px] bg-slate-900 text-white font-extrabold text-2xl flex items-center justify-center">
+                        {user?.name ? user.name.substring(0, 2).toUpperCase() : 'GC'}
+                      </div>
                     </div>
-                    <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500" />
+
+                    <div className="space-y-2 text-center sm:text-left flex-1">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+                        <h2 className="text-2xl font-black text-white tracking-tight">{user?.name || 'Customer Account'}</h2>
+                        <span className="rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-0.5 text-[11px] font-extrabold uppercase tracking-wider">
+                          {user?.role || 'Customer'}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-300 font-medium flex items-center justify-center sm:justify-start gap-1.5">
+                        <User className="h-3.5 w-3.5 text-slate-400" /> {user?.email || 'customer@example.com'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ACCOUNT DETAILS CARD */}
+                <div className="rounded-3xl border border-slate-200/90 bg-gradient-to-b from-slate-50/50 to-white p-6 md:p-8 shadow-xs space-y-5">
+                  <div className="flex items-center gap-3 border-b border-slate-100 pb-3.5">
+                    <div className="h-9 w-9 rounded-2xl bg-slate-900 text-emerald-400 flex items-center justify-center shadow-2xs shrink-0">
+                      <User className="h-4.5 w-4.5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900">Account Details</h3>
+                    </div>
                   </div>
 
-                  <div className="space-y-2 text-center sm:text-left flex-1">
-                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                      <h2 className="text-2xl font-black text-slate-900">{user?.name || 'Customer Account'}</h2>
-                      <span className="rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">
-                        Authenticated Customer
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 hover:border-emerald-300 hover:shadow-2xs transition-all">
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">Full Name</span>
+                      <span className="text-sm font-extrabold text-slate-900 block">{user?.name || 'John Customer'}</span>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 hover:border-emerald-300 hover:shadow-2xs transition-all">
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">Email Address</span>
+                      <span className="text-sm font-extrabold text-slate-900 block break-all">{user?.email || 'john.customer@example.com'}</span>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 hover:border-emerald-300 hover:shadow-2xs transition-all">
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">Account Role</span>
+                      <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl uppercase tracking-wider">
+                        {user?.role || 'CUSTOMER'}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-500">{user?.email || 'customer@example.com'}</p>
-
-                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-600 font-medium">
-                      <span className="flex items-center gap-1.5 text-emerald-700">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Account Active & Verified
+                    <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 hover:border-emerald-300 hover:shadow-2xs transition-all">
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">Account Status</span>
+                      <span className="inline-flex items-center gap-2 text-xs font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Active
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* ACCOUNT INFORMATION CARD */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3.5 mb-2">
-                    <div className="h-7 w-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                      <User className="h-4 w-4" />
+                {/* ACTIVITY SUMMARY CARD */}
+                <div className="rounded-3xl border border-slate-200/90 bg-gradient-to-b from-slate-50/50 to-white p-6 md:p-8 shadow-xs space-y-5">
+                  <div className="flex items-center gap-3 border-b border-slate-100 pb-3.5">
+                    <div className="h-9 w-9 rounded-2xl bg-slate-900 text-blue-400 flex items-center justify-center shadow-2xs shrink-0">
+                      <Activity className="h-4.5 w-4.5" />
                     </div>
-                    <h3 className="text-base font-extrabold text-slate-900">Account Details</h3>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-2">
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Full Name</span>
-                      <strong className="text-sm font-extrabold text-slate-900 block mt-1">{user?.name || 'John customer'}</strong>
-                    </div>
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Email Address</span>
-                      <strong className="text-sm font-extrabold text-slate-900 block mt-1 truncate">{user?.email || 'customer@example.com'}</strong>
-                    </div>
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Role</span>
-                      <strong className="text-sm font-black text-emerald-700 font-mono block mt-1 uppercase">{user?.role || 'CUSTOMER'}</strong>
-                    </div>
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Security Status</span>
-                      <strong className="text-sm font-extrabold text-slate-900 block mt-1">JWT Secured</strong>
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900">Activity Summary</h3>
                     </div>
                   </div>
-                </div>
 
-                {/* CUSTOMER ACTIVITY SUMMARY */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3.5 mb-2">
-                    <div className="h-7 w-7 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
-                      <Activity className="h-4 w-4" />
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/60 via-white to-slate-50 p-4.5 hover:border-blue-200 hover:shadow-xs transition-all">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Total Requests</span>
+                        <Briefcase className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <strong className="text-2xl font-black text-slate-900 font-mono block">{requests.length}</strong>
                     </div>
-                    <h3 className="text-base font-extrabold text-slate-900">Activity Summary</h3>
-                  </div>
 
-                  <div className="grid gap-4 sm:grid-cols-3 pt-2">
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Requests</span>
-                      <strong className="text-lg font-black text-slate-900 font-mono block mt-1">{requests.length}</strong>
-                    </div>
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Completed Services</span>
-                      <strong className="text-lg font-black text-emerald-700 font-mono block mt-1">
+                    <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/60 via-white to-slate-50 p-4.5 hover:border-emerald-200 hover:shadow-xs transition-all">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Completed Services</span>
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      </div>
+                      <strong className="text-2xl font-black text-emerald-700 font-mono block">
                         {requests.filter((r) => r.jobStatus === 'COMPLETED').length}
                       </strong>
                     </div>
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-indigo-200 hover:shadow-sm transition-all">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Investment</span>
-                      <strong className="text-lg font-black text-slate-900 font-mono block mt-1">
+
+                    <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-slate-50 p-4.5 hover:border-indigo-200 hover:shadow-xs transition-all">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Total Spent</span>
+                        <IndianRupee className="h-4 w-4 text-indigo-600" />
+                      </div>
+                      <strong className="text-2xl font-black text-slate-900 font-mono block">
                         ₹{requests.reduce((acc, r) => acc + (r.budget || 0), 0).toLocaleString()}
                       </strong>
                     </div>
@@ -3083,9 +3103,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <button
                       type="button"
                       onClick={fetchAdminData}
-                      className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
+                      disabled={isLoadingAdminData}
+                      className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 shadow-2xs transition cursor-pointer disabled:opacity-70"
+                      title="Refresh Admin Data"
                     >
-                      <RefreshCw className="h-4 w-4" />
+                      <RefreshCw className={`h-4 w-4 ${isLoadingAdminData ? 'animate-spin text-blue-600' : ''}`} />
                     </button>
                   </div>
 
