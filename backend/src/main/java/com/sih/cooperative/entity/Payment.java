@@ -5,12 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-    name = "payments",
-    uniqueConstraints = {
-            @UniqueConstraint(columnNames = {"job_id"})
-    }
-)
+@Table(name = "payments")
 public class Payment {
 
     @Id

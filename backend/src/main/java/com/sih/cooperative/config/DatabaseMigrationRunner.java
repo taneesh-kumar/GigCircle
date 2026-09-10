@@ -22,18 +22,15 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
         try {
             // Drop outdated PostgreSQL check constraint created when JobStatus only had OPEN, ACCEPTED
             jdbcTemplate.execute("ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check");
-            logger.info("Database migration: Successfully dropped legacy jobs_status_check constraint if present.");
 
             // Drop outdated PostgreSQL check constraint for NotificationType enum values
             jdbcTemplate.execute("ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check");
-            logger.info("Database migration: Successfully dropped legacy notifications_type_check constraint if present.");
 
             // Ensure users active column and status column exist for legacy databases
             jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE");
             try {
                 jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE'");
                 jdbcTemplate.execute("UPDATE users SET status = 'DEACTIVATED' WHERE active = FALSE AND (status IS NULL OR status = 'ACTIVE')");
-                logger.info("Database migration: Successfully verified users status column.");
             } catch (Exception ex) {
                 logger.debug("Users status column migration skipped or existing: {}", ex.getMessage());
             }
@@ -42,12 +39,10 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE worker_verifications DROP CONSTRAINT IF EXISTS worker_verifications_status_check");
             jdbcTemplate.execute("ALTER TABLE verification_documents DROP CONSTRAINT IF EXISTS verification_documents_document_type_check");
             jdbcTemplate.execute("ALTER TABLE verification_documents DROP CONSTRAINT IF EXISTS verification_documents_status_check");
-            logger.info("Database migration: Successfully verified worker verification check constraints.");
 
             // Create partial unique index for active disputes if running against PostgreSQL
             try {
                 jdbcTemplate.execute("CREATE UNIQUE INDEX IF NOT EXISTS uk_disputes_active_job ON disputes(job_id) WHERE status IN ('OPEN', 'UNDER_REVIEW', 'ACTION_REQUIRED')");
-                logger.info("Database migration: Successfully verified active disputes partial index.");
             } catch (Exception ex) {
                 logger.debug("Active dispute partial index skipped (non-PostgreSQL dialect or index exists): {}", ex.getMessage());
             }
@@ -79,10 +74,11 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
                         CONSTRAINT fk_invoices_worker FOREIGN KEY (worker_id) REFERENCES users(id) ON DELETE RESTRICT
                     )
                 """);
-                logger.info("Database migration: Successfully verified invoices table.");
             } catch (Exception ex) {
                 logger.debug("Invoices table creation migration skipped or handled by Hibernate: {}", ex.getMessage());
             }
+
+            logger.info("Database schema verification and migrations completed successfully.");
         } catch (Exception e) {
             logger.warn("Database migration warning: {}", e.getMessage());
         }
