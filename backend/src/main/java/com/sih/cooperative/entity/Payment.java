@@ -6,13 +6,10 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "payments",
-        indexes = {
-                @Index(name = "idx_payments_job_id", columnList = "job_id"),
-                @Index(name = "idx_payments_customer_id", columnList = "customer_id"),
-                @Index(name = "idx_payments_status", columnList = "status"),
-                @Index(name = "idx_payments_txn_ref", columnList = "transaction_reference", unique = true)
-        }
+    name = "payments",
+    uniqueConstraints = {
+            @UniqueConstraint(columnNames = {"job_id"})
+    }
 )
 public class Payment {
 
@@ -20,51 +17,51 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "job_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "job_id", nullable = false, unique = true)
     private Job job;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "customer_id", nullable = false)
     private User customer;
 
-    @Column(name = "service_amount", nullable = false, precision = 12, scale = 2)
-    private BigDecimal serviceAmount;
-
-    @Column(name = "platform_fee", nullable = false, precision = 12, scale = 2)
-    private BigDecimal platformFee;
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "earning_id", nullable = false)
+    private Earning earning;
 
     @Column(name = "amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
-    @Column(name = "currency", nullable = false, length = 10)
-    private String currency = "INR";
+    @Column(name = "platform_fee", nullable = false, precision = 12, scale = 2)
+    private BigDecimal platformFee;
+
+    @Column(name = "worker_earning", nullable = false, precision = 12, scale = 2)
+    private BigDecimal workerEarning;
+
+    @Column(name = "payment_method", nullable = false, length = 50)
+    private String paymentMethod;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method", nullable = false)
-    private PaymentMethod paymentMethod;
+    @Column(name = "payment_status", nullable = false)
+    private PaymentStatus paymentStatus;
 
-    @Column(name = "payment_method_details", length = 255)
-    private String paymentMethodDetails;
+    @Column(name = "transaction_id", nullable = false, unique = true, length = 64)
+    private String transactionId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private PaymentStatus status;
+    @Column(name = "merchant_order_id", length = 80)
+    private String merchantOrderId;
 
-    @Column(name = "transaction_reference", nullable = false, unique = true, length = 64)
-    private String transactionReference;
+    @Column(name = "phonepe_transaction_id", length = 64)
+    private String phonepeTransactionId;
 
-    @Column(name = "paid_at")
-    private LocalDateTime paidAt;
+    @Column(name = "payment_instrument", length = 32)
+    private String paymentInstrument;
 
-    @Column(name = "failure_reason", length = 500)
-    private String failureReason;
+    @Column(name = "gateway_response", columnDefinition = "TEXT")
+    private String gatewayResponse;
 
-    @Column(name = "refund_amount", precision = 12, scale = 2)
-    private BigDecimal refundAmount;
-
-    @Column(name = "refunded_at")
-    private LocalDateTime refundedAt;
+    @Column(name = "redirect_url", length = 1024)
+    private String redirectUrl;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -72,36 +69,30 @@ public class Payment {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
     public Payment() {
     }
 
-    public Payment(Job job, User customer, BigDecimal serviceAmount, BigDecimal platformFee, BigDecimal amount, PaymentMethod paymentMethod, String paymentMethodDetails, PaymentStatus status, String transactionReference) {
+    public Payment(Job job, User customer, Earning earning, BigDecimal amount,
+                   BigDecimal platformFee, BigDecimal workerEarning, String paymentMethod,
+                   PaymentStatus paymentStatus, String transactionId) {
         this.job = job;
         this.customer = customer;
-        this.serviceAmount = serviceAmount;
-        this.platformFee = platformFee;
+        this.earning = earning;
         this.amount = amount;
-        this.currency = "INR";
+        this.platformFee = platformFee;
+        this.workerEarning = workerEarning;
         this.paymentMethod = paymentMethod;
-        this.paymentMethodDetails = paymentMethodDetails;
-        this.status = status;
-        this.transactionReference = transactionReference;
-        if (status == PaymentStatus.SUCCESS) {
-            this.paidAt = LocalDateTime.now();
-        }
+        this.paymentStatus = paymentStatus;
+        this.transactionId = transactionId;
     }
 
     @PrePersist
     protected void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
-        if (this.currency == null) {
-            this.currency = "INR";
-        }
-        if (this.status == PaymentStatus.SUCCESS && this.paidAt == null) {
-            this.paidAt = now;
-        }
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
@@ -109,142 +100,40 @@ public class Payment {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public Job getJob() { return job; }
+    public User getCustomer() { return customer; }
+    public Earning getEarning() { return earning; }
+    public BigDecimal getAmount() { return amount; }
+    public BigDecimal getPlatformFee() { return platformFee; }
+    public BigDecimal getWorkerEarning() { return workerEarning; }
+    public String getPaymentMethod() { return paymentMethod; }
+    public PaymentStatus getPaymentStatus() { return paymentStatus; }
+    public String getTransactionId() { return transactionId; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public LocalDateTime getPaidAt() { return paidAt; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public void setId(Long id) { this.id = id; }
+    public void setJob(Job job) { this.job = job; }
+    public void setCustomer(User customer) { this.customer = customer; }
+    public void setEarning(Earning earning) { this.earning = earning; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
+    public void setPlatformFee(BigDecimal platformFee) { this.platformFee = platformFee; }
+    public void setWorkerEarning(BigDecimal workerEarning) { this.workerEarning = workerEarning; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+    public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
 
-    public Job getJob() {
-        return job;
-    }
-
-    public void setJob(Job job) {
-        this.job = job;
-    }
-
-    public User getCustomer() {
-        return customer;
-    }
-
-    public void setCustomer(User customer) {
-        this.customer = customer;
-    }
-
-    public BigDecimal getServiceAmount() {
-        return serviceAmount;
-    }
-
-    public void setServiceAmount(BigDecimal serviceAmount) {
-        this.serviceAmount = serviceAmount;
-    }
-
-    public BigDecimal getPlatformFee() {
-        return platformFee;
-    }
-
-    public void setPlatformFee(BigDecimal platformFee) {
-        this.platformFee = platformFee;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
-
-    public PaymentMethod getPaymentMethod() {
-        return paymentMethod;
-    }
-
-    public void setPaymentMethod(PaymentMethod paymentMethod) {
-        this.paymentMethod = paymentMethod;
-    }
-
-    public String getPaymentMethodDetails() {
-        return paymentMethodDetails;
-    }
-
-    public void setPaymentMethodDetails(String paymentMethodDetails) {
-        this.paymentMethodDetails = paymentMethodDetails;
-    }
-
-    public PaymentStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(PaymentStatus status) {
-        this.status = status;
-        if (status == PaymentStatus.SUCCESS && this.paidAt == null) {
-            this.paidAt = LocalDateTime.now();
-        }
-    }
-
-    public String getTransactionReference() {
-        return transactionReference;
-    }
-
-    public void setTransactionReference(String transactionReference) {
-        this.transactionReference = transactionReference;
-    }
-
-    public LocalDateTime getPaidAt() {
-        return paidAt;
-    }
-
-    public void setPaidAt(LocalDateTime paidAt) {
-        this.paidAt = paidAt;
-    }
-
-    public String getFailureReason() {
-        return failureReason;
-    }
-
-    public void setFailureReason(String failureReason) {
-        this.failureReason = failureReason;
-    }
-
-    public BigDecimal getRefundAmount() {
-        return refundAmount;
-    }
-
-    public void setRefundAmount(BigDecimal refundAmount) {
-        this.refundAmount = refundAmount;
-    }
-
-    public LocalDateTime getRefundedAt() {
-        return refundedAt;
-    }
-
-    public void setRefundedAt(LocalDateTime refundedAt) {
-        this.refundedAt = refundedAt;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    public String getMerchantOrderId() { return merchantOrderId; }
+    public void setMerchantOrderId(String merchantOrderId) { this.merchantOrderId = merchantOrderId; }
+    public String getPhonepeTransactionId() { return phonepeTransactionId; }
+    public void setPhonepeTransactionId(String phonepeTransactionId) { this.phonepeTransactionId = phonepeTransactionId; }
+    public String getPaymentInstrument() { return paymentInstrument; }
+    public void setPaymentInstrument(String paymentInstrument) { this.paymentInstrument = paymentInstrument; }
+    public String getGatewayResponse() { return gatewayResponse; }
+    public void setGatewayResponse(String gatewayResponse) { this.gatewayResponse = gatewayResponse; }
+    public String getRedirectUrl() { return redirectUrl; }
+    public void setRedirectUrl(String redirectUrl) { this.redirectUrl = redirectUrl; }
 }

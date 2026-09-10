@@ -1,5 +1,6 @@
 package com.sih.cooperative.controller;
 
+import com.sih.cooperative.dto.CompletePaymentRequest;
 import com.sih.cooperative.dto.PaymentRequest;
 import com.sih.cooperative.dto.PaymentResponse;
 import com.sih.cooperative.service.PaymentService;
@@ -11,19 +12,28 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
+/**
+ * Demo payment controller for the SIH presentation.
+ * Provides a local simulated payment gateway — does NOT call PhonePe or any external gateway.
+ */
 @RestController
-@RequestMapping("/api/customer/payments")
+@RequestMapping("/api/payments")
 @PreAuthorize("hasRole('CUSTOMER')")
-public class CustomerPaymentController {
+public class DemoPaymentController {
 
     private final PaymentService paymentService;
 
-    public CustomerPaymentController(PaymentService paymentService) {
+    public DemoPaymentController(PaymentService paymentService) {
         this.paymentService = paymentService;
     }
 
-    @PostMapping
+    /**
+     * Initiate a demo payment for a COMPLETED job.
+     * Creates a PENDING payment record with a demo transaction ID.
+     */
+    @PostMapping("/initiate")
     public ResponseEntity<PaymentResponse> initiatePayment(
             @Valid @RequestBody PaymentRequest request,
             Principal principal) {
@@ -32,24 +42,30 @@ public class CustomerPaymentController {
     }
 
     /**
-     * Frontend polls this endpoint after redirect-back from PhonePe to check
-     * whether the webhook has already updated the payment to a terminal state.
-     * If still PENDING, it triggers a fresh status verification against PhonePe.
+     * Complete a demo payment using the selected payment method (UPI / CARD / CASH).
      */
-    @GetMapping("/{paymentId}/status")
-    public ResponseEntity<PaymentResponse> getPaymentStatus(
+    @PostMapping("/{paymentId}/complete")
+    public ResponseEntity<PaymentResponse> completePayment(
             @PathVariable Long paymentId,
+            @Valid @RequestBody CompletePaymentRequest request,
             Principal principal) {
-        PaymentResponse payment = paymentService.verifyPaymentStatus(principal.getName(), paymentId);
+        PaymentResponse payment = paymentService.completePayment(principal.getName(), paymentId, request);
         return ResponseEntity.ok(payment);
     }
 
-    @GetMapping
+    /**
+     * Return the authenticated customer's persisted payment history.
+     */
+    @GetMapping("/customer")
     public ResponseEntity<List<PaymentResponse>> getPaymentHistory(Principal principal) {
         List<PaymentResponse> payments = paymentService.getCustomerPaymentHistory(principal.getName());
         return ResponseEntity.ok(payments);
     }
 
+    /**
+     * Return the existing payment for a specific job.
+     * This supports refreshing the customer page to retrieve an existing PAID payment.
+     */
     @GetMapping("/job/{jobId}")
     public ResponseEntity<PaymentResponse> getPaymentByJob(
             @PathVariable Long jobId,
@@ -58,6 +74,9 @@ public class CustomerPaymentController {
         return ResponseEntity.ok(payment);
     }
 
+    /**
+     * Return a specific payment by ID.
+     */
     @GetMapping("/{paymentId}")
     public ResponseEntity<PaymentResponse> getPaymentById(
             @PathVariable Long paymentId,

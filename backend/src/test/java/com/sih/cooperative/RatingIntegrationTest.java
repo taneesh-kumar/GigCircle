@@ -52,6 +52,8 @@ public class RatingIntegrationTest {
 
     @Autowired
     private EarningRepository earningRepository;
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Autowired
     private NotificationRepository notificationRepository;
@@ -73,6 +75,7 @@ public class RatingIntegrationTest {
         notificationRepository.deleteAll();
         paymentRepository.deleteAll();
         ratingRepository.deleteAll();
+        paymentRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();
