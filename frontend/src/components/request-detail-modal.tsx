@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Calendar, Clock, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert, IndianRupee, Clock3, Activity, User, Compass, Sparkles, FileText, MessageSquare } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert, IndianRupee, Clock3, Activity, User, Compass, Sparkles, FileText, MessageSquare, CreditCard } from 'lucide-react';
 import { cancelServiceRequestApi, getWorkerRecommendationsForRequestApi } from '@/services/api';
 import { CATEGORY_LABELS, type ServiceRequest, type WorkerRecommendationResult } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
 import { RecommendedWorkerCard } from '@/components/recommended-worker-card';
 import { InvoiceModal } from '@/components/invoice-modal';
+import { DemoPaymentModal } from '@/components/demo-payment-modal';
 import { useAuth } from '@/context/AuthContext';
 import { VerifiedWorkerBadge } from '@/components/verified-worker-badge';
 import { DisputeCreateForm } from '@/components/dispute/DisputeCreateForm';
@@ -28,6 +29,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const [recommendationResult, setRecommendationResult] = useState<WorkerRecommendationResult | null>(null);
   const [isLoadingRecs, setIsLoadingRecs] = useState(false);
@@ -51,6 +53,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
       setIsCancelling(false);
       setCancelError(null);
       setIsDisputeOpen(false);
+      setIsPaymentModalOpen(false);
 
       if (request.jobId) {
         fetchDispute();
@@ -284,11 +287,31 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                 </div>
               )}
 
+              {request.jobId && jobStatusStr === 'PAYMENT_REQUIRED' && user?.role === 'CUSTOMER' && (
+                <div className="space-y-2 pt-2 border-t border-amber-200/60">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3 flex items-center gap-2.5 text-xs text-amber-800">
+                    <IndianRupee className="h-4 w-4 text-amber-600 shrink-0" />
+                    <div>
+                      <p className="font-bold">Payment Required</p>
+                      <p className="text-amber-700/80 leading-snug">The worker has completed the service. Please complete payment to finalize the job.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPaymentModalOpen(true)}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Pay Now — ₹{request.budget.toLocaleString()}
+                  </button>
+                </div>
+              )}
+
               {request.jobId && jobStatusStr === 'COMPLETED' && (
-                <div className="space-y-2">
+                <div className="space-y-2 pt-2 border-t border-emerald-200/60">
                   <div className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 py-2.5 text-xs font-bold text-emerald-800">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    Job Completed
+                    Job Completed &amp; Payment Received
                   </div>
 
                   <button
@@ -301,6 +324,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                   </button>
                 </div>
               )}
+
             </div>
           )}
 
@@ -390,6 +414,19 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
           jobId={request.jobId}
           isOpen={isInvoiceOpen}
           onClose={() => setIsInvoiceOpen(false)}
+        />
+      )}
+
+      {/* Demo Payment Modal */}
+      {request && request.jobId && (
+        <DemoPaymentModal
+          jobId={request.jobId}
+          amount={request.budget}
+          workerName={request.workerName}
+          serviceName={CATEGORY_LABELS[request.category]?.label}
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          onPaymentComplete={onStatusChange}
         />
       )}
     </div>

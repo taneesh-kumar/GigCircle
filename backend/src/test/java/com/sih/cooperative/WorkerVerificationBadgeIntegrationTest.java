@@ -61,6 +61,12 @@ public class WorkerVerificationBadgeIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private com.sih.cooperative.repository.InvoiceRepository invoiceRepository;
+
+    @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
     private String adminToken;
     private String workerToken;
     @SuppressWarnings("unused")
@@ -70,6 +76,8 @@ public class WorkerVerificationBadgeIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        paymentRepository.deleteAll();
+        invoiceRepository.deleteAll();
         notificationRepository.deleteAll();
         verificationDocumentRepository.deleteAll();
         workerVerificationRepository.deleteAll();

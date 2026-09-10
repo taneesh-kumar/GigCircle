@@ -2,6 +2,7 @@ package com.sih.cooperative;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sih.cooperative.dto.*;
+import com.sih.cooperative.dto.SimulatePaymentRequest;
 import com.sih.cooperative.entity.*;
 import com.sih.cooperative.repository.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,6 +61,9 @@ public class RatingIntegrationTest {
     private InvoiceRepository invoiceRepository;
 
     @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String customerToken1;
@@ -70,6 +74,7 @@ public class RatingIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        paymentRepository.deleteAll();
         notificationRepository.deleteAll();
         invoiceRepository.deleteAll();
         ratingRepository.deleteAll();
@@ -134,7 +139,18 @@ public class RatingIntegrationTest {
             return jobId;
         }
 
+        // Phase 4: /complete transitions to PAYMENT_REQUIRED
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
+        if (targetStatus == JobStatus.PAYMENT_REQUIRED) {
+            return jobId;
+        }
+
+        // COMPLETED requires successful payment simulation
+        SimulatePaymentRequest successReq = new SimulatePaymentRequest(true);
+        mockMvc.perform(post("/api/demo-payments/jobs/" + jobId + "/simulate")
+                .header("Authorization", "Bearer " + customerToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(successReq))).andExpect(status().isOk());
         return jobId;
     }
 
@@ -384,11 +400,18 @@ public class RatingIntegrationTest {
                         .content(objectMapper.writeValueAsString(new CreateRatingRequest(5, "Early"))))
                 .andExpect(status().isConflict());
 
-        // Worker completes job -> COMPLETED
+        // Worker completes service -> PAYMENT_REQUIRED
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/start").header("Authorization", "Bearer " + workerToken1)).andExpect(status().isOk());
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken1))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.jobStatus").value("COMPLETED"));
+                .andExpect(jsonPath("$.jobStatus").value("PAYMENT_REQUIRED"));
+
+        // Customer pays -> COMPLETED
+        mockMvc.perform(post("/api/demo-payments/jobs/" + jobId + "/simulate")
+                        .header("Authorization", "Bearer " + customerToken1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SimulatePaymentRequest(true))))
+                .andExpect(status().isOk());
 
         // After completion -> 201 Created
         mockMvc.perform(post("/api/customer/ratings/" + jobId)

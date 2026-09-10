@@ -16,6 +16,11 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Tests the service-level job completion behavior under the Phase 4 lifecycle.
+ * Worker calling completeJob() now moves job to PAYMENT_REQUIRED.
+ * Earning and final COMPLETED status are set only after customer pays.
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 public class JobCompletionIntegrationTest {
@@ -44,12 +49,16 @@ public class JobCompletionIntegrationTest {
     @Autowired
     private JobService jobService;
 
+    @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
     private User customer;
     private User worker;
     private Job job;
 
     @BeforeEach
     void setUp() {
+        paymentRepository.deleteAll();
         notificationRepository.deleteAll();
         invoiceRepository.deleteAll();
         earningRepository.deleteAll();
@@ -71,30 +80,52 @@ public class JobCompletionIntegrationTest {
         job = jobRepository.save(job);
     }
 
+    /**
+     * Phase 4 lifecycle:
+     * Worker completing a job now sets status to PAYMENT_REQUIRED (not COMPLETED directly).
+     * Earning and completedAt are set ONLY after successful customer payment.
+     */
     @Test
-    void testWorkerCompletesJob_DirectToCompleted_GeneratesEarningAndNotification_NoPayment() {
+    void testWorkerCompletesJob_MovesToPaymentRequired_NoEarningYet() {
         assertEquals(JobStatus.IN_PROGRESS, job.getStatus());
         assertNull(job.getCompletedAt());
 
         JobResponse response = jobService.completeJob(job.getId(), worker.getEmail());
 
         assertNotNull(response);
-        assertEquals(JobStatus.COMPLETED, response.getJobStatus());
+        assertEquals(JobStatus.PAYMENT_REQUIRED, response.getJobStatus(),
+                "Worker completing the job must transition it to PAYMENT_REQUIRED, not COMPLETED");
 
         Job updatedJob = jobRepository.findById(job.getId()).orElseThrow();
-        assertEquals(JobStatus.COMPLETED, updatedJob.getStatus());
-        assertNotNull(updatedJob.getCompletedAt());
+        assertEquals(JobStatus.PAYMENT_REQUIRED, updatedJob.getStatus());
+        // completedAt is NOT set yet — it gets set after customer pays
+        assertNull(updatedJob.getCompletedAt(),
+                "completedAt must remain null until customer completes payment");
 
-        // Verify Earning was generated for the completed job
-        assertTrue(earningRepository.existsByJobId(job.getId()));
-        Earning earning = earningRepository.findByJobId(job.getId()).orElseThrow();
-        assertEquals(new BigDecimal("1000.00"), earning.getGrossAmount());
-        assertNotNull(earning.getWorkerEarning());
-        assertNotNull(earning.getPlatformFee());
+        // No earning should be created yet — earning is generated when customer pays
+        assertFalse(earningRepository.existsByJobId(job.getId()),
+                "Earning must NOT be generated until customer pays");
 
-        // Verify Notification was generated
-        List<Notification> notifications = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(customer.getId());
-        assertFalse(notifications.isEmpty());
-        assertTrue(notifications.stream().anyMatch(n -> n.getType() == NotificationType.JOB_COMPLETED));
+        // Customer should receive a PAYMENT_REQUIRED notification
+        List<Notification> customerNotifications = notificationRepository.findByRecipientIdOrderByCreatedAtDescIdDesc(customer.getId());
+        assertFalse(customerNotifications.isEmpty(), "Customer should receive a payment-required notification");
+        assertTrue(customerNotifications.stream().anyMatch(n -> n.getType() == NotificationType.PAYMENT_REQUIRED),
+                "Customer must receive PAYMENT_REQUIRED notification type");
+    }
+
+    /**
+     * Calling completeJob() twice on a PAYMENT_REQUIRED job is idempotent.
+     * The second call returns the current PAYMENT_REQUIRED state without error.
+     */
+    @Test
+    void testCompleteJobIsIdempotentOnPaymentRequired() {
+        jobService.completeJob(job.getId(), worker.getEmail());
+
+        // Second call — idempotent
+        JobResponse secondResponse = jobService.completeJob(job.getId(), worker.getEmail());
+        assertEquals(JobStatus.PAYMENT_REQUIRED, secondResponse.getJobStatus());
+
+        // Still no earning
+        assertFalse(earningRepository.existsByJobId(job.getId()));
     }
 }

@@ -1,7 +1,6 @@
 package com.sih.cooperative.controller;
 
-import com.sih.cooperative.dto.EarningResponse;
-import com.sih.cooperative.dto.PlatformRevenueSummary;
+import com.sih.cooperative.dto.*;
 import com.sih.cooperative.service.EarningService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

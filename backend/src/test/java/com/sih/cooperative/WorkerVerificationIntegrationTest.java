@@ -41,12 +41,16 @@ public class WorkerVerificationIntegrationTest {
     @Autowired
     private com.sih.cooperative.repository.InvoiceRepository invoiceRepository;
 
+    @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
     private User worker1;
     private User worker2;
     private User adminUser;
 
     @BeforeEach
     public void setUp() {
+        paymentRepository.deleteAll();
         notificationRepository.deleteAll();
         invoiceRepository.deleteAll();
         verificationDocumentRepository.deleteAll();

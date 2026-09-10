@@ -61,6 +61,9 @@ public class EarningIntegrationTest {
     private InvoiceRepository invoiceRepository;
 
     @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String customerToken1;
@@ -71,6 +74,7 @@ public class EarningIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        paymentRepository.deleteAll();
         notificationRepository.deleteAll();
         invoiceRepository.deleteAll();
         ratingRepository.deleteAll();
@@ -130,6 +134,12 @@ public class EarningIntegrationTest {
     private Long completeJob(Long jobId, String workerToken, String customerToken) throws Exception {
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/start").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
+        // Phase 4: must also simulate payment success to generate Earning
+        SimulatePaymentRequest successReq = new SimulatePaymentRequest(true);
+        mockMvc.perform(post("/api/demo-payments/jobs/" + jobId + "/simulate")
+                .header("Authorization", "Bearer " + customerToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(successReq))).andExpect(status().isOk());
         return jobId;
     }
 
@@ -159,6 +169,10 @@ public class EarningIntegrationTest {
         // IN_PROGRESS job
         mockMvc.perform(post("/api/worker/jobs/" + acceptedJobId + "/start").header("Authorization", "Bearer " + workerToken1)).andExpect(status().isOk());
         assertFalse(earningRepository.existsByJobId(acceptedJobId));
+
+        // PAYMENT_REQUIRED (worker complete, customer has NOT paid yet)
+        mockMvc.perform(post("/api/worker/jobs/" + acceptedJobId + "/complete").header("Authorization", "Bearer " + workerToken1)).andExpect(status().isOk());
+        assertFalse(earningRepository.existsByJobId(acceptedJobId), "PAYMENT_REQUIRED job must NOT have earning yet");
 
         // Cancelled Service Request
         CreateServiceRequestRequest req = new CreateServiceRequestRequest(ServiceCategory.PLUMBING, "Cancelled request", "Indiranagar", new BigDecimal("500.00"), LocalDateTime.now().plusDays(1));

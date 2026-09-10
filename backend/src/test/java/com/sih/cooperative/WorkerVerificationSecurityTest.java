@@ -54,10 +54,13 @@ public class WorkerVerificationSecurityTest {
     private AdminActivityRepository adminActivityRepository;
 
     @Autowired
-    private com.sih.cooperative.repository.InvoiceRepository invoiceRepository;
+    private NotificationRepository notificationRepository;
 
     @Autowired
-    private com.sih.cooperative.repository.NotificationRepository notificationRepository;
+    private InvoiceRepository invoiceRepository;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -74,6 +77,7 @@ public class WorkerVerificationSecurityTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        paymentRepository.deleteAll();
         notificationRepository.deleteAll();
         invoiceRepository.deleteAll();
         adminActivityRepository.deleteAll();

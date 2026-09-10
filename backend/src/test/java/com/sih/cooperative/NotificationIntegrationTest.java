@@ -60,6 +60,9 @@ public class NotificationIntegrationTest {
     private InvoiceRepository invoiceRepository;
 
     @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String customerToken1;
@@ -71,6 +74,7 @@ public class NotificationIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        paymentRepository.deleteAll();
         notificationRepository.deleteAll();
         invoiceRepository.deleteAll();
         ratingRepository.deleteAll();
@@ -176,11 +180,25 @@ public class NotificationIntegrationTest {
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/start").header("Authorization", "Bearer " + workerToken1)).andExpect(status().isOk());
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken1)).andExpect(status().isOk());
 
-        // Worker notifications: WORKER_ASSIGNED, JOB_COMPLETED, EARNING_GENERATED (3 total)
+        // Worker notifications: WORKER_ASSIGNED + JOB_COMPLETED ("Work Submitted") = 2 after /complete
+        // EARNING_GENERATED + PAYMENT_SUCCESS arrive after customer pays
         mockMvc.perform(get("/api/worker/notifications")
                         .header("Authorization", "Bearer " + workerToken1))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(3)));
+                .andExpect(jsonPath("$", hasSize(2)));
+
+        // Now customer simulates payment success -> job becomes COMPLETED -> earning generated
+        SimulatePaymentRequest successReq = new SimulatePaymentRequest(true);
+        mockMvc.perform(post("/api/demo-payments/jobs/" + jobId + "/simulate")
+                .header("Authorization", "Bearer " + customerToken1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(successReq))).andExpect(status().isOk());
+
+        // Worker now has 4 notifications: WORKER_ASSIGNED, JOB_COMPLETED, PAYMENT_SUCCESS, EARNING_GENERATED
+        mockMvc.perform(get("/api/worker/notifications")
+                        .header("Authorization", "Bearer " + workerToken1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(4)));
     }
 
     @Test
@@ -197,12 +215,19 @@ public class NotificationIntegrationTest {
 
 
 
+        // Phase 4: rating requires COMPLETED job — must simulate payment success first
+        SimulatePaymentRequest successReq = new SimulatePaymentRequest(true);
+        mockMvc.perform(post("/api/demo-payments/jobs/" + jobId + "/simulate")
+                .header("Authorization", "Bearer " + customerToken1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(successReq))).andExpect(status().isOk());
+
         mockMvc.perform(post("/api/customer/ratings/" + jobId)
                 .header("Authorization", "Bearer " + customerToken1)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new CreateRatingRequest(5, "Awesome!")))).andExpect(status().isCreated());
 
-        // Worker should receive RATING_RECEIVED notification
+        // Worker should receive RATING_RECEIVED as top notification
         mockMvc.perform(get("/api/worker/notifications")
                         .header("Authorization", "Bearer " + workerToken1))
                 .andExpect(status().isOk())

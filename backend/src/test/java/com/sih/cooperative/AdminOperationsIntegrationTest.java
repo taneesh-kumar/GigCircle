@@ -67,6 +67,9 @@ public class AdminOperationsIntegrationTest {
     private AdminActivityRepository adminActivityRepository;
 
     @Autowired
+    private PaymentRepository paymentRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String adminToken;
@@ -79,6 +82,7 @@ public class AdminOperationsIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        paymentRepository.deleteAll();
         adminActivityRepository.deleteAll();
         notificationRepository.deleteAll();
         invoiceRepository.deleteAll();

@@ -57,8 +57,16 @@ public class AdminGovernanceIntegrationTest {
     private User worker;
     private Job testJob;
 
+    @Autowired
+    private com.sih.cooperative.repository.InvoiceRepository invoiceRepository;
+
+    @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
     @BeforeEach
     public void setUp() {
+        paymentRepository.deleteAll();
+        invoiceRepository.deleteAll();
         notificationRepository.deleteAll();
         disputeHistoryRepository.deleteAll();
         disputeRepository.deleteAll();

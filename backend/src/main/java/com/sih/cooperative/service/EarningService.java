@@ -1,13 +1,9 @@
 package com.sih.cooperative.service;
 
-import com.sih.cooperative.config.EarningsConfig;
-import com.sih.cooperative.dto.EarningResponse;
-import com.sih.cooperative.dto.PlatformRevenueSummary;
-import com.sih.cooperative.dto.WorkerEarningsSummary;
+import com.sih.cooperative.config.*;
+import com.sih.cooperative.dto.*;
 import com.sih.cooperative.entity.*;
-import com.sih.cooperative.repository.EarningRepository;
-import com.sih.cooperative.repository.JobRepository;
-import com.sih.cooperative.repository.UserRepository;
+import com.sih.cooperative.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;

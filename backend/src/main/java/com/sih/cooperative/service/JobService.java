@@ -26,22 +26,19 @@ public class JobService {
     private final UserRepository userRepository;
     private final WorkerMatchingService workerMatchingService;
     private final NotificationService notificationService;
-    private final EarningService earningService;
 
     public JobService(JobRepository jobRepository,
                       ServiceRequestRepository serviceRequestRepository,
                       WorkerProfileRepository workerProfileRepository,
                       UserRepository userRepository,
                       WorkerMatchingService workerMatchingService,
-                      NotificationService notificationService,
-                      EarningService earningService) {
+                      NotificationService notificationService) {
         this.jobRepository = jobRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.workerProfileRepository = workerProfileRepository;
         this.userRepository = userRepository;
         this.workerMatchingService = workerMatchingService;
         this.notificationService = notificationService;
-        this.earningService = earningService;
     }
 
     private User getAuthenticatedWorker(String email) {
@@ -214,20 +211,20 @@ public class JobService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: job assigned to another worker");
             }
 
-            if (job.getStatus() != JobStatus.IN_PROGRESS) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Only IN_PROGRESS jobs can request completion");
+            if (job.getStatus() == JobStatus.PAYMENT_REQUIRED) {
+                // Already awaiting payment — idempotent, just return current state
+                return JobResponse.fromEntity(job);
             }
 
-            job.setStatus(JobStatus.COMPLETED);
-            job.setCompletedAt(LocalDateTime.now());
+            if (job.getStatus() != JobStatus.IN_PROGRESS) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Only IN_PROGRESS jobs can be submitted for completion");
+            }
+
+            // Transition: IN_PROGRESS → PAYMENT_REQUIRED
+            // Do NOT set completedAt or generate Earning/Invoice yet — that happens after payment succeeds.
+            job.setStatus(JobStatus.PAYMENT_REQUIRED);
 
             savedJob = jobRepository.save(job);
-            
-            try {
-                earningService.generateEarningForCompletedJob(savedJob);
-            } catch (Exception ex) {
-                // Earning generation logging if needed
-            }
         } catch (ResponseStatusException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -241,12 +238,13 @@ public class JobService {
             throw ex;
         }
 
+        // Notify customer to pay, notify worker that work is submitted
         try {
             notificationService.createNotification(
                     savedJob.getServiceRequest().getCustomer(),
-                    NotificationType.JOB_COMPLETED,
-                    "Job Completed",
-                    "Your worker has completed the service for Job #" + savedJob.getId() + ".",
+                    NotificationType.PAYMENT_REQUIRED,
+                    "Payment Required",
+                    "The worker has completed the service for Job #" + savedJob.getId() + ". Please complete payment to finalize the job.",
                     "JOB",
                     savedJob.getId()
             );
@@ -254,8 +252,8 @@ public class JobService {
             notificationService.createNotification(
                     savedJob.getWorker(),
                     NotificationType.JOB_COMPLETED,
-                    "Job Completed",
-                    "You have successfully completed Job #" + savedJob.getId() + ".",
+                    "Work Submitted — Awaiting Payment",
+                    "You have submitted Job #" + savedJob.getId() + " for completion. Waiting for customer payment.",
                     "JOB",
                     savedJob.getId()
             );

@@ -54,8 +54,16 @@ public class AuthIntegrationTest {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private com.sih.cooperative.repository.InvoiceRepository invoiceRepository;
+
+    @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
     @BeforeEach
     void setUp() {
+        paymentRepository.deleteAll();
+        invoiceRepository.deleteAll();
         notificationRepository.deleteAll();
         ratingRepository.deleteAll();
         earningRepository.deleteAll();

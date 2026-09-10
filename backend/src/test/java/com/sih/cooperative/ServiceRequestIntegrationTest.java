@@ -60,12 +60,16 @@ public class ServiceRequestIntegrationTest {
     @Autowired
     private InvoiceRepository invoiceRepository;
 
+    @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
     private String customerAToken;
     private String customerBToken;
     private String workerToken;
 
     @BeforeEach
     void setUp() throws Exception {
+        paymentRepository.deleteAll();
         notificationRepository.deleteAll();
         invoiceRepository.deleteAll();
         ratingRepository.deleteAll();

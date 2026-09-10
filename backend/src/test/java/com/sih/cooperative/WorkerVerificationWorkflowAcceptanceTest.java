@@ -27,10 +27,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.sih.cooperative.repository.PaymentRepository;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class WorkerVerificationWorkflowAcceptanceTest {
+public class WorkerVerificationWorkflowAcceptanceTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -54,6 +56,9 @@ class WorkerVerificationWorkflowAcceptanceTest {
     private InvoiceRepository invoiceRepository;
 
     @Autowired
+    private PaymentRepository paymentRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -72,6 +77,7 @@ class WorkerVerificationWorkflowAcceptanceTest {
 
     @BeforeEach
     void setUp() {
+        paymentRepository.deleteAll();
         notificationRepository.deleteAll();
         invoiceRepository.deleteAll();
         documentRepository.deleteAll();

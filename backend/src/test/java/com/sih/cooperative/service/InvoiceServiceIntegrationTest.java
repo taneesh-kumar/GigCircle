@@ -46,6 +46,9 @@ public class InvoiceServiceIntegrationTest {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
     private User customer;
     private User worker;
     private User unrelatedCustomer;
@@ -57,6 +60,7 @@ public class InvoiceServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        paymentRepository.deleteAll();
         invoiceRepository.deleteAll();
         notificationRepository.deleteAll();
         earningRepository.deleteAll();

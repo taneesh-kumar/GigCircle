@@ -61,12 +61,20 @@ public class WorkerMatchingIntegrationTest {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private com.sih.cooperative.repository.InvoiceRepository invoiceRepository;
+
+    @Autowired
+    private com.sih.cooperative.repository.PaymentRepository paymentRepository;
+
     private String customerToken;
     private String workerToken1;
     private String workerToken2;
 
     @BeforeEach
     void setUp() throws Exception {
+        paymentRepository.deleteAll();
+        invoiceRepository.deleteAll();
         notificationRepository.deleteAll();
         ratingRepository.deleteAll();
         earningRepository.deleteAll();
