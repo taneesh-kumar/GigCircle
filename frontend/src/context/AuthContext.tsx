@@ -16,13 +16,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(sessionStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Restore authenticated session on browser refresh (F5)
   useEffect(() => {
     async function restoreSession() {
-      const storedToken = localStorage.getItem('token');
+      const storedToken = sessionStorage.getItem('token');
       if (!storedToken) {
         setIsLoading(false);
         return;
@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentUser);
         setToken(storedToken);
       } catch {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         setUser(null);
         setToken(null);
       } finally {
@@ -44,24 +44,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     restoreSession();
   }, []);
 
-  const login = async (credentials: LoginCredentials): Promise<User> => {
+const login = async (credentials: LoginCredentials): Promise<User> => {
     const response = await loginApi(credentials);
-    localStorage.setItem('token', response.token);
+
+    // Save the token FIRST so every following API request is authenticated.
+    sessionStorage.setItem('token', response.token);
     setToken(response.token);
+
+    // Set the user immediately.
     setUser(response.user);
-    return response.user;
-  };
+
+    // Login is complete; allow protected pages to load.
+    setIsLoading(false);
+
+    // Verify the authenticated session before navigating to the dashboard.
+    try {
+        const currentUser = await getCurrentUserApi();
+        setUser(currentUser);
+        return currentUser;
+    } catch (error) {
+        sessionStorage.removeItem('token');
+        setToken(null);
+        setUser(null);
+        setIsLoading(false);
+        throw error;
+    }
+};
 
   const register = async (credentials: RegisterCredentials): Promise<User> => {
     const response = await registerApi(credentials);
-    localStorage.setItem('token', response.token);
+    sessionStorage.setItem('token', response.token);
     setToken(response.token);
     setUser(response.user);
     return response.user;
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     setToken(null);
     setUser(null);
   };
@@ -90,3 +109,4 @@ export function useAuth(): AuthContextType {
   }
   return context;
 }
+
