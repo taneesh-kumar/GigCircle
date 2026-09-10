@@ -4426,16 +4426,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             isOpen={isPaymentHistoryModalOpen}
             onClose={() => setIsPaymentHistoryModalOpen(false)}
           />
-          <JobChatModal
-            isOpen={isChatModalOpen}
-            onClose={() => {
-              setIsChatModalOpen(false);
-              setChatModalJobId(null);
-            }}
-            jobId={chatModalJobId}
-            workerName={chatModalWorkerName}
-            requestTitle={chatModalTitle || undefined}
-          />
         </>
       )}
 
@@ -4567,6 +4557,17 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           )}
         </>
       )}
+      {/* Global Job Chat Modal for all roles */}
+      <JobChatModal
+        isOpen={isChatModalOpen}
+        onClose={() => {
+          setIsChatModalOpen(false);
+          setChatModalJobId(null);
+        }}
+        jobId={chatModalJobId}
+        participantName={chatModalWorkerName}
+        requestTitle={chatModalTitle || undefined}
+      />
     </PlatformShell>
   );
 }

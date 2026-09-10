@@ -4,8 +4,9 @@ import type { DisputeReason, DisputeDetailResponse } from '@/types/dispute';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertCircle, AlertTriangle, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/context/AuthContext';
 
 interface DisputeCreateFormProps {
   jobId: number;
@@ -14,7 +15,10 @@ interface DisputeCreateFormProps {
 }
 
 export const DisputeCreateForm: React.FC<DisputeCreateFormProps> = ({ jobId, onSuccess, onCancel }) => {
-  const [reason, setReason] = useState<DisputeReason>('QUALITY_ISSUE');
+  const { user } = useAuth();
+  const isWorker = user?.role?.toLowerCase() === 'worker';
+
+  const [reason, setReason] = useState<DisputeReason>(isWorker ? 'PAYMENT_ISSUE' : 'QUALITY_ISSUE');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +44,7 @@ export const DisputeCreateForm: React.FC<DisputeCreateFormProps> = ({ jobId, onS
       if (err.response?.status === 409) {
         setError('An active dispute already exists for this job.');
       } else if (err.response?.status === 400) {
-        setError(err.response?.data?.message || 'Invalid dispute request (e.g. job has no assigned worker).');
+        setError(err.response?.data?.message || 'Invalid dispute request.');
       } else if (err.response?.status === 403) {
         setError('Access denied: Only the customer or assigned worker can raise a dispute.');
       } else {
@@ -52,60 +56,100 @@ export const DisputeCreateForm: React.FC<DisputeCreateFormProps> = ({ jobId, onS
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 border rounded-lg p-4 bg-card">
-      <div className="flex items-center gap-2 border-b pb-3">
-        <AlertTriangle className="h-5 w-5 text-amber-500" />
-        <h3 className="font-semibold text-lg">Raise Dispute for Job #{jobId}</h3>
+    <form onSubmit={handleSubmit} className="space-y-4 border border-amber-200/80 rounded-2xl p-5 bg-amber-50/40 shadow-2xs">
+      <div className="flex items-center gap-3 border-b border-amber-200/60 pb-3.5">
+        <div className="h-9 w-9 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 flex items-center justify-center shrink-0">
+          <AlertTriangle className="h-5 w-5" />
+        </div>
+        <div>
+          <h3 className="font-extrabold text-sm text-slate-900">
+            {isWorker ? 'Report Issue with Customer' : 'Report Issue with Worker'}
+          </h3>
+          <p className="text-xs text-slate-500">
+            {isWorker
+              ? 'File a dispute regarding non-payment, unagreed scope, or customer conduct.'
+              : 'File a dispute regarding service quality, non-attendance, or conduct.'}
+          </p>
+        </div>
       </div>
 
       {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+        <Alert variant="destructive" className="rounded-xl bg-rose-50 border-rose-200 text-rose-800">
+          <AlertCircle className="h-4 w-4 text-rose-600" />
+          <AlertTitle className="text-xs font-bold">Dispute Submission Failed</AlertTitle>
+          <AlertDescription className="text-xs">{error}</AlertDescription>
         </Alert>
       )}
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Dispute Reason</label>
+      <div className="space-y-1.5">
+        <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
+          {isWorker ? 'Worker Dispute Reason' : 'Customer Dispute Reason'}
+        </label>
         <Select value={reason} onValueChange={(val) => setReason(val as DisputeReason)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select reason" />
+          <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs font-semibold text-slate-800">
+            <SelectValue placeholder="Select issue reason" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="QUALITY_ISSUE">Quality of Service Issue</SelectItem>
-            <SelectItem value="NON_DELIVERY">Worker Did Not Show Up / Non-Delivery</SelectItem>
-            <SelectItem value="PAYMENT_ISSUE">Payment / Price Dispute</SelectItem>
-            <SelectItem value="COMMUNICATION_ISSUE">Unresponsive / Communication Issue</SelectItem>
-            <SelectItem value="SAFETY_VIOLATION">Safety or Misbehavior Violation</SelectItem>
-            <SelectItem value="OTHER">Other Reason</SelectItem>
+          <SelectContent className="rounded-xl">
+            {isWorker ? (
+              <>
+                <SelectItem value="PAYMENT_ISSUE">Customer Refusing Payment or Delaying Payout</SelectItem>
+                <SelectItem value="QUALITY_ISSUE">Demanded Extra Work Beyond Agreed Scope</SelectItem>
+                <SelectItem value="COMMUNICATION_ISSUE">Customer Unreachable / Incorrect Address & Directions</SelectItem>
+                <SelectItem value="SAFETY_VIOLATION">Unsafe Work Environment or Customer Misbehavior</SelectItem>
+                <SelectItem value="NON_DELIVERY">Customer Not Present / Entry Denied Upon Arrival</SelectItem>
+                <SelectItem value="OTHER">Other Worker Concern</SelectItem>
+              </>
+            ) : (
+              <>
+                <SelectItem value="QUALITY_ISSUE">Poor Service Quality or Incomplete Work</SelectItem>
+                <SelectItem value="NON_DELIVERY">Worker Did Not Show Up / Non-Delivery</SelectItem>
+                <SelectItem value="PAYMENT_ISSUE">Payment Dispute or Extra Unagreed Fees</SelectItem>
+                <SelectItem value="COMMUNICATION_ISSUE">Worker Unresponsive or Unprofessional</SelectItem>
+                <SelectItem value="SAFETY_VIOLATION">Safety, Property Damage or Misbehavior</SelectItem>
+                <SelectItem value="OTHER">Other Customer Issue</SelectItem>
+              </>
+            )}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Description</label>
+      <div className="space-y-1.5">
+        <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">Issue Description</label>
         <Textarea
-          placeholder="Provide detailed explanation of the issue..."
+          placeholder={
+            isWorker
+              ? 'Describe the issue experienced with the customer (e.g. non-payment, extra scope requested, unsafe work area)...'
+              : 'Describe the issue experienced with the worker (e.g. incomplete work, absence, damage)...'
+          }
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={2000}
           rows={4}
           required
+          className="rounded-xl border-slate-200 bg-white text-xs text-slate-900 focus:ring-amber-500"
         />
-        <p className="text-xs text-muted-foreground text-right">{description.length}/2000</p>
+        <p className="text-[10px] text-slate-400 font-semibold text-right">{description.length}/2000</p>
       </div>
 
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex items-center justify-end gap-2 pt-2">
         {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+          >
             Cancel
-          </Button>
+          </button>
         )}
-        <Button type="submit" disabled={!description.trim() || loading} variant="destructive">
-          {loading && <RefreshCw className="h-4 w-4 animate-spin mr-2" />}
+        <button
+          type="submit"
+          disabled={!description.trim() || loading}
+          className="rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-4 py-2 text-xs font-extrabold shadow-sm transition-all inline-flex items-center gap-1.5 cursor-pointer"
+        >
+          {loading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
           Submit Dispute
-        </Button>
+        </button>
       </div>
     </form>
   );

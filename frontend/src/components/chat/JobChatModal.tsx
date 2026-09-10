@@ -7,6 +7,7 @@ interface JobChatModalProps {
   onClose: () => void;
   jobId: number | null;
   workerName?: string | null;
+  participantName?: string | null;
   requestTitle?: string;
 }
 
@@ -15,13 +16,14 @@ export function JobChatModal({
   onClose,
   jobId,
   workerName,
+  participantName,
 }: JobChatModalProps) {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   if (!isOpen || !jobId) return null;
 
-  const displayName = workerName || 'Worker';
+  const displayName = participantName || workerName || 'Participant';
   const initials = displayName
     .split(' ')
     .map((n) => n[0])
