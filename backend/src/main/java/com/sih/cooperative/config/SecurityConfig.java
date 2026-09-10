@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/chat/**").authenticated()
                         .requestMatchers("/api/disputes/**").authenticated()
                         .requestMatchers("/api/invoices/**").authenticated()
+                        .requestMatchers("/api/demo-payments/**").authenticated()
                         .requestMatchers("/api/auth/me").authenticated()
                         .anyRequest().authenticated()
                 )

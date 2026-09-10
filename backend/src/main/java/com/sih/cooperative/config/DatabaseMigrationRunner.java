@@ -27,12 +27,10 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check");
 
             // Ensure users active column and status column exist for legacy databases
-            // Explicitly cleanup obsolete payment module database objects
             try {
-                jdbcTemplate.execute("DROP TABLE IF EXISTS payments CASCADE");
                 jdbcTemplate.execute("ALTER TABLE jobs DROP COLUMN IF EXISTS payment_status");
             } catch (Exception ex) {
-                logger.debug("Payment table/column cleanup skipped: {}", ex.getMessage());
+                logger.debug("Payment column cleanup skipped: {}", ex.getMessage());
             }
 
             jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE");
