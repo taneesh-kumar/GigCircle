@@ -36,12 +36,6 @@ public class DisputeServiceIntegrationTest {
     private JobRepository jobRepository;
 
     @Autowired
-    private DisputeRepository disputeRepository;
-
-    @Autowired
-    private DisputeHistoryRepository disputeHistoryRepository;
-
-    @Autowired
     private AdminActivityRepository adminActivityRepository;
 
     private User customer;

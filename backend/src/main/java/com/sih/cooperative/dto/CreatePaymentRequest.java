@@ -1,78 +1,58 @@
 package com.sih.cooperative.dto;
 
 import com.sih.cooperative.entity.PaymentMethod;
-import jakarta.validation.constraints.NotNull;
 
 public class CreatePaymentRequest {
 
-    @NotNull(message = "Job ID is required")
     private Long jobId;
-
-    @NotNull(message = "Payment method is required")
     private PaymentMethod paymentMethod;
-
     private String upiId;
     private String cardNumber;
-    private String cardExpiry;
-    private String cardCvv;
+    private String expiryMonth;
+    private String expiryYear;
 
     public CreatePaymentRequest() {
     }
 
-    public CreatePaymentRequest(Long jobId, PaymentMethod paymentMethod, String upiId, String cardNumber, String cardExpiry, String cardCvv) {
+    public CreatePaymentRequest(Long jobId) {
+        this.jobId = jobId;
+    }
+
+    public CreatePaymentRequest(Long jobId, PaymentMethod paymentMethod) {
+        this.jobId = jobId;
+        this.paymentMethod = paymentMethod;
+    }
+
+    public CreatePaymentRequest(Long jobId, PaymentMethod paymentMethod, String upiId) {
+        this.jobId = jobId;
+        this.paymentMethod = paymentMethod;
+        this.upiId = upiId;
+    }
+
+    public CreatePaymentRequest(Long jobId, PaymentMethod paymentMethod, String upiId, String cardNumber, String expiryMonth, String expiryYear) {
         this.jobId = jobId;
         this.paymentMethod = paymentMethod;
         this.upiId = upiId;
         this.cardNumber = cardNumber;
-        this.cardExpiry = cardExpiry;
-        this.cardCvv = cardCvv;
+        this.expiryMonth = expiryMonth;
+        this.expiryYear = expiryYear;
     }
 
-    public Long getJobId() {
-        return jobId;
-    }
+    public Long getJobId() { return jobId; }
+    public void setJobId(Long jobId) { this.jobId = jobId; }
 
-    public void setJobId(Long jobId) {
-        this.jobId = jobId;
-    }
+    public PaymentMethod getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
 
-    public PaymentMethod getPaymentMethod() {
-        return paymentMethod;
-    }
+    public String getUpiId() { return upiId; }
+    public void setUpiId(String upiId) { this.upiId = upiId; }
 
-    public void setPaymentMethod(PaymentMethod paymentMethod) {
-        this.paymentMethod = paymentMethod;
-    }
+    public String getCardNumber() { return cardNumber; }
+    public void setCardNumber(String cardNumber) { this.cardNumber = cardNumber; }
 
-    public String getUpiId() {
-        return upiId;
-    }
+    public String getExpiryMonth() { return expiryMonth; }
+    public void setExpiryMonth(String expiryMonth) { this.expiryMonth = expiryMonth; }
 
-    public void setUpiId(String upiId) {
-        this.upiId = upiId;
-    }
-
-    public String getCardNumber() {
-        return cardNumber;
-    }
-
-    public void setCardNumber(String cardNumber) {
-        this.cardNumber = cardNumber;
-    }
-
-    public String getCardExpiry() {
-        return cardExpiry;
-    }
-
-    public void setCardExpiry(String cardExpiry) {
-        this.cardExpiry = cardExpiry;
-    }
-
-    public String getCardCvv() {
-        return cardCvv;
-    }
-
-    public void setCardCvv(String cardCvv) {
-        this.cardCvv = cardCvv;
-    }
+    public String getExpiryYear() { return expiryYear; }
+    public void setExpiryYear(String expiryYear) { this.expiryYear = expiryYear; }
 }

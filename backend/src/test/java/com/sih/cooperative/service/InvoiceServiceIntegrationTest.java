@@ -1,6 +1,5 @@
 package com.sih.cooperative.service;
 
-import com.sih.cooperative.config.EarningsConfig;
 import com.sih.cooperative.dto.InvoiceResponse;
 import com.sih.cooperative.entity.*;
 import com.sih.cooperative.repository.*;
@@ -17,7 +16,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -52,9 +50,6 @@ public class InvoiceServiceIntegrationTest {
 
     @Autowired
     private NotificationRepository notificationRepository;
-
-    @Autowired
-    private EarningsConfig earningsConfig;
 
     private User customer;
     private User worker;

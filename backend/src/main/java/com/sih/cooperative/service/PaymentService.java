@@ -1,7 +1,5 @@
 package com.sih.cooperative.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sih.cooperative.dto.CompletePaymentRequest;
 import com.sih.cooperative.entity.*;
 import com.sih.cooperative.repository.*;
@@ -17,7 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,27 +22,23 @@ import java.util.stream.Collectors;
 public class PaymentService {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
-    private static final BigDecimal PLATFORM_FEE_PERCENTAGE = new BigDecimal("10.00");
 
     private final PaymentRepository paymentRepository;
     private final JobRepository jobRepository;
     private final EarningRepository earningRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
-    private final ObjectMapper objectMapper;
 
     public PaymentService(PaymentRepository paymentRepository,
                           JobRepository jobRepository,
                           EarningRepository earningRepository,
                           UserRepository userRepository,
-                          NotificationService notificationService,
-                          ObjectMapper objectMapper) {
+                          NotificationService notificationService) {
         this.paymentRepository = paymentRepository;
         this.jobRepository = jobRepository;
         this.earningRepository = earningRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
-        this.objectMapper = objectMapper;
     }
 
     private User getAuthenticatedCustomer(String email, Role requiredRole) {
