@@ -25,10 +25,20 @@ public class AdminVerificationController {
     }
 
     @GetMapping
-    public ResponseEntity<List<WorkerVerificationResponse>> getVerifications(
+    public ResponseEntity<?> getVerifications(
             @RequestParam(required = false) VerificationStatus status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        if (page != null || size != null || search != null) {
+            int p = (page != null) ? page : 0;
+            int s = (size != null) ? size : 15;
+            com.sih.cooperative.dto.PageResponse<WorkerVerificationResponse> pageRes =
+                    workerVerificationService.getAdminVerificationsPaginated(status, search, p, s, userDetails.getUsername());
+            return ResponseEntity.ok(pageRes);
+        }
         List<WorkerVerificationResponse> list = workerVerificationService.getAdminVerifications(status, userDetails.getUsername());
         return ResponseEntity.ok(list);
     }

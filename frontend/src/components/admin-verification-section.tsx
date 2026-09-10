@@ -86,10 +86,11 @@ export function AdminVerificationSection() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getAdminVerificationsApi(
+      const res = await getAdminVerificationsApi(
         selectedStatusFilter === 'ALL' ? undefined : selectedStatusFilter
       );
-      setVerifications(data);
+      const list = Array.isArray(res) ? res : res.content;
+      setVerifications(list);
     } catch (err: any) {
       const msg =
         err?.response?.data?.message || err?.message || 'Failed to load verification records';

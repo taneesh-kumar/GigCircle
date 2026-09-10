@@ -4,6 +4,7 @@ import com.sih.cooperative.entity.Dispute;
 import com.sih.cooperative.entity.DisputeStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface DisputeRepository extends JpaRepository<Dispute, Long> {
+public interface DisputeRepository extends JpaRepository<Dispute, Long>, JpaSpecificationExecutor<Dispute> {
 
     @EntityGraph(attributePaths = {"job", "job.serviceRequest", "raisedBy", "againstUser", "resolvedBy"})
     List<Dispute> findByJobIdOrderByCreatedAtDesc(Long jobId);

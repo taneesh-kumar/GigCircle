@@ -5,11 +5,22 @@ import type {
   VerificationStatus,
 } from '@/types/worker-verification';
 
+import type { PageResponse } from '@/types/admin';
+
 export async function getAdminVerificationsApi(
-  status?: VerificationStatus | string
-): Promise<WorkerVerificationResponse[]> {
-  const response = await apiClient.get<WorkerVerificationResponse[]>('/admin/verifications', {
-    params: status && status !== 'ALL' ? { status } : undefined,
+  paramsOrStatus?: VerificationStatus | string | {
+    status?: VerificationStatus | string;
+    search?: string;
+    page?: number;
+    size?: number;
+  }
+): Promise<PageResponse<WorkerVerificationResponse> | WorkerVerificationResponse[]> {
+  const params = typeof paramsOrStatus === 'string' ? { status: paramsOrStatus } : paramsOrStatus;
+  const response = await apiClient.get<PageResponse<WorkerVerificationResponse> | WorkerVerificationResponse[]>('/admin/verifications', {
+    params: {
+      ...params,
+      status: params?.status && params.status !== 'ALL' ? params.status : undefined,
+    },
   });
   return response.data;
 }

@@ -4,6 +4,7 @@ import com.sih.cooperative.entity.User;
 import com.sih.cooperative.entity.VerificationStatus;
 import com.sih.cooperative.entity.WorkerVerification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -15,7 +16,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Repository
-public interface WorkerVerificationRepository extends JpaRepository<WorkerVerification, Long> {
+public interface WorkerVerificationRepository extends JpaRepository<WorkerVerification, Long>, JpaSpecificationExecutor<WorkerVerification> {
 
     Optional<WorkerVerification> findByWorkerId(Long workerId);
 

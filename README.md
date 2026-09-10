@@ -86,7 +86,7 @@ The **GigCircle Cooperative Gig Services Platform** provides a structured digita
 | **Phase 2** | **Full Admin Dashboard & Analytics** | Enhanced Overview KPIs, backend completion & cancellation rate calculations, service demand by category API, filterable active jobs API, dynamic operational alerts API, and UI sections. | **COMPLETE** |
 | **Phase 3** | **Dispute Management Backend** | Single active dispute constraint per job, participant dispute creation/response, admin dispute resolution workflow, audit logging & history. | **COMPLETE** |
 | **Phase 4** | **Financial Audit & Operational Management** | Read-only administrative financial metrics DTO, paginated financial audit transaction list, deep transaction inspection modal, job operational status filters (`UNASSIGNED`, `UNRESOLVED_DISPUTE`, `OVERDUE`), audit activity filter bar. | **COMPLETE** |
-| **Phase 5** | **Validation & Security Hardening** | Full backend test suite pass (231/231 tests), frontend typecheck/production build pass, security audit, E2E manual role testing. | **COMPLETE** |
+| **Phase 5** | **Dispute Resolution, Worker Verification & Governance** | Database-level paginated disputes (`GET /api/admin/disputes`) and worker verifications (`GET /api/admin/verifications`) with search filters, expanded platform governance overview KPIs (pending verifications, unresolved & recently resolved disputes), integrated governance panels, and 100% backend/frontend verification. | **COMPLETE** |
 
 
 ---
@@ -248,11 +248,14 @@ npm run build
 | **Financial Audit** | `GET` | `/api/admin/financial/transactions` | ADMIN | Paginated transaction list with status, search, and date range filters |
 | **Financial Audit** | `GET` | `/api/admin/financial/transactions/{id}` | ADMIN | Full read-only financial audit detail inspection for transaction |
 | **Audit Activity** | `GET` | `/api/admin/activity` | ADMIN | Paginated activity audit trail with action type, search, and date range filters |
-| **Admin Disputes**| `GET` | `/api/admin/disputes` | ADMIN | List all platform disputes (filterable) |
-| **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/review` | ADMIN | Move dispute under review |
-| **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/request-response`| ADMIN | Request additional info |
-| **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/resolve` | ADMIN | Resolve dispute with resolution notes |
-| **Admin Disputes**| `POST` | `/api/admin/disputes/{id}/dismiss` | ADMIN | Dismiss dispute with dismissal notes |
+| **Admin Governance**| `GET` | `/api/admin/disputes` | ADMIN | Database-level paginated disputes with status & text search |
+| **Admin Governance**| `POST` | `/api/admin/disputes/{id}/review` | ADMIN | Move dispute under review |
+| **Admin Governance**| `POST` | `/api/admin/disputes/{id}/request-response`| ADMIN | Request additional info |
+| **Admin Governance**| `POST` | `/api/admin/disputes/{id}/resolve` | ADMIN | Resolve dispute with mandatory resolution notes |
+| **Admin Governance**| `POST` | `/api/admin/disputes/{id}/dismiss` | ADMIN | Dismiss dispute with mandatory dismissal notes |
+| **Admin Governance**| `GET` | `/api/admin/verifications` | ADMIN | Database-level paginated worker verifications with status & search |
+| **Admin Governance**| `POST` | `/api/admin/verifications/{id}/verify` | ADMIN | Approve worker verification request |
+| **Admin Governance**| `POST` | `/api/admin/verifications/{id}/reject` | ADMIN | Reject worker verification request with mandatory reason |
 
 ---
 

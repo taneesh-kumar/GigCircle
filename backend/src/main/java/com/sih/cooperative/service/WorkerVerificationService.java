@@ -267,6 +267,56 @@ public class WorkerVerificationService {
     }
 
     @Transactional(readOnly = true)
+    public PageResponse<WorkerVerificationResponse> getAdminVerificationsPaginated(
+            VerificationStatus statusFilter,
+            String search,
+            int page,
+            int size,
+            String adminEmail
+    ) {
+        getAuthenticatedAdmin(adminEmail);
+
+        int targetPage = Math.max(0, page);
+        int targetSize = (size <= 0 || size > 100) ? 15 : size;
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(targetPage, targetSize, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+
+        org.springframework.data.jpa.domain.Specification<WorkerVerification> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+
+            if (statusFilter != null) {
+                predicates.add(cb.equal(root.get("status"), statusFilter));
+            }
+
+            if (search != null && !search.trim().isEmpty()) {
+                String searchLike = "%" + search.trim().toLowerCase() + "%";
+                jakarta.persistence.criteria.Join<Object, Object> worker = root.join("worker", jakarta.persistence.criteria.JoinType.LEFT);
+
+                jakarta.persistence.criteria.Predicate p1 = cb.like(cb.lower(worker.get("name")), searchLike);
+                jakarta.persistence.criteria.Predicate p2 = cb.like(cb.lower(worker.get("email")), searchLike);
+
+                predicates.add(cb.or(p1, p2));
+            }
+
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        org.springframework.data.domain.Page<WorkerVerification> verificationPage = workerVerificationRepository.findAll(spec, pageable);
+        List<WorkerVerificationResponse> content = verificationPage.getContent().stream()
+                .map(WorkerVerificationResponse::new)
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                verificationPage.getNumber(),
+                verificationPage.getSize(),
+                verificationPage.getTotalElements(),
+                verificationPage.getTotalPages(),
+                verificationPage.isFirst(),
+                verificationPage.isLast()
+        );
+    }
+
+    @Transactional(readOnly = true)
     public WorkerVerificationResponse getAdminVerificationById(Long verificationId, String adminEmail) {
         getAuthenticatedAdmin(adminEmail);
 

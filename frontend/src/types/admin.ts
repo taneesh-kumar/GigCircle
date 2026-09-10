@@ -22,6 +22,9 @@ export interface PlatformOverviewSummary {
   totalGrossVolume: number;
   totalPlatformFees: number;
   totalWorkerEarnings: number;
+  pendingVerifications?: number;
+  unresolvedDisputes?: number;
+  recentlyResolvedDisputes?: number;
 }
 
 export interface ServiceDemandResponse {

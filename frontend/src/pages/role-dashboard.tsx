@@ -3127,6 +3127,47 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     </div>
                   </div>
 
+                  {/* GOVERNANCE & VERIFICATION HIGHLIGHT STRIP */}
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-4 flex items-center justify-between shadow-2xs">
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-700 block">Pending Worker Verifications</span>
+                        <strong className="text-2xl font-black text-amber-900 mt-0.5 block">{adminOverview?.pendingVerifications ?? 0}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'verifications' })}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs"
+                      >
+                        Review →
+                      </button>
+                    </div>
+
+                    <div className="rounded-2xl border border-rose-200/80 bg-rose-50/50 p-4 flex items-center justify-between shadow-2xs">
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-rose-700 block">Active Unresolved Disputes</span>
+                        <strong className="text-2xl font-black text-rose-900 mt-0.5 block">{adminOverview?.unresolvedDisputes ?? 0}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'jobs' })}
+                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs"
+                      >
+                        Investigate →
+                      </button>
+                    </div>
+
+                    <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-4 flex items-center justify-between shadow-2xs">
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-700 block">Resolved Disputes</span>
+                        <strong className="text-2xl font-black text-emerald-900 mt-0.5 block">{adminOverview?.recentlyResolvedDisputes ?? 0}</strong>
+                      </div>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 rounded-lg px-2.5 py-1">
+                        Audited
+                      </span>
+                    </div>
+                  </div>
+
                   {/* OPERATIONAL ALERTS SECTION */}
                   <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                     <div className="flex items-center justify-between">

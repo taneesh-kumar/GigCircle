@@ -22,11 +22,12 @@ export const AdminDisputesPage: React.FC = () => {
     setError(null);
     try {
       const filter = statusFilter !== 'ALL' ? (statusFilter as DisputeStatus) : undefined;
-      const data = await getAllDisputesAdminApi(filter);
-      setDisputes(data);
+      const res = await getAllDisputesAdminApi(filter);
+      const list = Array.isArray(res) ? res : res.content;
+      setDisputes(list);
 
       if (selectedDispute) {
-        const updated = data.find((d) => d.id === selectedDispute.id);
+        const updated = list.find((d: DisputeDetailResponse) => d.id === selectedDispute.id);
         if (updated) setSelectedDispute(updated);
       }
     } catch (err: any) {

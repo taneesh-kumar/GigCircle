@@ -24,10 +24,19 @@ public class AdminDisputeController {
     }
 
     @GetMapping
-    public ResponseEntity<List<DisputeDetailResponse>> getAllDisputes(
+    public ResponseEntity<?> getAllDisputes(
             @RequestParam(required = false) DisputeStatus status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        if (page != null || size != null || search != null) {
+            int p = (page != null) ? page : 0;
+            int s = (size != null) ? size : 15;
+            PageResponse<DisputeDetailResponse> pageRes = disputeService.getDisputesPaginatedForAdmin(status, search, p, s, userDetails.getUsername());
+            return ResponseEntity.ok(pageRes);
+        }
         List<DisputeDetailResponse> disputes = disputeService.getAllDisputesForAdmin(status, userDetails.getUsername());
         return ResponseEntity.ok(disputes);
     }

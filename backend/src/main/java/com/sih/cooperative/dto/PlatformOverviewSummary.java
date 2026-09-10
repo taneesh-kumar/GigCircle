@@ -24,6 +24,10 @@ public class PlatformOverviewSummary {
     private BigDecimal totalPlatformFees;
     private BigDecimal totalWorkerEarnings;
 
+    private Long pendingVerifications;
+    private Long unresolvedDisputes;
+    private Long recentlyResolvedDisputes;
+
     public PlatformOverviewSummary() {
     }
 
@@ -53,6 +57,30 @@ public class PlatformOverviewSummary {
         this.totalGrossVolume = totalGrossVolume;
         this.totalPlatformFees = totalPlatformFees;
         this.totalWorkerEarnings = totalWorkerEarnings;
+    }
+
+    public Long getPendingVerifications() {
+        return pendingVerifications;
+    }
+
+    public void setPendingVerifications(Long pendingVerifications) {
+        this.pendingVerifications = pendingVerifications;
+    }
+
+    public Long getUnresolvedDisputes() {
+        return unresolvedDisputes;
+    }
+
+    public void setUnresolvedDisputes(Long unresolvedDisputes) {
+        this.unresolvedDisputes = unresolvedDisputes;
+    }
+
+    public Long getRecentlyResolvedDisputes() {
+        return recentlyResolvedDisputes;
+    }
+
+    public void setRecentlyResolvedDisputes(Long recentlyResolvedDisputes) {
+        this.recentlyResolvedDisputes = recentlyResolvedDisputes;
     }
 
     public Long getTotalUsers() {

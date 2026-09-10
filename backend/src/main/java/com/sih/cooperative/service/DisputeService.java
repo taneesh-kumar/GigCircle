@@ -249,6 +249,64 @@ public class DisputeService {
         return disputes.stream().map(this::mapToDetailResponse).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public PageResponse<DisputeDetailResponse> getDisputesPaginatedForAdmin(
+            DisputeStatus statusFilter,
+            String search,
+            int page,
+            int size,
+            String adminEmail
+    ) {
+        User admin = getAuthenticatedUser(adminEmail);
+        if (admin.getRole() != Role.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required");
+        }
+
+        int targetPage = Math.max(0, page);
+        int targetSize = (size <= 0 || size > 100) ? 15 : size;
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(targetPage, targetSize, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+
+        org.springframework.data.jpa.domain.Specification<Dispute> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+
+            if (statusFilter != null) {
+                predicates.add(cb.equal(root.get("status"), statusFilter));
+            }
+
+            if (search != null && !search.trim().isEmpty()) {
+                String searchLike = "%" + search.trim().toLowerCase() + "%";
+                jakarta.persistence.criteria.Join<Object, Object> raisedBy = root.join("raisedBy", jakarta.persistence.criteria.JoinType.LEFT);
+                jakarta.persistence.criteria.Join<Object, Object> againstUser = root.join("againstUser", jakarta.persistence.criteria.JoinType.LEFT);
+                jakarta.persistence.criteria.Join<Object, Object> job = root.join("job", jakarta.persistence.criteria.JoinType.LEFT);
+                jakarta.persistence.criteria.Join<Object, Object> req = job.join("serviceRequest", jakarta.persistence.criteria.JoinType.LEFT);
+
+                jakarta.persistence.criteria.Predicate p1 = cb.like(cb.lower(raisedBy.get("name")), searchLike);
+                jakarta.persistence.criteria.Predicate p2 = cb.like(cb.lower(againstUser.get("name")), searchLike);
+                jakarta.persistence.criteria.Predicate p3 = cb.like(cb.lower(req.get("category")), searchLike);
+                jakarta.persistence.criteria.Predicate p4 = cb.like(cb.lower(req.get("description")), searchLike);
+
+                predicates.add(cb.or(p1, p2, p3, p4));
+            }
+
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        org.springframework.data.domain.Page<Dispute> disputePage = disputeRepository.findAll(spec, pageable);
+        List<DisputeDetailResponse> content = disputePage.getContent().stream()
+                .map(this::mapToDetailResponse)
+                .collect(Collectors.toList());
+
+        return new PageResponse<>(
+                content,
+                disputePage.getNumber(),
+                disputePage.getSize(),
+                disputePage.getTotalElements(),
+                disputePage.getTotalPages(),
+                disputePage.isFirst(),
+                disputePage.isLast()
+        );
+    }
+
     @Transactional
     public DisputeDetailResponse adminRequestResponse(Long disputeId, AdminRequestResponseRequest request, String adminEmail) {
         User admin = getAuthenticatedUser(adminEmail);

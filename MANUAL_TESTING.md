@@ -194,4 +194,26 @@ Ensure test accounts exist in the database (or register via `/register`):
    - Filter by action type (`USER_SUSPENDED`, `DISPUTE_CREATED`, etc.), search text, or date range.
    - Verify audit trail logs update accordingly with page navigation controls.
 
+---
+
+### 10. Phase 5: Dispute Resolution, Worker Verification, and Admin Governance
+1. Log in as **Admin** (`admin@gigcircle.com`).
+2. **Platform Governance Overview KPIs**:
+   - Navigate to **Admin Overview** (`/dashboard?tab=overview`).
+   - Check the **Governance & Verification** summary strip.
+   - Verify KPI cards display counts for **Pending Verifications**, **Unresolved Disputes**, and **Recently Resolved Disputes (30d)**.
+3. **Paginated Worker Verifications (`/api/admin/verifications`)**:
+   - Navigate to **Worker Verification** tab (`/dashboard?tab=verifications`).
+   - Test text search (e.g. search worker name or email) and status filter (`PENDING`, `VERIFIED`, `REJECTED`).
+   - Verify list paginates cleanly via backend `PageResponse`.
+   - Click **Approve Verification**: Verify status changes to `VERIFIED` and worker account verification timestamp is set.
+   - Click **Reject Verification**: Verify modal requires a non-blank rejection reason, updates status to `REJECTED`, and saves audit log entry.
+4. **Paginated Administrative Disputes (`/api/admin/disputes`)**:
+   - Navigate to **Dispute Resolution** tab (`/dashboard?tab=disputes`).
+   - Test status filter (`OPEN`, `UNDER_REVIEW`, `INFO_REQUESTED`, `RESOLVED`, `DISMISSED`) and search parameter.
+   - Verify page navigation controls work smoothly.
+   - Test dispute status transitions (**Move under review**, **Request info**, **Resolve with mandatory notes**, **Dismiss with mandatory notes**).
+   - Verify all actions log to `AdminActivity` and reject unauthorized non-admin attempts with `403 FORBIDDEN`.
+
+
 

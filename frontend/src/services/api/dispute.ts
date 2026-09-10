@@ -38,10 +38,20 @@ export async function respondToDisputeApi(
   return response.data;
 }
 
+import type { PageResponse } from '@/types/admin';
+
 // Admin Dispute API calls
-export async function getAllDisputesAdminApi(status?: DisputeStatus): Promise<DisputeDetailResponse[]> {
-  const response = await apiClient.get<DisputeDetailResponse[]>('/admin/disputes', {
-    params: status ? { status } : undefined,
+export async function getAllDisputesAdminApi(
+  paramsOrStatus?: DisputeStatus | {
+    status?: DisputeStatus;
+    search?: string;
+    page?: number;
+    size?: number;
+  }
+): Promise<PageResponse<DisputeDetailResponse> | DisputeDetailResponse[]> {
+  const params = typeof paramsOrStatus === 'string' ? { status: paramsOrStatus } : paramsOrStatus;
+  const response = await apiClient.get<PageResponse<DisputeDetailResponse> | DisputeDetailResponse[]>('/admin/disputes', {
+    params,
   });
   return response.data;
 }

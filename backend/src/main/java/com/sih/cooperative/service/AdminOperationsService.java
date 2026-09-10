@@ -138,27 +138,27 @@ public class AdminOperationsService {
         BigDecimal totalFees = (feesRaw != null ? feesRaw : BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
         BigDecimal totalWorkerEarnings = (workerRaw != null ? workerRaw : BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
 
-        return new PlatformOverviewSummary(
-                totalUsers,
-                totalCustomers,
-                totalWorkers,
-                activeUsers,
-                suspendedUsers,
-                deactivatedUsers,
-                totalRequests,
-                openRequests,
-                assignedRequests,
-                activeJobs,
-                completedJobs,
-                cancelledRequests,
-                completionRate,
-                cancellationRate,
-                totalRatings,
-                avgRating,
-                totalGross,
-                totalFees,
-                totalWorkerEarnings
+        PlatformOverviewSummary summary = new PlatformOverviewSummary(
+                totalUsers, totalCustomers, totalWorkers,
+                activeUsers, suspendedUsers, deactivatedUsers,
+                totalRequests, openRequests, assignedRequests,
+                activeJobs, completedJobs, cancelledRequests,
+                completionRate, cancellationRate,
+                totalRatings, avgRating, totalGross,
+                totalFees, totalWorkerEarnings
         );
+
+        long pendingVerifications = workerVerificationRepository.findByStatus(VerificationStatus.PENDING_REVIEW).size();
+        long unresolvedDisputes = disputeRepository.findAllByOrderByCreatedAtDesc().stream()
+                .filter(d -> d.getStatus() == DisputeStatus.OPEN || d.getStatus() == DisputeStatus.UNDER_REVIEW || d.getStatus() == DisputeStatus.ACTION_REQUIRED)
+                .count();
+        long recentlyResolvedDisputes = disputeRepository.findByStatusOrderByCreatedAtDesc(DisputeStatus.RESOLVED).size();
+
+        summary.setPendingVerifications(pendingVerifications);
+        summary.setUnresolvedDisputes(unresolvedDisputes);
+        summary.setRecentlyResolvedDisputes(recentlyResolvedDisputes);
+
+        return summary;
     }
 
     @Transactional(readOnly = true)
