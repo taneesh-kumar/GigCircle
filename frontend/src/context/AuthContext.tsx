@@ -44,32 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     restoreSession();
   }, []);
 
-const login = async (credentials: LoginCredentials): Promise<User> => {
+  const login = async (credentials: LoginCredentials): Promise<User> => {
     const response = await loginApi(credentials);
-
-    // Save the token FIRST so every following API request is authenticated.
     sessionStorage.setItem('token', response.token);
     setToken(response.token);
-
-    // Set the user immediately.
     setUser(response.user);
-
-    // Login is complete; allow protected pages to load.
-    setIsLoading(false);
-
-    // Verify the authenticated session before navigating to the dashboard.
-    try {
-        const currentUser = await getCurrentUserApi();
-        setUser(currentUser);
-        return currentUser;
-    } catch (error) {
-        sessionStorage.removeItem('token');
-        setToken(null);
-        setUser(null);
-        setIsLoading(false);
-        throw error;
-    }
-};
+    return response.user;
+  };
 
   const register = async (credentials: RegisterCredentials): Promise<User> => {
     const response = await registerApi(credentials);
@@ -109,4 +90,3 @@ export function useAuth(): AuthContextType {
   }
   return context;
 }
-

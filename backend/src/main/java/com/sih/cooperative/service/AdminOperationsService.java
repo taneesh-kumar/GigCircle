@@ -26,6 +26,7 @@ public class AdminOperationsService {
     private final EarningRepository earningRepository;
     private final AdminActivityRepository adminActivityRepository;
     private final NotificationService notificationService;
+    private final WorkerVerificationRepository workerVerificationRepository;
 
     public AdminOperationsService(UserRepository userRepository,
                                   WorkerProfileRepository workerProfileRepository,
@@ -34,7 +35,8 @@ public class AdminOperationsService {
                                   RatingRepository ratingRepository,
                                   EarningRepository earningRepository,
                                   AdminActivityRepository adminActivityRepository,
-                                  NotificationService notificationService) {
+                                  NotificationService notificationService,
+                                  WorkerVerificationRepository workerVerificationRepository) {
         this.userRepository = userRepository;
         this.workerProfileRepository = workerProfileRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -43,7 +45,9 @@ public class AdminOperationsService {
         this.earningRepository = earningRepository;
         this.adminActivityRepository = adminActivityRepository;
         this.notificationService = notificationService;
+        this.workerVerificationRepository = workerVerificationRepository;
     }
+
 
     private User getAuthenticatedAdmin(String adminEmail) {
         User user = userRepository.findByEmail(adminEmail.toLowerCase().trim())
@@ -89,9 +93,13 @@ public class AdminOperationsService {
                 BigDecimal.valueOf(avgRatingDouble).setScale(2, RoundingMode.HALF_UP) :
                 BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal totalGross = earningRepository.sumAllGrossAmount().setScale(2, RoundingMode.HALF_UP);
-        BigDecimal totalFees = earningRepository.sumAllPlatformFee().setScale(2, RoundingMode.HALF_UP);
-        BigDecimal totalWorkerEarnings = earningRepository.sumAllWorkerEarning().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal grossRaw = earningRepository.sumAllGrossAmount();
+        BigDecimal feesRaw = earningRepository.sumAllPlatformFee();
+        BigDecimal workerRaw = earningRepository.sumAllWorkerEarning();
+
+        BigDecimal totalGross = (grossRaw != null ? grossRaw : BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalFees = (feesRaw != null ? feesRaw : BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalWorkerEarnings = (workerRaw != null ? workerRaw : BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
 
         return new PlatformOverviewSummary(
                 totalUsers,
@@ -139,10 +147,16 @@ public class AdminOperationsService {
                     Long wId = p.getWorker().getId();
                     Double avgRating = ratingRepository.findAverageScoreByWorkerId(wId);
                     Long totalRatings = ratingRepository.countByWorkerId(wId);
-                    return AdminWorkerResponse.fromEntity(p, avgRating, totalRatings);
+                    boolean isVerified = workerVerificationRepository.existsByWorkerIdAndStatus(wId, VerificationStatus.VERIFIED);
+                    AdminWorkerResponse resp = AdminWorkerResponse.fromEntity(p, avgRating, totalRatings);
+                    if (resp != null) {
+                        resp.setIsVerified(isVerified);
+                    }
+                    return resp;
                 })
                 .collect(Collectors.toList());
     }
+
 
     @Transactional
     public AdminWorkerResponse activateWorker(Long workerId, String adminEmail) {

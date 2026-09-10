@@ -1,5 +1,7 @@
 package com.sih.cooperative.service;
 
+import com.sih.cooperative.dto.NearbyWorkerSearchResult;
+import com.sih.cooperative.dto.WorkerRecommendationResult;
 import com.sih.cooperative.dto.CreateServiceRequestRequest;
 import com.sih.cooperative.dto.ServiceRequestResponse;
 import com.sih.cooperative.dto.WorkerRatingSummary;
@@ -8,6 +10,7 @@ import com.sih.cooperative.repository.JobRepository;
 import com.sih.cooperative.repository.RatingRepository;
 import com.sih.cooperative.repository.ServiceRequestRepository;
 import com.sih.cooperative.repository.UserRepository;
+import com.sih.cooperative.repository.WorkerVerificationRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,18 +29,25 @@ public class ServiceRequestService {
     private final JobRepository jobRepository;
     private final RatingRepository ratingRepository;
     private final NotificationService notificationService;
+    private final WorkerMatchingService workerMatchingService;
+    private final WorkerVerificationRepository workerVerificationRepository;
 
     public ServiceRequestService(ServiceRequestRepository serviceRequestRepository,
                                  UserRepository userRepository,
                                  JobRepository jobRepository,
                                  RatingRepository ratingRepository,
-                                 NotificationService notificationService) {
+                                 NotificationService notificationService,
+                                 WorkerMatchingService workerMatchingService,
+                                 WorkerVerificationRepository workerVerificationRepository) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.ratingRepository = ratingRepository;
         this.notificationService = notificationService;
+        this.workerMatchingService = workerMatchingService;
+        this.workerVerificationRepository = workerVerificationRepository;
     }
+
 
     private User getAuthenticatedCustomer(String email) {
         User user = userRepository.findByEmail(email.toLowerCase().trim())
@@ -55,17 +65,22 @@ public class ServiceRequestService {
         if (assignedJobOpt.isPresent()) {
             Job job = assignedJobOpt.get();
             WorkerRatingSummary summary = null;
+            boolean isWorkerVerified = false;
             if (job.getWorker() != null) {
                 Long workerId = job.getWorker().getId();
                 Double avg = ratingRepository.findAverageScoreByWorkerId(workerId);
                 Long count = ratingRepository.countByWorkerId(workerId);
                 summary = new WorkerRatingSummary(workerId, avg, count);
+                isWorkerVerified = workerVerificationRepository.existsByWorkerIdAndStatus(workerId, VerificationStatus.VERIFIED);
             }
             boolean isRated = ratingRepository.existsByJobId(job.getId());
-            return ServiceRequestResponse.fromEntity(req, job, summary, isRated);
+            ServiceRequestResponse resp = ServiceRequestResponse.fromEntity(req, job, summary, isRated);
+            resp.setIsWorkerVerified(isWorkerVerified);
+            return resp;
         }
         return ServiceRequestResponse.fromEntity(req, null, null, false);
     }
+
 
     @Transactional
     public ServiceRequestResponse createServiceRequest(CreateServiceRequestRequest request, String customerEmail) {
@@ -75,13 +90,21 @@ public class ServiceRequestService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Preferred time must be in the future");
         }
 
+        String locationStr = request.getLocation() != null ? request.getLocation().trim() : "";
+        String addressStr = request.getAddress() != null ? request.getAddress().trim() : locationStr;
+        String cityStr = request.getCity() != null ? request.getCity().trim() : null;
+
         ServiceRequest serviceRequest = new ServiceRequest(
                 customer,
                 request.getCategory(),
                 request.getDescription().trim(),
-                request.getLocation().trim(),
+                locationStr,
                 request.getBudget(),
-                request.getPreferredTime()
+                request.getPreferredTime(),
+                request.getLatitude(),
+                request.getLongitude(),
+                addressStr,
+                cityStr
         );
 
         ServiceRequest savedRequest = serviceRequestRepository.save(serviceRequest);
@@ -163,5 +186,45 @@ public class ServiceRequestService {
         );
 
         return ServiceRequestResponse.fromEntity(updatedRequest);
+    }
+
+    @Transactional(readOnly = true)
+    public NearbyWorkerSearchResult findNearbyWorkers(Double latitude, Double longitude, ServiceCategory category, Integer radiusKm, String customerEmail) {
+        getAuthenticatedCustomer(customerEmail);
+        return workerMatchingService.findNearbyWorkers(latitude, longitude, category, radiusKm);
+    }
+
+    @Transactional(readOnly = true)
+    public NearbyWorkerSearchResult findNearbyWorkersForRequest(Long requestId, String customerEmail) {
+        User customer = getAuthenticatedCustomer(customerEmail);
+
+        ServiceRequest request = serviceRequestRepository.findById(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service request not found"));
+
+        if (!request.getCustomer().getId().equals(customer.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to requested service request");
+        }
+
+        return workerMatchingService.findNearbyWorkers(request.getLatitude(), request.getLongitude(), request.getCategory(), null);
+    }
+
+    @Transactional(readOnly = true)
+    public WorkerRecommendationResult getWorkerRecommendations(Double latitude, Double longitude, ServiceCategory category, Integer radiusKm, String customerEmail) {
+        getAuthenticatedCustomer(customerEmail);
+        return workerMatchingService.getWorkerRecommendations(latitude, longitude, category, radiusKm);
+    }
+
+    @Transactional(readOnly = true)
+    public WorkerRecommendationResult getWorkerRecommendationsForRequest(Long requestId, String customerEmail) {
+        User customer = getAuthenticatedCustomer(customerEmail);
+
+        ServiceRequest request = serviceRequestRepository.findById(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service request not found"));
+
+        if (!request.getCustomer().getId().equals(customer.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to requested service request");
+        }
+
+        return workerMatchingService.getWorkerRecommendations(request.getLatitude(), request.getLongitude(), request.getCategory(), null);
     }
 }

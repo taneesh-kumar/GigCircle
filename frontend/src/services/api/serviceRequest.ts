@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { CreateServiceRequestInput, ServiceRequest } from '@/types/service-request';
+import type { CreateServiceRequestInput, ServiceRequest, ServiceCategory, NearbyWorkerSearchResult } from '@/types/service-request';
 
 export async function createServiceRequestApi(input: CreateServiceRequestInput): Promise<ServiceRequest> {
   const response = await apiClient.post<ServiceRequest>('/customer/requests', input);
@@ -20,3 +20,34 @@ export async function cancelServiceRequestApi(id: number): Promise<ServiceReques
   const response = await apiClient.patch<ServiceRequest>(`/customer/requests/${id}/cancel`);
   return response.data;
 }
+
+export async function getNearbyWorkersApi(params: {
+  latitude?: number | null;
+  longitude?: number | null;
+  category?: ServiceCategory;
+  radiusKm?: number;
+}): Promise<NearbyWorkerSearchResult> {
+  const response = await apiClient.get<NearbyWorkerSearchResult>('/customer/requests/nearby-workers', { params });
+  return response.data;
+}
+
+export async function getNearbyWorkersForRequestApi(id: number): Promise<NearbyWorkerSearchResult> {
+  const response = await apiClient.get<NearbyWorkerSearchResult>(`/customer/requests/${id}/nearby-workers`);
+  return response.data;
+}
+
+export async function getWorkerRecommendationsApi(params: {
+  latitude?: number | null;
+  longitude?: number | null;
+  category?: ServiceCategory;
+  radiusKm?: number;
+}): Promise<import('@/types/service-request').WorkerRecommendationResult> {
+  const response = await apiClient.get<import('@/types/service-request').WorkerRecommendationResult>('/customer/requests/recommendations', { params });
+  return response.data;
+}
+
+export async function getWorkerRecommendationsForRequestApi(id: number): Promise<import('@/types/service-request').WorkerRecommendationResult> {
+  const response = await apiClient.get<import('@/types/service-request').WorkerRecommendationResult>(`/customer/requests/${id}/recommendations`);
+  return response.data;
+}
+

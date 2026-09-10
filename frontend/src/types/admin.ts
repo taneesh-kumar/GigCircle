@@ -46,7 +46,9 @@ export interface AdminWorker {
   averageRating: number;
   totalRatings: number;
   createdAt: string;
+  isVerified?: boolean;
 }
+
 
 export interface AdminServiceRequest {
   id: number;

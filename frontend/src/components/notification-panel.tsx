@@ -99,22 +99,42 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ role }) =>
     }
   };
 
+  const handleNotificationClick = async (noti: Notification) => {
+    if (!noti.read) {
+      await handleMarkAsRead(noti.id);
+    }
+    if (noti.relatedEntityType === 'WORKER_VERIFICATION') {
+      if (role === 'ADMIN') {
+        window.location.href = '/dashboard?tab=verifications';
+      } else if (role === 'WORKER') {
+        window.location.href = '/dashboard?tab=verification';
+      }
+    }
+  };
+
   const getIcon = (type: string) => {
     switch (type) {
       case 'SERVICE_REQUEST_CREATED':
+      case 'VERIFICATION_SUBMITTED':
         return <FileText className="w-4 h-4 text-blue-500" />;
       case 'WORKER_ASSIGNED':
         return <Briefcase className="w-4 h-4 text-indigo-500" />;
       case 'JOB_STARTED':
         return <CheckCircle2 className="w-4 h-4 text-amber-500" />;
       case 'JOB_COMPLETED':
+      case 'VERIFICATION_APPROVED':
+      case 'VERIFICATION_REINSTATED':
         return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
       case 'RATING_RECEIVED':
         return <Star className="w-4 h-4 text-yellow-500" />;
       case 'EARNING_GENERATED':
         return <DollarSign className="w-4 h-4 text-emerald-600" />;
       case 'SERVICE_REQUEST_CANCELLED':
+      case 'VERIFICATION_REJECTED':
+      case 'VERIFICATION_SUSPENDED':
         return <AlertCircle className="w-4 h-4 text-rose-500" />;
+      case 'VERIFICATION_CHANGES_REQUIRED':
+        return <AlertCircle className="w-4 h-4 text-amber-500" />;
       default:
         return <Bell className="w-4 h-4 text-slate-500" />;
     }
@@ -167,7 +187,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ role }) =>
               notifications.map((noti) => (
                 <div
                   key={noti.id}
-                  onClick={() => !noti.read && handleMarkAsRead(noti.id)}
+                  onClick={() => handleNotificationClick(noti)}
                   className={`p-3.5 flex items-start space-x-3 transition-colors cursor-pointer ${
                     noti.read ? 'bg-white hover:bg-slate-50' : 'bg-indigo-50/40 hover:bg-indigo-50/80'
                   }`}

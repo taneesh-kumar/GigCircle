@@ -41,6 +41,7 @@ export const navigationByRole: Record<Role, NavItem[]> = {
   ],
   ADMIN: [
     { label: 'Overview & Stats', href: '/admin/dashboard', tabKey: 'overview', icon: TrendingUp },
+    { label: 'Worker Verifications', href: '/admin/dashboard?tab=verifications', tabKey: 'verifications', icon: ShieldCheck },
     { label: 'Workers Governance', href: '/admin/dashboard?tab=workers', tabKey: 'workers', icon: ShieldCheck },
     { label: 'Users Directory', href: '/admin/dashboard?tab=users', tabKey: 'users', icon: Users },
     { label: 'Service Requests', href: '/admin/dashboard?tab=requests', tabKey: 'requests', icon: Wrench },
@@ -50,3 +51,4 @@ export const navigationByRole: Record<Role, NavItem[]> = {
     { label: 'Notifications', href: '/admin/dashboard?tab=notifications', tabKey: 'notifications', icon: Bell },
   ],
 };
+

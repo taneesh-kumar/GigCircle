@@ -14,9 +14,15 @@ export interface WorkerProfile {
   available: boolean;
   serviceLocation: string | null;
   serviceRadiusKm: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+  city?: string | null;
   createdAt: string;
   updatedAt: string;
+  isVerified?: boolean;
 }
+
 
 export interface CreateWorkerProfileInput {
   bio?: string;
@@ -27,6 +33,10 @@ export interface CreateWorkerProfileInput {
   isAvailable?: boolean;
   serviceLocation?: string;
   serviceRadiusKm?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string;
+  city?: string;
 }
 
 export interface UpdateWorkerProfileInput {
@@ -38,4 +48,8 @@ export interface UpdateWorkerProfileInput {
   isAvailable?: boolean;
   serviceLocation?: string;
   serviceRadiusKm?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string;
+  city?: string;
 }

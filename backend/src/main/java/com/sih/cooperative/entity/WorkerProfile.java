@@ -47,6 +47,18 @@ public class WorkerProfile {
     @Column(name = "service_radius_km")
     private Integer serviceRadiusKm;
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
+    @Column(name = "address", length = 500)
+    private String address;
+
+    @Column(name = "city", length = 100)
+    private String city;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -57,6 +69,10 @@ public class WorkerProfile {
     }
 
     public WorkerProfile(User worker, String bio, Integer experienceYears, BigDecimal hourlyRate, Set<String> skills, Set<ServiceCategory> serviceCategories, boolean isAvailable, String serviceLocation, Integer serviceRadiusKm) {
+        this(worker, bio, experienceYears, hourlyRate, skills, serviceCategories, isAvailable, serviceLocation, serviceRadiusKm, null, null, null, null);
+    }
+
+    public WorkerProfile(User worker, String bio, Integer experienceYears, BigDecimal hourlyRate, Set<String> skills, Set<ServiceCategory> serviceCategories, boolean isAvailable, String serviceLocation, Integer serviceRadiusKm, Double latitude, Double longitude, String address, String city) {
         this.worker = worker;
         this.bio = bio;
         this.experienceYears = experienceYears;
@@ -66,6 +82,10 @@ public class WorkerProfile {
         this.isAvailable = isAvailable;
         this.serviceLocation = serviceLocation;
         this.serviceRadiusKm = serviceRadiusKm;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.address = address;
+        this.city = city;
     }
 
     @PrePersist
@@ -158,6 +178,38 @@ public class WorkerProfile {
 
     public void setServiceRadiusKm(Integer serviceRadiusKm) {
         this.serviceRadiusKm = serviceRadiusKm;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public LocalDateTime getCreatedAt() {

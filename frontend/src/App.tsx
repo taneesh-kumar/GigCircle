@@ -13,6 +13,10 @@ import RoleDashboard from '@/pages/role-dashboard';
 import Welcome from '@/pages/welcome';
 import PaymentCallback from '@/pages/payment-callback';
 
+import WorkerVerificationPage from '@/pages/worker-verification';
+import AdminVerificationPage from '@/pages/admin-verification';
+import { AdminDisputesPage } from '@/pages/admin-disputes';
+
 function CustomerDashboard() {
   return <RoleDashboard role="customer" />;
 }
@@ -49,6 +53,14 @@ function Router() {
           }
         />
         <Route
+          path="/worker/verification"
+          element={
+            <ProtectedRoute allowedRoles={['WORKER']}>
+              <WorkerVerificationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/dashboard"
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
@@ -56,6 +68,24 @@ function Router() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/verifications"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminVerificationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/disputes"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminDisputesPage />
+            </ProtectedRoute>
+          }
+        />
+
+
         <Route path="/unauthorized" element={<AccessBoundary />} />
         <Route
           path="/payment/callback"

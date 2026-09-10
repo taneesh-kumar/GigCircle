@@ -11,6 +11,8 @@ import {
   UsersRound,
   HandHeart,
   Activity,
+  Receipt,
+  ShieldCheck,
   LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -24,6 +26,7 @@ interface NavItem {
 const customerNav: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'requests', label: 'My Requests', icon: FileText },
+  { id: 'payments', label: 'Payments', icon: Receipt },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'profile', label: 'Profile', icon: User },
 ];
@@ -35,19 +38,24 @@ const workerNav: NavItem[] = [
   { id: 'earnings', label: 'Earnings', icon: Wallet },
   { id: 'ratings', label: 'Ratings & Reviews', icon: Star },
   { id: 'profile', label: 'Worker Profile', icon: User },
+  { id: 'verification', label: 'Verification', icon: ShieldCheck },
   { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
 
+
 const adminNav: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'verifications', label: 'Verifications', icon: ShieldCheck },
   { id: 'users', label: 'Users', icon: UsersRound },
   { id: 'workers', label: 'Workers', icon: HandHeart },
   { id: 'requests', label: 'Requests', icon: FileText },
   { id: 'jobs', label: 'Jobs', icon: Briefcase },
+  { id: 'payments', label: 'Payments', icon: Receipt },
   { id: 'ratings', label: 'Ratings', icon: Star },
   { id: 'activity', label: 'Activity', icon: Activity },
   { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
+
 
 export function HorizontalNav() {
   const { user } = useAuth();

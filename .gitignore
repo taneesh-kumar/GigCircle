@@ -50,3 +50,9 @@ Thumbs.db
 
 # frontend build
 frontend/dist/
+
+# local storage
+/storage/
+backend/storage/*
+!backend/storage/**/.gitkeep
+

@@ -25,23 +25,23 @@ public class JobService {
     private final WorkerProfileRepository workerProfileRepository;
     private final UserRepository userRepository;
     private final WorkerMatchingService workerMatchingService;
-    private final EarningService earningService;
     private final NotificationService notificationService;
+    private final PaymentService paymentService;
 
     public JobService(JobRepository jobRepository,
                       ServiceRequestRepository serviceRequestRepository,
                       WorkerProfileRepository workerProfileRepository,
                       UserRepository userRepository,
                       WorkerMatchingService workerMatchingService,
-                      EarningService earningService,
-                      NotificationService notificationService) {
+                      NotificationService notificationService,
+                      PaymentService paymentService) {
         this.jobRepository = jobRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.workerProfileRepository = workerProfileRepository;
         this.userRepository = userRepository;
         this.workerMatchingService = workerMatchingService;
-        this.earningService = earningService;
         this.notificationService = notificationService;
+        this.paymentService = paymentService;
     }
 
     private User getAuthenticatedWorker(String email) {
@@ -215,15 +215,13 @@ public class JobService {
             }
 
             if (job.getStatus() != JobStatus.IN_PROGRESS) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Only IN_PROGRESS jobs can be completed");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Only IN_PROGRESS jobs can request completion");
             }
 
-            job.setStatus(JobStatus.COMPLETED);
-            if (job.getCompletedAt() == null) {
-                job.setCompletedAt(LocalDateTime.now());
-            }
+            job.setStatus(JobStatus.PAYMENT_REQUIRED);
 
             savedJob = jobRepository.save(job);
+            paymentService.ensurePendingPaymentForJob(savedJob);
         } catch (ResponseStatusException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -237,36 +235,21 @@ public class JobService {
             throw ex;
         }
 
-        // Ledger calculation execution
         try {
-            earningService.generateEarningForCompletedJob(savedJob);
-        } catch (Exception ex) {
-            notificationService.createAdminNotification(
-                    NotificationType.LEDGER_ERROR,
-                    "Ledger calculation requires attention",
-                    "The earnings calculation for Job #" + savedJob.getId() + " could not be completed. Please review the job ledger.",
-                    "JOB",
-                    savedJob.getId()
-            );
-            throw ex;
-        }
-
-        try {
-            // Segment 8 Notifications
             notificationService.createNotification(
                     savedJob.getServiceRequest().getCustomer(),
-                    NotificationType.JOB_COMPLETED,
-                    "Job completed",
-                    "Your service job has been marked as completed.",
+                    NotificationType.PAYMENT_REQUIRED,
+                    "Payment Required",
+                    "Your worker has completed the service for Job #" + savedJob.getId() + ". Please complete payment to finalize the job.",
                     "JOB",
                     savedJob.getId()
             );
 
             notificationService.createNotification(
                     savedJob.getWorker(),
-                    NotificationType.JOB_COMPLETED,
-                    "Job completed",
-                    "Your job has been completed successfully.",
+                    NotificationType.PAYMENT_REQUIRED,
+                    "Awaiting Payment",
+                    "Completion requested for Job #" + savedJob.getId() + ". Customer payment is required.",
                     "JOB",
                     savedJob.getId()
             );
@@ -288,8 +271,8 @@ public class JobService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: job assigned to another worker");
         }
 
-        if (job.getStatus() != JobStatus.ACCEPTED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only ACCEPTED jobs can be declined");
+        if (job.getStatus() != JobStatus.ACCEPTED && job.getStatus() != JobStatus.IN_PROGRESS) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only ACCEPTED or IN_PROGRESS jobs can be declined");
         }
 
         ServiceRequest request = job.getServiceRequest();

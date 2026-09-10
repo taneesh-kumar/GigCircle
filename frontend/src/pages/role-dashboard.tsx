@@ -38,6 +38,12 @@ import {
   Search,
   FileText,
   Layers,
+  QrCode,
+  CreditCard,
+  Banknote,
+  RotateCcw,
+  XCircle,
+  Loader2,
   Bell,
   ChevronRight,
   Hammer,
@@ -64,7 +70,6 @@ import {
   getAdminUsersApi,
   getAdminWorkersApi,
   getCustomerJobEarningApi,
-  getPaymentByJobApi,
   getPlatformInfo,
   getServiceRequestsApi,
   getWorkerAssignedJobsApi,
@@ -84,6 +89,10 @@ import {
   markWorkerNotificationReadApi,
   markAdminNotificationReadApi,
   markAllAdminNotificationsReadApi,
+  getAdminPaymentsApi,
+  getAdminPaymentSummaryApi,
+  getCustomerPaymentsApi,
+  refundPaymentApi,
 } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { PlatformShell } from '@/components/platform-shell';
@@ -95,12 +104,24 @@ import { RequestDetailModal } from '@/components/request-detail-modal';
 import { WorkerProfileModal } from '@/components/worker-profile-modal';
 import { RatingModal } from '@/components/rating-modal';
 import { PaymentModal } from '@/components/payment-modal';
+import { CustomerPaymentHistoryModal } from '@/components/customer-payment-history-modal';
+import { WorkerVerificationSection } from '@/components/worker-verification-section';
+import { AdminVerificationSection } from '@/components/admin-verification-section';
+import { VerifiedWorkerBadge } from '@/components/verified-worker-badge';
+import { ChatPanel } from '@/components/chat/ChatPanel';
+import { DisputeCreateForm } from '@/components/dispute/DisputeCreateForm';
+import { DisputeDetailPanel } from '@/components/dispute/DisputeDetailPanel';
+import { AdminDisputeControls } from '@/components/dispute/AdminDisputeControls';
+import { getDisputeForJobApi } from '@/services/api/dispute';
+import type { DisputeDetailResponse } from '@/types/dispute';
+
+
 import { CATEGORY_LABELS, type ServiceRequest } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
 import type { JobResponse } from '@/types/worker-job';
 import type { Rating, WorkerRatingSummary } from '@/types/rating';
 import type { Earning, PlatformRevenueSummary, WorkerEarningsSummary } from '@/types/earning';
-import type { Payment } from '@/types/payment';
+import type { PaymentResponse, AdminPaymentSummary } from '@/types/payment';
 import type {
   AdminActivity,
   AdminJob,
@@ -194,7 +215,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   // EXACTLY THREE CUSTOMER STATUS TABS: OPEN | COMPLETED | CANCELLED
   const [filterStatus, setFilterStatus] = useState<'OPEN' | 'COMPLETED' | 'CANCELLED'>('OPEN');
   const [customerJobEarnings, setCustomerJobEarnings] = useState<Record<number, Earning>>({});
-  const [customerJobPayments, setCustomerJobPayments] = useState<Record<number, Payment>>({});
 
   // Customer Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -206,16 +226,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [ratingWorkerName, setRatingWorkerName] = useState<string | null>(null);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
 
-  // Customer Payment Modal State
+  // Customer Payment Simulation State
   const [paymentJobId, setPaymentJobId] = useState<number | null>(null);
-  const [paymentJobContext, setPaymentJobContext] = useState<{
-    jobId: number;
-    jobDescription: string;
-    workerName: string;
-    amount: number;
-    categoryLabel: string;
-  } | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false);
+  const [customerPayments, setCustomerPayments] = useState<PaymentResponse[]>([]);
+  const [isLoadingCustomerPayments, setIsLoadingCustomerPayments] = useState(false);
+  const [customerPaymentsError, setCustomerPaymentsError] = useState<string | null>(null);
+  const [refundingPaymentId, setRefundingPaymentId] = useState<number | null>(null);
 
   // Worker State
   const [workerProfile, setWorkerProfile] = useState<WorkerProfile | null>(null);
@@ -232,7 +250,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [jobsError, setJobsError] = useState<string | null>(null);
   const [acceptingRequestId, setAcceptingRequestId] = useState<number | null>(null);
   const [operatingJobId, setOperatingJobId] = useState<number | null>(null);
-  const [assignedFilterStatus, setAssignedFilterStatus] = useState<'ALL' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
+  const [assignedFilterStatus, setAssignedFilterStatus] = useState<'ALL' | 'ACCEPTED' | 'IN_PROGRESS' | 'PAYMENT_REQUIRED' | 'COMPLETED'>('ALL');
 
   // Worker Ratings State
   const [workerRatings, setWorkerRatings] = useState<Rating[]>([]);
@@ -258,6 +276,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [adminJobs, setAdminJobs] = useState<AdminJob[]>([]);
   const [adminRatings, setAdminRatings] = useState<AdminRating[]>([]);
   const [adminActivity, setAdminActivity] = useState<AdminActivity[]>([]);
+  const [adminPayments, setAdminPayments] = useState<PaymentResponse[]>([]);
+  const [adminPaymentSummary, setAdminPaymentSummary] = useState<AdminPaymentSummary | null>(null);
   const [isLoadingAdminData, setIsLoadingAdminData] = useState<boolean>(role === 'admin');
   const [adminUserFilter, setAdminUserFilter] = useState<'ALL' | 'CUSTOMER' | 'WORKER' | 'ADMIN'>('ALL');
   const [adminNotifFilter, setAdminNotifFilter] = useState<'all' | 'unread' | 'alerts'>('all');
@@ -280,19 +300,45 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             // Non-critical fallback
           }
         }
-        if (req.jobId && req.jobStatus === 'COMPLETED' && !customerJobPayments[req.jobId]) {
-          try {
-            const payment = await getPaymentByJobApi(req.jobId);
-            setCustomerJobPayments((prev) => ({ ...prev, [req.jobId!]: payment }));
-          } catch {
-            // Non-critical: no payment yet for this job
-          }
-        }
       }
     } catch (err: any) {
       setRequestError(err?.response?.data?.message || 'Failed to load your service requests.');
     } finally {
       setIsLoadingRequests(false);
+    }
+  };
+
+  const fetchCustomerPayments = async () => {
+    if (role !== 'customer') return;
+    setIsLoadingCustomerPayments(true);
+    setCustomerPaymentsError(null);
+    try {
+      const data = await getCustomerPaymentsApi();
+      setCustomerPayments(data);
+    } catch (err: any) {
+      setCustomerPaymentsError(err?.response?.data?.message || 'Failed to load payment history.');
+    } finally {
+      setIsLoadingCustomerPayments(false);
+    }
+  };
+
+  const handleCustomerRefund = async (paymentId: number) => {
+    setRefundingPaymentId(paymentId);
+    try {
+      const updated = await refundPaymentApi(paymentId);
+      toast({
+        title: 'Simulated Refund Processed',
+        description: `Simulated refund of ₹${updated.refundAmount} initiated.`,
+      });
+      fetchCustomerPayments();
+    } catch (err: any) {
+      toast({
+        title: 'Refund Failed',
+        description: err?.response?.data?.message || 'Failed to process refund.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRefundingPaymentId(null);
     }
   };
 
@@ -356,10 +402,19 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         getWorkerEarningsApi(),
         getWorkerEarningsSummaryApi(),
       ]);
-      setWorkerEarnings(earningsList);
-      setWorkerEarningsSummary(summary);
-    } catch {
-      // Non-critical fallback
+      setWorkerEarnings(earningsList || []);
+      setWorkerEarningsSummary(summary || null);
+    } catch (err: any) {
+      console.warn('Unable to load worker earnings ledger:', err?.message);
+      setWorkerEarnings([]);
+      setWorkerEarningsSummary({
+        workerId: 0,
+        totalGross: 0,
+        totalPlatformFees: 0,
+        totalWorkerEarnings: 0,
+        availableEarnings: 0,
+        totalJobs: 0,
+      });
     } finally {
       setIsLoadingWorkerEarnings(false);
     }
@@ -388,7 +443,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     if (role !== 'admin') return;
     setIsLoadingAdminData(true);
     try {
-      const [overview, users, workers, reqs, jobs, ratings, activity, revenueSummary, revenueLedger] = await Promise.all([
+      const [overview, users, workers, reqs, jobs, ratings, activity, revenueSummary, revenueLedger, payments, paymentSummary] = await Promise.all([
         getAdminOverviewApi(),
         getAdminUsersApi(),
         getAdminWorkersApi(),
@@ -398,6 +453,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         getAdminActivityApi(),
         getAdminRevenueSummaryApi(),
         getAdminEarningsApi(),
+        getAdminPaymentsApi(),
+        getAdminPaymentSummaryApi(),
       ]);
       setAdminOverview(overview);
       setAdminUsers(users);
@@ -408,6 +465,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       setAdminActivity(activity);
       setAdminRevenueSummary(revenueSummary);
       setAdminEarningsLedger(revenueLedger);
+      setAdminPayments(payments);
+      setAdminPaymentSummary(paymentSummary);
     } catch (err: any) {
       toast({
         title: 'Failed to load Admin Operations data',
@@ -422,6 +481,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   useEffect(() => {
     if (role === 'customer') {
       fetchCustomerRequests();
+      fetchCustomerPayments();
     } else if (role === 'worker') {
       fetchWorkerProfile();
       fetchWorkerJobs();
@@ -430,14 +490,23 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     } else if (role === 'admin') {
       fetchAdminData();
     }
+  }, [role]);
 
+  useEffect(() => {
     if (activeTab === 'notifications') {
       fetchNotificationsPage();
+    } else if (activeTab === 'earnings' && role === 'worker') {
+      fetchWorkerEarnings();
+    } else if (activeTab === 'payments' && role === 'customer') {
+      fetchCustomerPayments();
     }
 
     const handleSync = () => {
       fetchNotificationsPage();
-      if (role === 'customer') fetchCustomerRequests();
+      if (role === 'customer') {
+        fetchCustomerRequests();
+        fetchCustomerPayments();
+      }
       if (role === 'worker') {
         fetchWorkerJobs();
         fetchWorkerEarnings();
@@ -478,7 +547,15 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   };
 
   const handleToggleAvailability = async () => {
-    if (!workerProfile || isTogglingAvailability) return;
+    if (!workerProfile) {
+      setIsProfileModalOpen(true);
+      toast({
+        title: 'Profile Required',
+        description: 'Please set up your worker profile to manage availability.',
+      });
+      return;
+    }
+    if (isTogglingAvailability) return;
     setIsTogglingAvailability(true);
     const newStatus = !workerProfile.available;
     try {
@@ -503,6 +580,15 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   };
 
   const handleAcceptJob = async (requestId: number) => {
+    if (!workerProfile) {
+      setIsProfileModalOpen(true);
+      toast({
+        title: 'Profile Required',
+        description: 'Please complete your worker profile setup before accepting jobs.',
+        variant: 'destructive',
+      });
+      return;
+    }
     if (acceptingRequestId !== null) return;
     setAcceptingRequestId(requestId);
     try {
@@ -556,14 +642,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     try {
       const updated = await completeWorkerJobApi(jobId);
       toast({
-        title: 'Job Completed!',
-        description: `Service COMPLETED! Earnings record generated in GigCircle ledger.`,
+        title: 'Completion Requested',
+        description: `Job completion requested! Customer needs to complete payment before this job is marked as completed.`,
       });
       setAssignedJobs((prev) => prev.map((j) => (j.id === jobId ? updated : j)));
-      fetchWorkerEarnings();
       window.dispatchEvent(new CustomEvent('gigcircle-notifications-updated'));
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Failed to complete job.';
+      const msg = err?.response?.data?.message || 'Failed to request job completion.';
       toast({
         title: 'Action Failed',
         description: msg,
@@ -629,6 +714,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     if (adminUserFilter === 'ALL') return true;
     return u.role === adminUserFilter;
   });
+
+  const displayUsers = activeTab === 'overview' ? filteredAdminUsers.slice(0, 5) : filteredAdminUsers;
+  const displayWorkers = activeTab === 'overview' ? adminWorkers.slice(0, 5) : adminWorkers;
+  const displayRequests = activeTab === 'overview' ? adminRequests.slice(0, 5) : adminRequests;
+  const displayJobs = activeTab === 'overview' ? adminJobs.slice(0, 5) : adminJobs;
+  const displayRatings = activeTab === 'overview' ? adminRatings.slice(0, 5) : adminRatings;
+  const displayActivity = activeTab === 'overview' ? adminActivity.slice(0, 5) : adminActivity;
 
   const Icon = content.icon;
 
@@ -1146,10 +1238,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 </div>
                                 <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
                                   {req.workerName ? (
-                                    <span className="flex items-center gap-1 font-medium text-slate-600">
+                                    <span className="flex items-center gap-1.5 font-medium text-slate-600">
                                       <User className="h-3.5 w-3.5 text-slate-400" /> Assigned Worker: <strong className="text-slate-800 font-semibold">{req.workerName}</strong>
+                                      <VerifiedWorkerBadge isVerified={req.isWorkerVerified || req.isVerified} size="sm" />
                                     </span>
                                   ) : (
+
                                     <span className="flex items-center gap-1 text-slate-400 italic">
                                       <Clock3 className="h-3.5 w-3.5 text-slate-400" /> Awaiting Worker Assignment
                                     </span>
@@ -1262,6 +1356,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                       <button
                         type="button"
+                        onClick={() => setIsPaymentHistoryModalOpen(true)}
+                        className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                      >
+                        <Receipt className="h-4 w-4 text-emerald-600" /> Payment History
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => setIsCreateModalOpen(true)}
                         className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors"
                       >
@@ -1298,6 +1400,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           const currentStage =
                             statusStr === 'COMPLETED'
                               ? 4
+                              : statusStr === 'PAYMENT_REQUIRED'
+                              ? 3.5
                               : statusStr === 'IN_PROGRESS'
                               ? 3
                               : req.workerName || statusStr === 'ACCEPTED'
@@ -1318,6 +1422,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                                       statusStr === 'COMPLETED'
                                         ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                                        : statusStr === 'PAYMENT_REQUIRED'
+                                        ? 'bg-amber-100 border border-amber-300 text-amber-900 font-black'
                                         : statusStr === 'IN_PROGRESS'
                                         ? 'bg-blue-50 border border-blue-200 text-blue-700'
                                         : statusStr === 'ACCEPTED' || req.workerName
@@ -1329,12 +1435,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   >
                                     {statusStr === 'COMPLETED' ? (
                                       <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                    ) : statusStr === 'PAYMENT_REQUIRED' ? (
+                                      <IndianRupee className="h-3 w-3 text-amber-700" />
                                     ) : statusStr === 'IN_PROGRESS' ? (
                                       <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
                                     ) : (
                                       <Clock3 className="h-3 w-3 text-amber-600" />
                                     )}
-                                    {statusStr}
+                                    {statusStr === 'PAYMENT_REQUIRED' ? 'PAYMENT REQUIRED' : statusStr}
                                   </span>
                                 </div>
 
@@ -1378,6 +1486,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                         className={`h-full rounded-full transition-all duration-500 ${
                                           currentStage === 4
                                             ? 'w-full bg-gradient-to-r from-emerald-500 to-teal-500'
+                                            : currentStage === 3.5
+                                            ? 'w-5/6 bg-gradient-to-r from-amber-500 to-emerald-500'
                                             : currentStage === 3
                                             ? 'w-3/4 bg-gradient-to-r from-blue-500 to-indigo-500'
                                             : currentStage === 2
@@ -1407,71 +1517,60 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 </div>
                               </div>
 
-                              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenDetail(req)}
-                                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
-                                >
-                                  <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
-                                </button>
+                              <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenDetail(req)}
+                                    className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
+                                  >
+                                    <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
+                                  </button>
+
+                                  {req.jobId && statusStr === 'PAYMENT_REQUIRED' ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setPaymentJobId(req.jobId!);
+                                        setIsPaymentModalOpen(true);
+                                      }}
+                                      className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-black shadow-md transition-all inline-flex items-center gap-1.5 animate-pulse"
+                                    >
+                                      <IndianRupee className="h-4 w-4 text-emerald-200" /> Pay Now (₹{req.budget.toLocaleString()})
+                                    </button>
+                                  ) : req.jobId && statusStr === 'COMPLETED' ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setPaymentJobId(req.jobId!);
+                                        setIsPaymentModalOpen(true);
+                                      }}
+                                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
+                                    >
+                                      <Receipt className="h-3.5 w-3.5 text-emerald-600" /> View Receipt
+                                    </button>
+                                  ) : null}
+                                </div>
                                 {statusStr === 'COMPLETED' && (
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    {(() => {
-                                      const payment = req.jobId ? customerJobPayments[req.jobId] : undefined;
-                                      const isPaid = payment?.paymentStatus === 'SUCCESS' || payment?.paymentStatus === 'PAID';
-                                      if (!isPaid) {
-                                        return (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              if (req.jobId) {
-                                                setPaymentJobId(req.jobId);
-                                                setPaymentJobContext({
-                                                  jobId: req.jobId,
-                                                  jobDescription: req.description,
-                                                  workerName: req.workerName || 'Worker',
-                                                  amount: req.budget,
-                                                  categoryLabel: categoryInfo.label,
-                                                });
-                                                setIsPaymentModalOpen(true);
-                                              }
-                                            }}
-                                            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5"
-                                          >
-                                            <Wallet className="h-3.5 w-3.5" /> Pay Now
-                                          </button>
-                                        );
-                                      }
-                                      return (
-                                        <span
-                                          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200/80 px-3.5 py-2 text-xs font-extrabold text-emerald-700"
-                                          title={payment?.transactionId ? `Txn: ${payment.transactionId}` : 'Payment complete'}
-                                        >
-                                          <CheckCircle2 className="h-3.5 w-3.5" /> Paid
-                                        </span>
-                                      );
-                                    })()}
-                                    {req.isRated ? (
-                                      <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200/80 px-3.5 py-2 text-xs font-extrabold text-amber-700">
-                                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> Rated
-                                      </span>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          if (req.jobId) {
-                                            setRatingJobId(req.jobId);
-                                            setRatingWorkerName(req.workerName || 'Worker');
-                                            setIsRatingModalOpen(true);
-                                          }
-                                        }}
-                                        className="rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5"
-                                      >
-                                        <Star className="h-3.5 w-3.5" /> Rate Service
-                                      </button>
-                                    )}
-                                  </div>
+                                  req.isRated ? (
+                                    <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200/80 px-3.5 py-2 text-xs font-extrabold text-amber-700">
+                                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> Rated
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (req.jobId) {
+                                          setRatingJobId(req.jobId);
+                                          setRatingWorkerName(req.workerName || 'Worker');
+                                          setIsRatingModalOpen(true);
+                                        }
+                                      }}
+                                      className="rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5"
+                                    >
+                                      <Star className="h-3.5 w-3.5" /> Rate Service
+                                    </button>
+                                  )
                                 )}
                               </div>
                             </div>
@@ -1480,6 +1579,133 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: PAYMENTS */}
+            {activeTab === 'payments' && (
+              <div className="space-y-6">
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                        <Receipt className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-slate-900">Payment Receipts & History</h2>
+                        <p className="text-xs text-slate-500">Track simulated payments and cooperative service invoices</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsPaymentHistoryModalOpen(true)}
+                      className="rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors"
+                    >
+                      Open Receipts Manager
+                    </button>
+                  </div>
+
+                  {isLoadingCustomerPayments ? (
+                    <div className="py-12 text-center space-y-3">
+                      <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mx-auto" />
+                      <p className="text-xs font-bold text-slate-500">Loading your transactions...</p>
+                    </div>
+                  ) : customerPaymentsError ? (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs text-red-800">
+                      {customerPaymentsError}
+                    </div>
+                  ) : customerPayments.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center space-y-3">
+                      <Receipt className="mx-auto h-8 w-8 text-slate-400" />
+                      <p className="text-sm font-bold text-slate-800">No payment records found</p>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto">
+                        Payments made for completed or assigned service jobs will appear here with transparent transaction receipts.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {customerPayments.map((p) => {
+                        const categoryLabel = p.serviceCategory ? CATEGORY_LABELS[p.serviceCategory]?.label : 'Service';
+                        return (
+                          <div
+                            key={p.id}
+                            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-display text-sm font-black text-slate-900">
+                                    {categoryLabel}
+                                  </span>
+                                  <span className="font-mono text-[11px] font-bold text-slate-400">
+                                    • Job #{p.jobId}
+                                  </span>
+                                </div>
+                                <p className="font-mono text-xs text-slate-500 mt-0.5 font-semibold">
+                                  Txn: {p.transactionReference}
+                                </p>
+                              </div>
+
+                              <div className="text-right">
+                                <span className="font-display text-base font-black text-slate-900">
+                                  ₹{p.amount.toFixed(2)}
+                                </span>
+                                <div>
+                                  {p.status === 'SUCCESS' ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-200">
+                                      <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                      Paid
+                                    </span>
+                                  ) : p.status === 'REFUNDED' ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-extrabold text-purple-700 border border-purple-200">
+                                      <RotateCcw className="h-3 w-3 text-purple-600" />
+                                      Refunded
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-extrabold text-red-700 border border-red-200">
+                                      <XCircle className="h-3 w-3 text-red-600" />
+                                      {p.status}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs text-slate-500 font-medium">
+                              <div className="flex items-center gap-2">
+                                {p.paymentMethod === 'UPI' ? (
+                                  <QrCode className="h-3.5 w-3.5 text-emerald-600" />
+                                ) : p.paymentMethod === 'CARD' ? (
+                                  <CreditCard className="h-3.5 w-3.5 text-emerald-600" />
+                                ) : (
+                                  <Banknote className="h-3.5 w-3.5 text-emerald-600" />
+                                )}
+                                <span>{p.paymentMethodDetails || p.paymentMethod}</span>
+                              </div>
+
+                              {p.status === 'SUCCESS' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCustomerRefund(p.id)}
+                                  disabled={refundingPaymentId === p.id}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                                >
+                                  {refundingPaymentId === p.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <RotateCcw className="h-3 w-3" />
+                                  )}
+                                  Simulate Refund
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1617,6 +1843,25 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                         <button
                           type="button"
+                          onClick={() => {
+                            fetchWorkerProfile();
+                            fetchWorkerJobs();
+                            fetchWorkerRatings();
+                            fetchWorkerEarnings();
+                            toast({
+                              title: 'Dashboard Refreshed',
+                              description: 'Worker profile, jobs, and earnings updated.',
+                            });
+                          }}
+                          disabled={isLoadingProfile || isLoadingJobs || isLoadingWorkerEarnings}
+                          className="p-2.5 rounded-xl border border-slate-700 bg-slate-800/80 text-slate-300 hover:text-white transition-colors disabled:opacity-50"
+                          title="Refresh worker workspace"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${(isLoadingProfile || isLoadingJobs || isLoadingWorkerEarnings) ? 'animate-spin' : ''}`} />
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => setIsProfileModalOpen(true)}
                           className="rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-700"
                         >
@@ -1653,43 +1898,89 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                 {/* 5 WORKER SUMMARY METRIC CARDS WITH GRADIENT STYLING */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                  <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all">
-                    <span className="text-xs font-semibold text-slate-600 block">Available Jobs</span>
-                    <div className="mt-1 text-2xl font-bold text-slate-900">{availableJobs.length}</div>
-                    <span className="text-[10px] text-emerald-700 font-semibold mt-1 block">Matching Skills</span>
-                  </div>
-
-                  <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs hover:shadow-md hover:border-blue-300 transition-all">
-                    <span className="text-xs font-semibold text-slate-600 block">Assigned Jobs</span>
-                    <div className="mt-1 text-2xl font-bold text-slate-900">{assignedJobs.length}</div>
-                    <span className="text-[10px] text-blue-700 font-semibold mt-1 block">Active Execution</span>
-                  </div>
-
-                  <div className="rounded-2xl border border-teal-200/90 bg-gradient-to-br from-teal-50/70 via-white to-emerald-50/40 p-5 shadow-xs hover:shadow-md hover:border-teal-300 transition-all">
-                    <span className="text-xs font-semibold text-slate-600 block">Completed Jobs</span>
-                    <div className="mt-1 text-2xl font-bold text-slate-900">
-                      {workerEarningsSummary?.totalJobs || assignedJobs.filter((j) => j.jobStatus === 'COMPLETED').length}
+                  <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-emerald-300 transition-all">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Available Jobs</span>
+                      <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <Briefcase className="h-4.5 w-4.5" />
+                      </div>
                     </div>
-                    <span className="text-[10px] text-emerald-700 font-semibold mt-1 block">Verified Work</span>
+                    <div className="space-y-1.5">
+                      <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 select-none leading-none">
+                        {availableJobs.length}
+                      </div>
+                      <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100/70 rounded-full px-2.5 py-0.5">
+                        Matching Skills
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="rounded-2xl border border-emerald-300 bg-gradient-to-br from-emerald-100/60 via-white to-emerald-50/80 p-5 shadow-xs hover:shadow-md hover:border-emerald-400 transition-all">
-                    <span className="text-xs font-bold text-emerald-800 block">Ledger Balance</span>
-                    <div className="mt-1 text-2xl font-bold text-emerald-950">
-                      ₹{workerEarningsSummary?.totalWorkerEarnings?.toFixed(2) || '0.00'}
+                  <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-blue-300 transition-all">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Assigned Jobs</span>
+                      <div className="h-9 w-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <Clock3 className="h-4.5 w-4.5" />
+                      </div>
                     </div>
-                    <span className="text-[10px] text-emerald-700 font-bold mt-1 block">Net 90% Payout</span>
+                    <div className="space-y-1.5">
+                      <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 select-none leading-none">
+                        {assignedJobs.length}
+                      </div>
+                      <span className="inline-block text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-100/70 rounded-full px-2.5 py-0.5">
+                        Active Execution
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 p-5 shadow-xs hover:shadow-md hover:border-amber-300 transition-all">
-                    <span className="text-xs font-semibold text-slate-600 block">Average Rating</span>
-                    <div className="mt-1 text-2xl font-bold text-amber-600 flex items-center gap-1">
-                      <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
-                      {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
+                  <div className="rounded-2xl border border-teal-200/90 bg-gradient-to-br from-teal-50/70 via-white to-emerald-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-teal-300 transition-all">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Completed Jobs</span>
+                      <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <CheckCheck className="h-4.5 w-4.5" />
+                      </div>
                     </div>
-                    <span className="text-[10px] text-slate-500 mt-1 block">
-                      ({workerRatingSummary?.totalRatings || 0} reviews)
-                    </span>
+                    <div className="space-y-1.5">
+                      <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-emerald-600 select-none leading-none">
+                        {workerEarningsSummary?.totalJobs || assignedJobs.filter((j) => j.jobStatus === 'COMPLETED').length}
+                      </div>
+                      <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100/70 rounded-full px-2.5 py-0.5">
+                        Verified Work
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-emerald-300 bg-gradient-to-br from-emerald-100/60 via-white to-emerald-50/80 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-emerald-400 transition-all">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-800 leading-tight">Ledger Balance</span>
+                      <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <IndianRupee className="h-4.5 w-4.5" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="text-xl sm:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-700 select-none leading-none">
+                        ₹{workerEarningsSummary?.totalWorkerEarnings?.toFixed(2) || '0.00'}
+                      </div>
+                      <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/50 rounded-full px-2.5 py-0.5">
+                        Net 90% Payout
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-amber-300 transition-all">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Average Rating</span>
+                      <div className="h-9 w-9 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <Star className="h-4.5 w-4.5 fill-white text-white" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-amber-500 to-orange-500 select-none leading-none">
+                        {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
+                      </div>
+                      <span className="inline-block text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-100/70 rounded-full px-2.5 py-0.5">
+                        ({workerRatingSummary?.totalRatings || 0} reviews)
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -2016,7 +2307,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                     <div className="flex flex-wrap items-center gap-3">
                       <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
-                        {(['ALL', 'ACCEPTED', 'IN_PROGRESS', 'COMPLETED'] as const).map((st) => (
+                        {(['ALL', 'ACCEPTED', 'IN_PROGRESS', 'PAYMENT_REQUIRED', 'COMPLETED'] as const).map((st) => (
                           <button
                             key={st}
                             type="button"
@@ -2027,7 +2318,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 : 'text-slate-600 hover:text-slate-900'
                             }`}
                           >
-                            {st}
+                            {st === 'PAYMENT_REQUIRED' ? 'AWAITING PAYMENT' : st}
                           </button>
                         ))}
                       </div>
@@ -2056,6 +2347,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <div className="grid gap-6 md:grid-cols-2">
                       {filteredAssignedJobs.map((job) => {
                         const isCompleted = job.jobStatus === 'COMPLETED';
+                        const isPaymentRequired = job.jobStatus === 'PAYMENT_REQUIRED';
                         const isInProgress = job.jobStatus === 'IN_PROGRESS';
                         const isAccepted = job.jobStatus === 'ACCEPTED';
                         const status = job.jobStatus || 'ASSIGNED';
@@ -2074,6 +2366,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                                     isCompleted
                                       ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-200'
+                                      : isPaymentRequired
+                                      ? 'bg-amber-100/90 text-amber-900 border border-amber-300 font-black'
                                       : isInProgress
                                       ? 'bg-blue-100/90 text-blue-800 border border-blue-200'
                                       : 'bg-amber-100/90 text-amber-800 border border-amber-200'
@@ -2081,12 +2375,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 >
                                   {isCompleted ? (
                                     <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                  ) : isPaymentRequired ? (
+                                    <IndianRupee className="h-3 w-3 text-amber-700" />
                                   ) : isInProgress ? (
                                     <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
                                   ) : (
                                     <Clock3 className="h-3 w-3 text-amber-600" />
                                   )}
-                                  {status}
+                                  {isPaymentRequired ? 'AWAITING PAYMENT' : status}
                                 </span>
                               </div>
 
@@ -2109,14 +2405,17 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 </div>
                               </div>
 
-                              {/* 3-STAGE WORKER EXECUTION PIPELINE LINE */}
+                              {/* 4-STAGE WORKER EXECUTION PIPELINE LINE */}
                               <div className="pt-2.5 space-y-2">
                                 <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wide">
                                   <span className="text-emerald-700 flex items-center gap-1">
                                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Assigned
                                   </span>
-                                  <span className={isInProgress || isCompleted ? 'text-blue-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
-                                    <span className={`h-1.5 w-1.5 rounded-full ${isInProgress || isCompleted ? 'bg-blue-500' : 'bg-slate-300'}`} /> In Progress
+                                  <span className={isInProgress || isPaymentRequired || isCompleted ? 'text-blue-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${isInProgress || isPaymentRequired || isCompleted ? 'bg-blue-500' : 'bg-slate-300'}`} /> In Progress
+                                  </span>
+                                  <span className={isPaymentRequired || isCompleted ? 'text-amber-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${isPaymentRequired || isCompleted ? 'bg-amber-500' : 'bg-slate-300'}`} /> Awaiting Payment
                                   </span>
                                   <span className={isCompleted ? 'text-emerald-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
                                     <span className={`h-1.5 w-1.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Completed
@@ -2127,9 +2426,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     className={`h-full rounded-full transition-all duration-500 ${
                                       isCompleted
                                         ? 'w-full bg-gradient-to-r from-emerald-500 to-teal-500'
+                                        : isPaymentRequired
+                                        ? 'w-3/4 bg-gradient-to-r from-amber-500 to-amber-600'
                                         : isInProgress
-                                        ? 'w-2/3 bg-gradient-to-r from-blue-500 to-indigo-500'
-                                        : 'w-1/3 bg-gradient-to-r from-emerald-400 to-emerald-500'
+                                        ? 'w-1/2 bg-gradient-to-r from-blue-500 to-indigo-500'
+                                        : 'w-1/4 bg-gradient-to-r from-emerald-400 to-emerald-500'
                                     }`}
                                   />
                                 </div>
@@ -2192,20 +2493,37 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               )}
 
                               {isInProgress && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleCompleteJob(job.id)}
-                                  disabled={operatingJobId === job.id}
-                                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50"
-                                >
-                                  {operatingJobId === job.id ? (
-                                    <>
-                                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Completing...
-                                    </>
-                                  ) : (
-                                    'Complete Job'
-                                  )}
-                                </button>
+                                <div className="flex-1 flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCompleteJob(job.id)}
+                                    disabled={operatingJobId === job.id}
+                                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 text-xs font-bold text-white shadow-sm transition-all disabled:opacity-50"
+                                  >
+                                    {operatingJobId === job.id ? (
+                                      <>
+                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Requesting...
+                                      </>
+                                    ) : (
+                                      'Complete Job'
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeclineJob(job.id)}
+                                    disabled={operatingJobId === job.id}
+                                    className="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 px-3.5 py-2.5 text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-2xs"
+                                  >
+                                    Decline
+                                  </button>
+                                </div>
+                              )}
+
+                              {isPaymentRequired && (
+                                <div className="flex-1 rounded-xl bg-amber-50 border border-amber-200 px-3.5 py-2 text-xs font-bold text-amber-800 flex items-center gap-2">
+                                  <Clock3 className="h-4 w-4 text-amber-600 shrink-0" />
+                                  <span>Awaiting Customer Payment</span>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -2232,10 +2550,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   </div>
                   <button
                     type="button"
-                    onClick={fetchWorkerEarnings}
-                    className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
+                    onClick={async () => {
+                      await Promise.all([fetchWorkerEarnings(), fetchWorkerJobs()]);
+                      toast({
+                        title: 'Earnings Refreshed',
+                        description: 'Your cooperative earnings ledger has been updated.',
+                      });
+                    }}
+                    disabled={isLoadingWorkerEarnings}
+                    className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50"
+                    title="Refresh Earnings Ledger"
                   >
-                    <RefreshCw className="h-4 w-4" />
+                    <RefreshCw className={`h-4 w-4 ${isLoadingWorkerEarnings ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
 
@@ -2387,17 +2713,35 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-4 bg-white/90 backdrop-blur-md border border-amber-200/80 rounded-2xl p-4 shrink-0 shadow-sm hover:shadow-md transition-all">
-                    <div className="h-11 w-11 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                      <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
-                    </div>
-                    <div>
-                      <span className="text-2xl font-black text-amber-950 block leading-none">
-                        {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
-                      </span>
-                      <span className="text-[11px] font-bold text-amber-700 block mt-1">
-                        {workerRatingSummary?.totalRatings || 0} verified reviews
-                      </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await fetchWorkerRatings();
+                        toast({
+                          title: 'Ratings Refreshed',
+                          description: 'Customer ratings and review summaries updated.',
+                        });
+                      }}
+                      disabled={isLoadingWorkerRatings}
+                      className="p-2.5 rounded-xl border border-amber-200 bg-white text-amber-700 hover:text-amber-900 transition-colors disabled:opacity-50"
+                      title="Refresh reviews"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoadingWorkerRatings ? 'animate-spin' : ''}`} />
+                    </button>
+
+                    <div className="flex items-center gap-4 bg-white/90 backdrop-blur-md border border-amber-200/80 rounded-2xl p-4 shrink-0 shadow-sm hover:shadow-md transition-all">
+                      <div className="h-11 w-11 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                        <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
+                      </div>
+                      <div>
+                        <span className="text-2xl font-black text-amber-950 block leading-none">
+                          {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
+                        </span>
+                        <span className="text-[11px] font-bold text-amber-700 block mt-1">
+                          {workerRatingSummary?.totalRatings || 0} verified reviews
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2537,8 +2881,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               </div>
             )}
 
+            {/* TAB: WORKER VERIFICATION */}
+            {activeTab === 'verification' && <WorkerVerificationSection />}
+
             {/* TAB: WORKER NOTIFICATIONS */}
             {activeTab === 'notifications' && renderNotificationsView()}
+
           </div>
         )}
 
@@ -2546,274 +2894,572 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         {role === 'admin' && (
           <div className="space-y-8">
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-900">Cooperative Operations Dashboard</h2>
-                <button
-                  type="button"
-                  onClick={fetchAdminData}
-                  className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </button>
-              </div>
+              {activeTab === 'overview' && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-slate-900">Cooperative Operations Dashboard</h2>
+                    <button
+                      type="button"
+                      onClick={fetchAdminData}
+                      className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </button>
+                  </div>
 
-              {/* METRIC CARDS WITH GRADIENT STYLING */}
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs hover:shadow-md transition-all">
-                  <span className="text-xs text-slate-600 font-semibold">Total Users</span>
-                  <div className="mt-2 text-3xl font-bold text-slate-900">{adminUsers.length}</div>
-                </div>
-                <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs hover:shadow-md transition-all">
-                  <span className="text-xs text-slate-600 font-semibold">Active Workers</span>
-                  <div className="mt-2 text-3xl font-bold text-slate-900">{adminWorkers.length}</div>
-                </div>
-                <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-5 shadow-xs hover:shadow-md transition-all">
-                  <span className="text-xs text-slate-600 font-semibold">Total Service Requests</span>
-                  <div className="mt-2 text-3xl font-bold text-slate-900">{adminRequests.length}</div>
-                </div>
-              </div>
+                  {/* METRIC CARDS WITH GRADIENT STYLING */}
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-blue-300 transition-all">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Total Users</span>
+                        <div className="h-9 w-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                          <UsersRound className="h-4.5 w-4.5" />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 select-none leading-none">
+                          {adminUsers.length}
+                        </div>
+                        <span className="inline-block text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-100/70 rounded-full px-2.5 py-0.5">
+                          Platform Accounts
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-emerald-300 transition-all">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Active Workers</span>
+                        <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                          <UserCheck className="h-4.5 w-4.5" />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 select-none leading-none">
+                          {adminWorkers.length}
+                        </div>
+                        <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100/70 rounded-full px-2.5 py-0.5">
+                          Verified Profiles
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-indigo-300 transition-all">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Total Service Requests</span>
+                        <div className="h-9 w-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                          <FileText className="h-4.5 w-4.5" />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-blue-500 select-none leading-none">
+                          {adminRequests.length}
+                        </div>
+                        <span className="inline-block text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100/70 rounded-full px-2.5 py-0.5">
+                          Lifetime Postings
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* USERS DIRECTORY TABLE / LIST */}
               {(activeTab === 'users' || activeTab === 'overview') && (
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
-                    <h3 className="text-lg font-bold text-slate-900">User Directory</h3>
-                    <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
-                      {(['ALL', 'CUSTOMER', 'WORKER', 'ADMIN'] as const).map((r) => (
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">User Directory</h3>
+                      <p className="text-xs text-slate-500">System user registrations and active roles</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {activeTab === 'overview' && (
                         <button
-                          key={r}
                           type="button"
-                          onClick={() => setAdminUserFilter(r)}
-                          className={`rounded-lg px-3 py-1.5 font-bold transition-all ${
-                            adminUserFilter === r
-                              ? 'bg-emerald-600 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
+                          onClick={() => setSearchParams({ tab: 'users' })}
+                          className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors mr-2"
                         >
-                          {r}
+                          View All Users →
                         </button>
-                      ))}
+                      )}
+                      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
+                        {(['ALL', 'CUSTOMER', 'WORKER', 'ADMIN'] as const).map((r) => (
+                          <button
+                            key={r}
+                            type="button"
+                            onClick={() => setAdminUserFilter(r)}
+                            className={`rounded-lg px-3 py-1.5 font-bold transition-all ${
+                              adminUserFilter === r
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
                   <div className="divide-y divide-slate-100 overflow-x-auto">
-                    {filteredAdminUsers.map((u) => (
-                      <div key={u.id} className="py-3 flex items-center justify-between text-xs min-w-[500px]">
-                        <div>
-                          <strong className="text-slate-900">{u.name}</strong> ({u.email})
+                    {displayUsers.map((u) => (
+                      <div key={u.id} className="py-3 px-2 flex items-center justify-between text-xs min-w-[500px] hover:bg-slate-50/60 rounded-2xl transition-all gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 text-blue-600">
+                            <User className="h-4.5 w-4.5" />
+                          </div>
+                          <div>
+                            <strong className="text-slate-800 font-extrabold text-sm block">{u.name}</strong>
+                            <span className="text-[11px] text-slate-500 font-mono block mt-0.5">{u.email}</span>
+                          </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 uppercase">
+                          <span className={`inline-block border rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
+                            u.role === 'ADMIN'
+                              ? 'bg-purple-50 text-purple-700 border-purple-100'
+                              : u.role === 'WORKER'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                              : 'bg-blue-50 text-blue-700 border-blue-100'
+                          }`}>
                             {u.role}
                           </span>
-                          <span className="text-slate-400">{u.phone}</span>
+                          <span className="text-slate-500 font-mono text-[11px] bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-1">
+                            📞 {u.phone}
+                          </span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+
+              {/* WORKER VERIFICATION AUDIT TAB */}
+              {activeTab === 'verifications' && <AdminVerificationSection />}
 
               {/* WORKERS GOVERNANCE DIRECTORY */}
               {(activeTab === 'workers' || activeTab === 'overview') && (
+
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                  <h3 className="text-lg font-bold text-slate-900">Worker Governance & Activation</h3>
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Worker Governance & Activation</h3>
+                      <p className="text-xs text-slate-500">Worker professional status and activation control</p>
+                    </div>
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'workers' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Workers →
+                      </button>
+                    )}
+                  </div>
                   <div className="divide-y divide-slate-100 overflow-x-auto">
-                    {adminWorkers.map((w) => (
-                      <div key={w.workerId} className="py-3.5 flex items-center justify-between text-xs min-w-[550px]">
-                        <div>
-                          <strong className="text-slate-900">{w.name}</strong> ({w.email})
-                          <p className="text-slate-500 mt-0.5">{w.serviceCategories?.join(', ')} • ₹{w.hourlyRate}/hr</p>
+                    {displayWorkers.map((w) => (
+                      <div key={w.workerId} className="py-3 px-2 flex items-center justify-between text-xs min-w-[550px] hover:bg-slate-50/60 rounded-2xl transition-all gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 text-emerald-600">
+                            <Wrench className="h-4.5 w-4.5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <strong className="text-slate-800 font-extrabold text-sm block">{w.name}</strong>
+                              <VerifiedWorkerBadge isVerified={w.isVerified} size="sm" />
+                              <span className="text-[10px] text-slate-400 font-mono">({w.email})</span>
+                              {!w.active && (
+                                <span className="inline-block bg-rose-50 text-rose-600 border border-rose-100 rounded-full px-2 py-0.5 text-[9px] font-bold">
+                                  Inactive
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {w.serviceCategories?.map((cat) => (
+                                <span key={cat} className="inline-block bg-slate-50 border border-slate-200/60 text-slate-500 text-[10px] rounded-full px-2 py-0.5 font-bold">
+                                  {cat}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleWorkerStatus(w)}
-                          disabled={operatingWorkerId === w.workerId}
-                          className={`rounded-xl px-4 py-2 text-xs font-bold transition-colors ${
-                            w.active
-                              ? 'bg-rose-600 text-white hover:bg-rose-700'
-                              : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                          }`}
-                        >
-                          {w.active ? 'Deactivate' : 'Activate'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <strong className="text-emerald-700 font-extrabold font-mono bg-emerald-50 border border-emerald-100 rounded-xl px-2.5 py-1 text-xs shrink-0">
+                            ₹{w.hourlyRate}/hr
+                          </strong>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleWorkerStatus(w)}
+                            disabled={operatingWorkerId === w.workerId}
+                            className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
+                              w.active
+                                ? 'bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-600 hover:text-white'
+                                : 'bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:text-white'
+                            }`}
+                          >
+                            {w.active ? 'Deactivate' : 'Activate'}
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* ADMIN REQUESTS DIRECTORY */}
-              {activeTab === 'requests' && (
+              {/* SERVICE REQUESTS DIRECTORY */}
+              {(activeTab === 'requests' || activeTab === 'overview') && (
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                  <h3 className="text-lg font-bold text-slate-900">Service Requests</h3>
-                  {adminRequests.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-10 text-center space-y-2.5">
-                      <h4 className="text-sm font-bold text-slate-800">No service requests yet</h4>
-                      <p className="text-xs text-slate-500">Customer service requests will appear here.</p>
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Service Requests</h3>
+                      <p className="text-xs text-slate-500">Service request postings and assignment status</p>
                     </div>
-                  ) : (
-                    <div className="divide-y divide-slate-100 overflow-x-auto">
-                      {adminRequests.map((r) => (
-                        <div key={r.id} className="py-3.5 flex items-center justify-between text-xs min-w-[600px]">
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
-                              <strong className="text-slate-900">#{r.id} — {r.customerName}</strong>
-                              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 uppercase">
-                                {CATEGORY_LABELS[r.category]?.label || r.category}
-                              </span>
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'requests' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Requests →
+                      </button>
+                    )}
+                  </div>
+                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                    {displayRequests.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-4 text-center">No service requests found.</p>
+                    ) : (
+                      displayRequests.map((r) => (
+                        <div key={r.id} className="py-3 px-2 flex flex-wrap items-center justify-between text-xs gap-4 min-w-[600px] hover:bg-slate-50/60 rounded-2xl transition-all">
+                          <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+                            <div className="h-9 w-9 rounded-full bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0 text-purple-600">
+                              <FileText className="h-4.5 w-4.5" />
                             </div>
-                            <p className="text-slate-500">{r.description}</p>
-                            <p className="text-slate-400">📍 {r.location} • ₹{r.budget}</p>
-                          </div>
-                          <div className="flex flex-col items-end gap-1.5 shrink-0">
-                            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
-                              r.assignmentStatus === 'ASSIGNED'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-amber-100 text-amber-700'
-                            }`}>
-                              {r.assignmentStatus}
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-500 uppercase">
-                              {r.status}
-                            </span>
-                            <span className="text-[11px] text-slate-600">
-                              Worker: <strong>{r.assignedWorkerName || 'Unassigned'}</strong>
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ADMIN JOBS DIRECTORY */}
-              {activeTab === 'jobs' && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                  <h3 className="text-lg font-bold text-slate-900">Jobs</h3>
-                  {adminJobs.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-10 text-center space-y-2.5">
-                      <h4 className="text-sm font-bold text-slate-800">No jobs yet</h4>
-                      <p className="text-xs text-slate-500">Assigned jobs will appear here.</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-slate-100 overflow-x-auto">
-                      {adminJobs.map((j) => (
-                        <div key={j.id} className="py-3.5 flex items-center justify-between text-xs min-w-[600px]">
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
-                              <strong className="text-slate-900">#{j.id}</strong>
-                              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 uppercase">
-                                Req #{j.serviceRequestId}
-                              </span>
+                            <div>
+                              <strong className="text-slate-800 font-extrabold text-sm block">{r.category}</strong>
+                              <p className="text-slate-500 mt-0.5 max-w-md truncate font-medium">{r.description}</p>
                             </div>
-                            <p className="text-slate-500">
-                              {j.customerName} → {j.workerName}
-                            </p>
-                            <p className="text-slate-400">Accepted: {j.acceptedAt ? new Date(j.acceptedAt).toLocaleDateString() : '—'}</p>
                           </div>
-                          <div className="flex flex-col items-end gap-1.5 shrink-0">
-                            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
-                              j.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' :
-                              j.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
-                              j.status === 'ACCEPTED' ? 'bg-amber-100 text-amber-700' :
-                              'bg-slate-100 text-slate-700'
-                            }`}>
-                              {j.status}
+                          <div className="w-[120px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Budget & Location</span>
+                            <div className="mt-0.5">
+                              <strong className="text-slate-800 font-extrabold font-mono">₹{r.budget}</strong>
+                              <span className="text-slate-400 mx-1">•</span>
+                              <span className="text-slate-600 font-semibold">{r.location}</span>
+                            </div>
+                          </div>
+                          <div className="w-[130px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer</span>
+                            <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-0.5">
+                              <User className="h-3 w-3 text-slate-400 shrink-0" />
+                              {r.customerName}
                             </span>
-                            {j.completedAt && (
-                              <span className="text-[10px] text-slate-400">
-                                Completed: {new Date(j.completedAt).toLocaleDateString()}
+                          </div>
+                          <div className="w-[140px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Worker Match</span>
+                            {r.assignmentStatus === 'ASSIGNED' ? (
+                              <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-2.5 py-0.5">
+                                <Wrench className="h-3 w-3 text-emerald-500 shrink-0" />
+                                {r.assignedWorkerName || 'Assigned'}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-2.5 py-0.5">
+                                <Clock3 className="h-3 w-3 text-amber-500 shrink-0" />
+                                Unassigned
                               </span>
                             )}
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ADMIN RATINGS DIRECTORY */}
-              {activeTab === 'ratings' && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                  <h3 className="text-lg font-bold text-slate-900">Ratings & Reviews</h3>
-                  {adminRatings.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-10 text-center space-y-2.5">
-                      <h4 className="text-sm font-bold text-slate-800">No ratings yet</h4>
-                      <p className="text-xs text-slate-500">Customer ratings for completed jobs will appear here.</p>
-                    </div>
-                  ) : (
-                    <div className="grid gap-4">
-                      {adminRatings.map((r) => (
-                        <div key={r.id} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 space-y-3 hover:bg-white hover:border-amber-200 hover:shadow-xs transition-all">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2.5">
-                              <div className="h-8 w-8 rounded-full bg-slate-900 text-white font-extrabold text-[10px] flex items-center justify-center shadow-xs shrink-0">
-                                {(r.customerName || 'C').substring(0, 2).toUpperCase()}
-                              </div>
-                              <div>
-                                <span className="font-extrabold text-slate-900 text-xs block">{r.customerName}</span>
-                                <span className="text-slate-400 text-[10px]">Job #{r.jobId} • Worker: {r.workerName}</span>
-                              </div>
-                            </div>
-                            <div className="inline-flex items-center gap-1 rounded-xl bg-amber-50 border border-amber-200/80 px-2.5 py-1 text-amber-700 font-extrabold text-xs shrink-0 shadow-2xs">
-                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                              {r.score.toFixed(1)}
-                            </div>
-                          </div>
-                          {r.review && (
-                            <p className="text-xs text-slate-600 italic pl-3 relative z-10 leading-relaxed font-medium">
-                              {r.review}
-                            </p>
-                          )}
-                          <span className="text-[10px] text-slate-400">
-                            {new Date(r.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ADMIN ACTIVITY LOG */}
-              {activeTab === 'activity' && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                  <h3 className="text-lg font-bold text-slate-900">Activity Log</h3>
-                  {adminActivity.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 p-10 text-center space-y-2.5">
-                      <h4 className="text-sm font-bold text-slate-800">No activity yet</h4>
-                      <p className="text-xs text-slate-500">Platform activity will be recorded here.</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-slate-100 overflow-x-auto">
-                      {adminActivity.map((a) => (
-                        <div key={a.id} className="py-3 flex items-start justify-between gap-4 text-xs min-w-[600px]">
-                          <div className="flex items-start gap-3">
-                            <div className={`mt-0.5 h-6 w-6 rounded-full flex items-center justify-center shrink-0 ${
-                              a.actorRole === 'ADMIN' ? 'bg-rose-100 text-rose-600' :
-                              a.actorRole === 'WORKER' ? 'bg-blue-100 text-blue-600' :
-                              'bg-emerald-100 text-emerald-600'
+                          <div className="shrink-0 w-[70px] flex justify-end">
+                            <span className={`inline-block rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider border ${
+                              r.status === 'OPEN'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                : 'bg-slate-100 text-slate-700 border-slate-200'
                             }`}>
-                              <Activity className="h-3 w-3" />
+                              {r.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* JOBS TRACKING DIRECTORY */}
+              {(activeTab === 'jobs' || activeTab === 'overview') && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Job Executions</h3>
+                      <p className="text-xs text-slate-500">Live worker performance and contract tracking</p>
+                    </div>
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'jobs' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Jobs →
+                      </button>
+                    )}
+                  </div>
+                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                    {displayJobs.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-4 text-center">No job records found.</p>
+                    ) : (
+                      displayJobs.map((j) => (
+                        <div key={j.id} className="py-3 px-2 flex flex-wrap items-center justify-between text-xs gap-4 min-w-[600px] hover:bg-slate-50/60 rounded-2xl transition-all">
+                          <div className="flex items-center gap-3 flex-1 min-w-[150px]">
+                            <div className="h-9 w-9 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0 text-teal-600">
+                              <Activity className="h-4.5 w-4.5" />
                             </div>
-                            <div className="space-y-0.5">
-                              <p className="text-slate-800 font-semibold">{a.description}</p>
-                              <p className="text-slate-400">
-                                <span className="uppercase font-bold">{a.actorRole}</span> · {a.actionType} · {a.entityType}
-                                {a.entityId ? ` #${a.entityId}` : ''}
-                              </p>
+                            <div>
+                              <strong className="text-slate-800 font-extrabold text-sm block">Job #{j.id}</strong>
+                              <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{formatNotificationTime(j.createdAt)}</span>
                             </div>
                           </div>
-                          <span className="text-slate-400 shrink-0 whitespace-nowrap">
-                            {new Date(a.createdAt).toLocaleDateString()}
-                          </span>
+                          <div className="w-[150px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer</span>
+                            <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-0.5">
+                              <User className="h-3 w-3 text-slate-400 shrink-0" />
+                              {j.customerName}
+                            </span>
+                          </div>
+                          <div className="w-[150px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Assigned Worker</span>
+                            <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-0.5">
+                              <Wrench className="h-3 w-3 text-slate-400 shrink-0" />
+                              {j.workerName}
+                            </span>
+                          </div>
+                          <div className="w-[100px] shrink-0 flex flex-col items-start">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">Status</span>
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase border tracking-wider ${
+                              j.status === 'COMPLETED' ? 'bg-green-50 text-green-700 border-green-200' :
+                              j.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                              j.status === 'DECLINED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                              'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {j.status}
+                            </span>
+                          </div>
                         </div>
-                      ))}
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* PAYMENTS & TRANSACTIONS DIRECTORY */}
+              {(activeTab === 'payments' || activeTab === 'overview') && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-slate-900">Payments & Transactions Ledger</h3>
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-200">
+                          Simulated
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">Live platform payment simulation transactions and cooperative platform fee ledger</p>
+                    </div>
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'payments' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Payments →
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Summary Metrics */}
+                  {adminPaymentSummary && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5 space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Volume</span>
+                        <p className="font-mono text-base font-black text-slate-900">₹{adminPaymentSummary.totalSimulatedVolume?.toFixed(2) || '0.00'}</p>
+                      </div>
+                      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-3.5 space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block">Platform Fees</span>
+                        <p className="font-mono text-base font-black text-emerald-800">₹{adminPaymentSummary.totalSimulatedPlatformFees?.toFixed(2) || '0.00'}</p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5 space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Successful</span>
+                        <p className="font-mono text-base font-black text-emerald-700">{adminPaymentSummary.successfulTransactions}</p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5 space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Refunded / Failed</span>
+                        <p className="font-mono text-base font-black text-slate-700">
+                          {adminPaymentSummary.refundedTransactions} / {adminPaymentSummary.failedTransactions}
+                        </p>
+                      </div>
                     </div>
                   )}
+
+                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                    {adminPayments.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-6 text-center">No payment transactions recorded yet.</p>
+                    ) : (
+                      (activeTab === 'overview' ? adminPayments.slice(0, 5) : adminPayments).map((p) => (
+                        <div key={p.id} className="py-3 px-2 flex flex-wrap items-center justify-between text-xs gap-4 min-w-[650px] hover:bg-slate-50/60 rounded-2xl transition-all">
+                          <div className="flex items-center gap-3 flex-1 min-w-[180px]">
+                            <div className="h-9 w-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 text-emerald-600">
+                              <Receipt className="h-4.5 w-4.5" />
+                            </div>
+                            <div>
+                              <strong className="text-slate-800 font-extrabold text-xs block">{p.serviceCategory}</strong>
+                              <span className="font-mono text-[11px] text-slate-400 font-semibold">{p.transactionReference}</span>
+                            </div>
+                          </div>
+                          <div className="w-[120px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Amount & Fee</span>
+                            <div className="mt-0.5">
+                              <strong className="text-slate-900 font-extrabold font-mono">₹{p.amount.toFixed(2)}</strong>
+                              <span className="text-[10px] text-slate-400 block font-mono font-medium">(Fee: ₹{p.platformFee.toFixed(2)})</span>
+                            </div>
+                          </div>
+                          <div className="w-[130px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer</span>
+                            <span className="font-bold text-slate-700 block mt-0.5 truncate">{p.customerName}</span>
+                          </div>
+                          <div className="w-[110px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Method</span>
+                            <span className="font-bold text-slate-600 block mt-0.5">{p.paymentMethod}</span>
+                          </div>
+                          <div className="w-[90px] shrink-0 flex justify-end">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase border ${
+                              p.status === 'SUCCESS' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                              p.status === 'REFUNDED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                              'bg-red-50 text-red-700 border-red-200'
+                            }`}>
+                              {p.status === 'SUCCESS' ? 'Paid' : p.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* RATINGS & REVIEWS DIRECTORY */}
+              {(activeTab === 'ratings' || activeTab === 'overview') && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Ratings & Customer Reviews</h3>
+                      <p className="text-xs text-slate-500">Star ratings and qualitative feedback submitted by customers</p>
+                    </div>
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'ratings' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Ratings →
+                      </button>
+                    )}
+                  </div>
+                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                    {displayRatings.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-4 text-center">No customer reviews found.</p>
+                    ) : (
+                      displayRatings.map((r) => (
+                        <div key={r.id} className="py-3.5 px-2 flex flex-wrap items-start justify-between text-xs gap-4 min-w-[600px] hover:bg-slate-50/60 rounded-2xl transition-all">
+                          <div className="flex items-start gap-3 w-[220px] shrink-0">
+                            <div className="h-9 w-9 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0 text-amber-600">
+                              <Star className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
+                            </div>
+                            <div>
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer ➔ Worker</span>
+                              <div className="mt-0.5 leading-snug">
+                                <span className="text-slate-800 font-extrabold">{r.customerName}</span>
+                                <span className="text-slate-400 mx-1">to</span>
+                                <span className="text-slate-700 font-bold">{r.workerName}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="w-[100px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Score</span>
+                            <div className="flex items-center gap-1.5 mt-1 text-amber-500 bg-amber-50 border border-amber-100/70 rounded-xl px-2.5 py-0.5 w-max">
+                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                              <strong className="text-slate-800 text-xs font-black">{r.score}.0</strong>
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-[200px]">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Review Comment</span>
+                            <p className="text-slate-600 font-medium italic mt-1 bg-slate-50 border border-slate-100/70 rounded-2xl px-3 py-2 leading-relaxed">
+                              "{r.review || "No qualitative feedback left."}"
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ACTIVITY LOGS DIRECTORY */}
+              {(activeTab === 'activity' || activeTab === 'overview') && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">System Activity Audit Log</h3>
+                      <p className="text-xs text-slate-500">Audit trail trace logs generated from cooperative activities</p>
+                    </div>
+                    {activeTab === 'overview' && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({ tab: 'activity' })}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        View All Logs →
+                      </button>
+                    )}
+                  </div>
+                  <div className="divide-y divide-slate-100 overflow-x-auto">
+                    {displayActivity.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-4 text-center">No trace activities recorded.</p>
+                    ) : (
+                      displayActivity.map((act) => (
+                        <div key={act.id} className="py-3 px-2 flex items-start justify-between text-xs gap-4 min-w-[600px] hover:bg-slate-50/60 rounded-2xl transition-all">
+                          <div className="flex items-center gap-3 w-[150px] shrink-0">
+                            <div className="h-9 w-9 rounded-full bg-slate-50 border border-slate-200/60 flex items-center justify-center shrink-0 text-slate-500">
+                              <ShieldCheck className="h-4.5 w-4.5" />
+                            </div>
+                            <div>
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Timestamp</span>
+                              <span className="text-[10px] text-slate-500 font-mono block mt-0.5">{formatNotificationTime(act.createdAt)}</span>
+                            </div>
+                          </div>
+                          <div className="w-[120px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Actor</span>
+                            <span className={`inline-block border rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase mt-1 ${
+                              act.actorRole === 'ADMIN'
+                                ? 'bg-purple-50 text-purple-700 border-purple-100'
+                                : act.actorRole === 'WORKER'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                : 'bg-blue-50 text-blue-700 border-blue-100'
+                            }`}>
+                              {act.actorRole}
+                            </span>
+                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">ID: #{act.actorUserId}</p>
+                          </div>
+                          <div className="w-[150px] shrink-0">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Action</span>
+                            <span className="text-slate-800 font-extrabold block mt-0.5">{act.actionType}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{act.entityType} #{act.entityId}</span>
+                          </div>
+                          <div className="flex-1 min-w-[200px]">
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Description</span>
+                            <p className="text-slate-600 font-semibold mt-1 leading-relaxed bg-slate-50 border border-slate-100/70 rounded-2xl px-3 py-2">
+                              {act.description}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -2840,6 +3486,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               setSelectedRequest(null);
             }}
             onStatusChange={fetchCustomerRequests}
+            showCancelButton={true}
           />
           <RatingModal
             isOpen={isRatingModalOpen}
@@ -2850,14 +3497,20 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           />
           <PaymentModal
             isOpen={isPaymentModalOpen}
-            onClose={() => setIsPaymentModalOpen(false)}
-            onSuccess={fetchCustomerRequests}
-            jobId={paymentJobId ?? 0}
-            jobDescription={paymentJobContext?.jobDescription ?? ''}
-            workerName={paymentJobContext?.workerName ?? ''}
-            amount={paymentJobContext?.amount ?? 0}
-            categoryLabel={paymentJobContext?.categoryLabel ?? ''}
-            customerName={user?.name ?? ''}
+            jobId={paymentJobId}
+            onClose={() => {
+              setIsPaymentModalOpen(false);
+              setPaymentJobId(null);
+            }}
+            onPaymentSuccess={() => {
+              fetchCustomerRequests();
+              fetchWorkerJobs();
+              window.dispatchEvent(new CustomEvent('gigcircle-notifications-updated'));
+            }}
+          />
+          <CustomerPaymentHistoryModal
+            isOpen={isPaymentHistoryModalOpen}
+            onClose={() => setIsPaymentHistoryModalOpen(false)}
           />
         </>
       )}
@@ -2883,6 +3536,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               setSelectedRequest(null);
             }}
             onStatusChange={fetchWorkerJobs}
+            showCancelButton={false}
           />
         </>
       )}

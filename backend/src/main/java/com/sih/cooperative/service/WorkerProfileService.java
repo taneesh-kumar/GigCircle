@@ -6,8 +6,10 @@ import com.sih.cooperative.dto.WorkerProfileResponse;
 import com.sih.cooperative.entity.Role;
 import com.sih.cooperative.entity.User;
 import com.sih.cooperative.entity.WorkerProfile;
+import com.sih.cooperative.entity.VerificationStatus;
 import com.sih.cooperative.repository.UserRepository;
 import com.sih.cooperative.repository.WorkerProfileRepository;
+import com.sih.cooperative.repository.WorkerVerificationRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +25,28 @@ public class WorkerProfileService {
     private final WorkerProfileRepository workerProfileRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final WorkerVerificationRepository workerVerificationRepository;
 
-    public WorkerProfileService(WorkerProfileRepository workerProfileRepository, UserRepository userRepository, NotificationService notificationService) {
+    public WorkerProfileService(WorkerProfileRepository workerProfileRepository, UserRepository userRepository, NotificationService notificationService, WorkerVerificationRepository workerVerificationRepository) {
         this.workerProfileRepository = workerProfileRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.workerVerificationRepository = workerVerificationRepository;
     }
+
+    private boolean isWorkerVerified(Long workerId) {
+        if (workerId == null) return false;
+        return workerVerificationRepository.existsByWorkerIdAndStatus(workerId, VerificationStatus.VERIFIED);
+    }
+
+    private WorkerProfileResponse mapToResponse(WorkerProfile profile) {
+        WorkerProfileResponse response = WorkerProfileResponse.fromEntity(profile);
+        if (profile != null && profile.getWorker() != null) {
+            response.setIsVerified(isWorkerVerified(profile.getWorker().getId()));
+        }
+        return response;
+    }
+
 
     private User getAuthenticatedWorker(String email) {
         User user = userRepository.findByEmail(email.toLowerCase().trim())
@@ -57,7 +75,8 @@ public class WorkerProfileService {
         WorkerProfile profile = workerProfileRepository.findByWorkerId(worker.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker profile not found"));
 
-        return WorkerProfileResponse.fromEntity(profile);
+        return mapToResponse(profile);
+
     }
 
     @Transactional
@@ -84,7 +103,11 @@ public class WorkerProfileService {
                 request.getServiceCategories(),
                 available,
                 request.getServiceLocation() != null ? request.getServiceLocation().trim() : null,
-                request.getServiceRadiusKm()
+                request.getServiceRadiusKm(),
+                request.getLatitude(),
+                request.getLongitude(),
+                request.getAddress() != null ? request.getAddress().trim() : null,
+                request.getCity() != null ? request.getCity().trim() : null
         );
 
         WorkerProfile savedProfile = workerProfileRepository.save(profile);
@@ -97,7 +120,7 @@ public class WorkerProfileService {
                 worker.getId()
         );
 
-        return WorkerProfileResponse.fromEntity(savedProfile);
+        return mapToResponse(savedProfile);
     }
 
     @Transactional
@@ -122,20 +145,29 @@ public class WorkerProfileService {
         }
         profile.setServiceLocation(request.getServiceLocation() != null ? request.getServiceLocation().trim() : null);
         profile.setServiceRadiusKm(request.getServiceRadiusKm());
+        profile.setLatitude(request.getLatitude());
+        profile.setLongitude(request.getLongitude());
+        profile.setAddress(request.getAddress() != null ? request.getAddress().trim() : null);
+        profile.setCity(request.getCity() != null ? request.getCity().trim() : null);
 
         WorkerProfile updatedProfile = workerProfileRepository.save(profile);
-        return WorkerProfileResponse.fromEntity(updatedProfile);
+        return mapToResponse(updatedProfile);
     }
 
     @Transactional
     public WorkerProfileResponse toggleAvailability(Boolean isAvailable, String workerEmail) {
         User worker = getAuthenticatedWorker(workerEmail);
 
+        if (!worker.isActive()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Worker account is deactivated");
+        }
+
         WorkerProfile profile = workerProfileRepository.findByWorkerId(worker.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker profile not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Worker profile not found. Please complete worker profile onboarding."));
 
         profile.setAvailable(isAvailable != null ? isAvailable : !profile.isAvailable());
         WorkerProfile updatedProfile = workerProfileRepository.save(profile);
-        return WorkerProfileResponse.fromEntity(updatedProfile);
+        return mapToResponse(updatedProfile);
     }
 }
+
