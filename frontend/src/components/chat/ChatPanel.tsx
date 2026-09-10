@@ -2,16 +2,15 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getMessagesForJobApi, markMessagesAsReadApi, sendMessageApi } from '@/services/api/chat';
 import type { ChatMessageResponse } from '@/types/chat';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { AlertCircle, MessageSquare, RefreshCw, Send, User } from 'lucide-react';
+import { AlertCircle, MessageSquare, RefreshCw, Send } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface ChatPanelProps {
   jobId: number;
+  hideHeader?: boolean;
 }
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId }) => {
+export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
   const [inputText, setInputText] = useState('');
@@ -26,7 +25,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId }) => {
       const data = await getMessagesForJobApi(jobId);
       setMessages(data);
       setError(null);
-      // Automatically mark unread messages as read
       await markMessagesAsReadApi(jobId).catch(() => {});
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Failed to load chat messages';
@@ -45,10 +43,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId }) => {
   useEffect(() => {
     fetchMessages(false);
 
-    // Setup polling every 6 seconds while panel is mounted
     const timer = setInterval(() => {
       fetchMessages(true);
-    }, 6000);
+    }, 5000);
 
     return () => {
       clearInterval(timer);
@@ -85,36 +82,56 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId }) => {
   };
 
   return (
-    <div className="flex flex-col h-[500px] border rounded-lg bg-card text-card-foreground shadow-sm">
-      <div className="p-4 border-b flex items-center justify-between bg-muted/40">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-lg">Job Chat #{jobId}</h3>
+    <div className="flex flex-col h-full bg-slate-50/50">
+      {!hideHeader && (
+        <div className="px-5 py-3.5 border-b border-slate-200/80 flex items-center justify-between bg-white shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-xl bg-slate-900 text-emerald-400 flex items-center justify-center shadow-2xs">
+              <MessageSquare className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-slate-900">Direct Chat</h3>
+              <span className="text-[10px] text-slate-400 font-bold block">Job #{jobId}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => fetchMessages(false)}
+            disabled={loading}
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+            title="Refresh messages"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => fetchMessages(false)} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-        </Button>
-      </div>
+      )}
 
       {error && (
-        <div className="p-3">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Chat Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+        <div className="p-3 shrink-0">
+          <Alert variant="destructive" className="rounded-xl border-rose-200 bg-rose-50 text-rose-800">
+            <AlertCircle className="h-4 w-4 text-rose-600" />
+            <AlertTitle className="font-bold text-xs">Chat Status</AlertTitle>
+            <AlertDescription className="text-xs">{error}</AlertDescription>
           </Alert>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {/* Messages Scroll Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[300px]">
         {loading && messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <RefreshCw className="h-6 w-6 animate-spin mr-2" /> Loading conversation...
+          <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 py-16">
+            <RefreshCw className="h-6 w-6 animate-spin text-emerald-500" />
+            <span className="text-xs font-semibold">Loading conversation...</span>
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
-            <MessageSquare className="h-10 w-10 opacity-40" />
-            <p>No messages yet. Send a message to start communicating!</p>
+          <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-3 py-16 text-center">
+            <div className="h-14 w-14 rounded-2xl bg-white border border-slate-200/60 shadow-xs flex items-center justify-center text-slate-300">
+              <MessageSquare className="h-7 w-7" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-700">No messages yet</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Send a message below to start communicating.</p>
+            </div>
           </div>
         ) : (
           messages.map((msg) => {
@@ -124,17 +141,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId }) => {
                 key={msg.id}
                 className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} space-y-1`}
               >
-                <div className="flex items-center gap-1 text-xs text-muted-foreground px-1">
-                  <User className="h-3 w-3" />
-                  <span>{msg.sender.name} ({msg.sender.role})</span>
-                  <span>•</span>
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold px-1">
+                  <span>{isMe ? 'You' : msg.sender.name}</span>
+                  <span className="text-slate-300">•</span>
                   <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
                 <div
-                  className={`max-w-[75%] rounded-lg px-3 py-2 text-sm break-words ${
+                  className={`max-w-[80%] px-4 py-2.5 text-xs font-medium leading-relaxed break-words shadow-2xs ${
                     isMe
-                      ? 'bg-primary text-primary-foreground rounded-br-none'
-                      : 'bg-muted rounded-bl-none text-foreground'
+                      ? 'bg-slate-900 text-white rounded-2xl rounded-tr-xs'
+                      : 'bg-white border border-slate-200/80 text-slate-800 rounded-2xl rounded-tl-xs'
                   }`}
                 >
                   {msg.messageText}
@@ -146,19 +162,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSend} className="p-3 border-t flex gap-2 bg-muted/20">
-        <Input
+      {/* Input Bar */}
+      <form onSubmit={handleSend} className="p-3 bg-white border-t border-slate-200/80 flex items-center gap-2 shrink-0">
+        <input
+          type="text"
           placeholder="Type your message..."
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           maxLength={2000}
           disabled={sending || !!error}
-          className="flex-1"
+          className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
         />
-        <Button type="submit" disabled={!inputText.trim() || sending || !!error}>
+        <button
+          type="submit"
+          disabled={!inputText.trim() || sending || !!error}
+          className="rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white px-4 py-2.5 text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5 shrink-0 cursor-pointer"
+        >
           {sending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          <span className="sr-only">Send</span>
-        </Button>
+          <span>Send</span>
+        </button>
       </form>
     </div>
   );

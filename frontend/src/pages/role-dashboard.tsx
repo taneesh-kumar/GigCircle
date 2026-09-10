@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ArrowRight,
   BellRing,
@@ -18,6 +18,7 @@ import {
   Ban,
   Eye,
   Calendar,
+  MessageSquare,
   AlertCircle,
   Briefcase,
   Edit,
@@ -115,6 +116,7 @@ import { WorkerVerificationSection } from '@/components/worker-verification-sect
 import { AdminVerificationSection } from '@/components/admin-verification-section';
 import { VerifiedWorkerBadge } from '@/components/verified-worker-badge';
 import { ChatPanel } from '@/components/chat/ChatPanel';
+import { JobChatModal } from '@/components/chat/JobChatModal';
 import { DisputeCreateForm } from '@/components/dispute/DisputeCreateForm';
 import { DisputeDetailPanel } from '@/components/dispute/DisputeDetailPanel';
 import { AdminDisputeControls } from '@/components/dispute/AdminDisputeControls';
@@ -239,6 +241,19 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Popup Chat Modal State
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [chatModalJobId, setChatModalJobId] = useState<number | null>(null);
+  const [chatModalWorkerName, setChatModalWorkerName] = useState<string | null>(null);
+  const [chatModalTitle, setChatModalTitle] = useState<string | null>(null);
+
+  const handleOpenChatModal = (jobId: number, workerName?: string | null, title?: string | null) => {
+    setChatModalJobId(jobId);
+    setChatModalWorkerName(workerName || null);
+    setChatModalTitle(title || null);
+    setIsChatModalOpen(true);
+  };
 
   // Customer Rating Modal State
   const [ratingJobId, setRatingJobId] = useState<number | null>(null);
@@ -1660,7 +1675,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                       </span>
                                     </div>
                                   </div>
-                                  {!req.workerName && (
+                                  {req.workerName && req.jobId ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenChatModal(req.jobId!, req.workerName, req.description)}
+                                      className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer"
+                                    >
+                                      <MessageSquare className="h-3.5 w-3.5 text-emerald-400" />
+                                      <span>Chat with Worker</span>
+                                    </button>
+                                  ) : (
                                     <span className="inline-flex h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" title="Searching for worker" />
                                   )}
                                 </div>
@@ -2609,9 +2633,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   startedAt: job.startedAt,
                                   completedAt: job.completedAt,
                                 })}
-                                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
+                                className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
                               >
                                 <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleOpenChatModal(job.id, job.customerName || 'Customer', job.description)}
+                                className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2.5 text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <MessageSquare className="h-3.5 w-3.5 text-emerald-400" />
+                                <span>Chat</span>
                               </button>
 
                               {isAccepted && (
@@ -4363,6 +4396,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
           <CustomerPaymentHistoryModal
             isOpen={isPaymentHistoryModalOpen}
             onClose={() => setIsPaymentHistoryModalOpen(false)}
+          />
+          <JobChatModal
+            isOpen={isChatModalOpen}
+            onClose={() => {
+              setIsChatModalOpen(false);
+              setChatModalJobId(null);
+            }}
+            jobId={chatModalJobId}
+            workerName={chatModalWorkerName}
+            requestTitle={chatModalTitle || undefined}
           />
         </>
       )}

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertTriangle, Calendar, Clock, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert, IndianRupee, Clock3, Activity, User, Compass, Sparkles, FileText, MessageSquare } from 'lucide-react';
 import { cancelServiceRequestApi, getWorkerRecommendationsForRequestApi } from '@/services/api';
 import { CATEGORY_LABELS, type ServiceRequest, type WorkerRecommendationResult } from '@/types/service-request';
@@ -8,7 +8,6 @@ import { PaymentModal } from '@/components/payment-modal';
 import { InvoiceModal } from '@/components/invoice-modal';
 import { useAuth } from '@/context/AuthContext';
 import { VerifiedWorkerBadge } from '@/components/verified-worker-badge';
-import { ChatPanel } from '@/components/chat/ChatPanel';
 import { DisputeCreateForm } from '@/components/dispute/DisputeCreateForm';
 import { DisputeDetailPanel } from '@/components/dispute/DisputeDetailPanel';
 import { getDisputeForJobApi } from '@/services/api/dispute';
@@ -34,7 +33,6 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
 
   const [recommendationResult, setRecommendationResult] = useState<WorkerRecommendationResult | null>(null);
   const [isLoadingRecs, setIsLoadingRecs] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isDisputeOpen, setIsDisputeOpen] = useState(false);
   const [dispute, setDispute] = useState<DisputeDetailResponse | null>(null);
 
@@ -54,7 +52,6 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
       setIsConfirmingCancel(false);
       setIsCancelling(false);
       setCancelError(null);
-      setIsChatOpen(false);
       setIsDisputeOpen(false);
 
       if (request.jobId) {
@@ -265,15 +262,6 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                   <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       type="button"
-                      onClick={() => setIsChatOpen(!isChatOpen)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-800 transition-colors shadow-xs"
-                    >
-                      <MessageSquare className="h-4 w-4 text-emerald-400" />
-                      {isChatOpen ? 'Close Job Chat' : 'Open Job Chat'}
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => setIsDisputeOpen(!isDisputeOpen)}
                       className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors shadow-xs"
                     >
@@ -281,12 +269,6 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                       {isDisputeOpen ? 'Hide Dispute' : 'Dispute / Help'}
                     </button>
                   </div>
-
-                  {isChatOpen && request.jobId && (
-                    <div className="mt-3">
-                      <ChatPanel jobId={request.jobId} />
-                    </div>
-                  )}
 
                   {isDisputeOpen && request.jobId && (
                     <div className="mt-3">
