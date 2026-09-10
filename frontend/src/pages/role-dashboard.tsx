@@ -1478,29 +1478,30 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             {/* TAB: MY REQUESTS */}
             {(activeTab === 'requests' || activeTab === 'overview') && activeTab !== 'overview' && (
               <div className="space-y-6">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 p-6 md:p-8 shadow-md text-white">
+                  <div className="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
+                  <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
                     <div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
                         CUSTOMER WORKSPACE
                       </span>
-                      <h2 className="text-2xl font-bold text-slate-900 mt-0.5">My Service Requests</h2>
-                      <p className="text-xs text-slate-600 mt-1">
-                        Manage the services you've requested and track their execution progress.
+                      <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">My Service Requests</h2>
+                      <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
+                        Manage the services you've requested and track their execution progress in real-time.
                       </p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                      <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
+                      <div className="flex items-center rounded-xl border border-slate-800 bg-slate-900/90 p-1 text-xs shadow-inner">
                         {(['OPEN', 'COMPLETED', 'CANCELLED'] as const).map((st) => (
                           <button
                             key={st}
                             type="button"
                             onClick={() => setFilterStatus(st)}
-                            className={`rounded-lg px-3 py-1.5 font-bold transition-all ${
+                            className={`rounded-lg px-3.5 py-1.5 font-extrabold transition-all cursor-pointer ${
                               filterStatus === st
-                                ? 'bg-emerald-600 text-white shadow-xs'
-                                : 'text-slate-600 hover:text-slate-900'
+                                ? 'bg-emerald-500 text-slate-950 shadow-xs'
+                                : 'text-slate-400 hover:text-white'
                             }`}
                           >
                             {st}
@@ -1512,31 +1513,32 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         type="button"
                         onClick={fetchCustomerRequests}
                         disabled={isLoadingRequests}
-                        className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50"
+                        className="p-2.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
                         title="Refresh requests"
                       >
-                        <RefreshCw className={`h-4 w-4 ${isLoadingRequests ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`h-4 w-4 ${isLoadingRequests ? 'animate-spin text-emerald-400' : ''}`} />
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setIsPaymentHistoryModalOpen(true)}
-                        className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2.5 text-xs font-extrabold text-white shadow-2xs hover:bg-slate-800 transition-colors cursor-pointer"
                       >
-                        <Receipt className="h-4 w-4 text-emerald-600" /> Payment History
+                        <Receipt className="h-4 w-4 text-emerald-400" /> Payment History
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors"
+                        className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2.5 text-xs font-black shadow-md transition-all inline-flex items-center gap-1.5 cursor-pointer"
                       >
                         <Plus className="h-4 w-4" /> Request a Service
                       </button>
                     </div>
                   </div>
+                </div>
 
-                  <div className="mt-6">
+                <div className="mt-6">
                     {isLoadingRequests ? (
                       <div className="grid gap-4 md:grid-cols-2">
                         {[1, 2].map((i) => (
@@ -1753,32 +1755,37 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     )}
                   </div>
                 </div>
-              </div>
             )}
 
-            {/* TAB: PAYMENTS */}
             {activeTab === 'payments' && (
               <div className="space-y-6">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                        <Receipt className="h-5 w-5" />
+                <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 p-6 md:p-8 shadow-md text-white">
+                  <div className="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
+                  <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0 shadow-inner">
+                        <Receipt className="h-6 w-6" />
                       </div>
                       <div>
-                        <h2 className="text-xl font-bold text-slate-900">Payment Receipts & History</h2>
-                        <p className="text-xs text-slate-500">Track simulated payments and cooperative service invoices</p>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+                          FINANCIAL RECORDS
+                        </span>
+                        <h2 className="text-2xl sm:text-3xl font-black text-white mt-0.5">Payment Receipts & History</h2>
+                        <p className="text-xs sm:text-sm text-slate-300 mt-1">Track simulated payments and cooperative service invoices.</p>
                       </div>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => setIsPaymentHistoryModalOpen(true)}
-                      className="rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors"
+                      className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2.5 text-xs font-black shadow-md transition-all inline-flex items-center gap-1.5 cursor-pointer"
                     >
-                      Open Receipts Manager
+                      <Receipt className="h-4 w-4" /> Open Receipts Manager
                     </button>
                   </div>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-4">
 
                   {isLoadingCustomerPayments ? (
                     <div className="py-12 text-center space-y-3">
