@@ -54,8 +54,6 @@ public class WorkerProfileIntegrationTest {
 
     @Autowired
     private EarningRepository earningRepository;
-    @Autowired
-    private PaymentRepository paymentRepository;
 
     @Autowired
     private NotificationRepository notificationRepository;
@@ -68,9 +66,7 @@ public class WorkerProfileIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         notificationRepository.deleteAll();
-        paymentRepository.deleteAll();
         ratingRepository.deleteAll();
-        paymentRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();

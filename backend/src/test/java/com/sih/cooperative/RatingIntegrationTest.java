@@ -52,11 +52,12 @@ public class RatingIntegrationTest {
 
     @Autowired
     private EarningRepository earningRepository;
-    @Autowired
-    private PaymentRepository paymentRepository;
 
     @Autowired
     private NotificationRepository notificationRepository;
+
+    @Autowired
+    private InvoiceRepository invoiceRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -70,9 +71,8 @@ public class RatingIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         notificationRepository.deleteAll();
-        paymentRepository.deleteAll();
+        invoiceRepository.deleteAll();
         ratingRepository.deleteAll();
-        paymentRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();
@@ -135,23 +135,6 @@ public class RatingIntegrationTest {
         }
 
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
-        if (targetStatus == JobStatus.PAYMENT_REQUIRED) {
-            return jobId;
-        }
-
-        // Perform customer payment to advance to COMPLETED
-        com.sih.cooperative.dto.CreatePaymentRequest payReq = new com.sih.cooperative.dto.CreatePaymentRequest();
-        payReq.setJobId(jobId);
-        payReq.setPaymentMethod(com.sih.cooperative.entity.PaymentMethod.UPI);
-        payReq.setUpiId("test-success@upi");
-
-        mockMvc.perform(post("/api/customer/payments/process")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payReq)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("SUCCESS"));
-
         return jobId;
     }
 
@@ -401,23 +384,11 @@ public class RatingIntegrationTest {
                         .content(objectMapper.writeValueAsString(new CreateRatingRequest(5, "Early"))))
                 .andExpect(status().isConflict());
 
-        // Worker requests completion -> PAYMENT_REQUIRED
+        // Worker completes job -> COMPLETED
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/start").header("Authorization", "Bearer " + workerToken1)).andExpect(status().isOk());
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken1))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.jobStatus").value("PAYMENT_REQUIRED"));
-
-        // Payment success is the gate that moves the job to COMPLETED
-        CreatePaymentRequest payReq = new CreatePaymentRequest();
-        payReq.setJobId(jobId);
-        payReq.setPaymentMethod(PaymentMethod.UPI);
-        payReq.setUpiId("test-success@upi");
-        mockMvc.perform(post("/api/customer/payments/process")
-                        .header("Authorization", "Bearer " + customerToken1)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payReq)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("SUCCESS"));
+                .andExpect(jsonPath("$.jobStatus").value("COMPLETED"));
 
         // After completion -> 201 Created
         mockMvc.perform(post("/api/customer/ratings/" + jobId)

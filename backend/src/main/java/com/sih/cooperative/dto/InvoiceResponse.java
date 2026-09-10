@@ -1,7 +1,6 @@
 package com.sih.cooperative.dto;
 
 import com.sih.cooperative.entity.Invoice;
-import com.sih.cooperative.entity.PaymentStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -27,7 +26,7 @@ public class InvoiceResponse {
     private BigDecimal discountAmount;
     private BigDecimal totalAmount;
     private String currency = "INR";
-    private PaymentStatus paymentStatus;
+    private String paymentStatus;
     private String paymentReference;
     private LocalDateTime issuedAt;
     private LocalDateTime paidAt;
@@ -225,11 +224,11 @@ public class InvoiceResponse {
         this.currency = currency;
     }
 
-    public PaymentStatus getPaymentStatus() {
+    public String getPaymentStatus() {
         return paymentStatus;
     }
 
-    public void setPaymentStatus(PaymentStatus paymentStatus) {
+    public void setPaymentStatus(String paymentStatus) {
         this.paymentStatus = paymentStatus;
     }
 

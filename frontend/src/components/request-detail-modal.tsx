@@ -4,7 +4,6 @@ import { cancelServiceRequestApi, getWorkerRecommendationsForRequestApi } from '
 import { CATEGORY_LABELS, type ServiceRequest, type WorkerRecommendationResult } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
 import { RecommendedWorkerCard } from '@/components/recommended-worker-card';
-import { PaymentModal } from '@/components/payment-modal';
 import { InvoiceModal } from '@/components/invoice-modal';
 import { useAuth } from '@/context/AuthContext';
 import { VerifiedWorkerBadge } from '@/components/verified-worker-badge';
@@ -28,7 +27,6 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
-  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
 
   const [recommendationResult, setRecommendationResult] = useState<WorkerRecommendationResult | null>(null);
@@ -286,42 +284,20 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                 </div>
               )}
 
-              {request.jobId && (jobStatusStr === 'PAYMENT_REQUIRED' || jobStatusStr === 'COMPLETED') && (
+              {request.jobId && jobStatusStr === 'COMPLETED' && (
                 <div className="space-y-2">
-                  {user?.role === 'CUSTOMER' ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsPaymentOpen(true)}
-                      className={`w-full inline-flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold text-white transition-all shadow-sm ${
-                        jobStatusStr === 'PAYMENT_REQUIRED'
-                          ? 'bg-emerald-600 hover:bg-emerald-700 font-extrabold animate-pulse'
-                          : 'bg-slate-900 hover:bg-emerald-600'
-                      }`}
-                    >
-                      <IndianRupee className="h-4 w-4" />
-                      {jobStatusStr === 'PAYMENT_REQUIRED' ? `Pay Now (₹${request.budget.toLocaleString()})` : 'View Payment Receipt'}
-                    </button>
-                  ) : (
-                    jobStatusStr === 'PAYMENT_REQUIRED' ? (
-                      <div className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-50 border border-amber-200 py-2.5 text-xs font-bold text-amber-800">
-                        <Clock3 className="h-4 w-4 text-amber-600 animate-pulse" />
-                        Awaiting Customer Payment (₹{request.budget.toLocaleString()})
-                      </div>
-                    ) : (
-                      <div className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 py-2.5 text-xs font-bold text-emerald-800">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        Payment Completed & Payout Logged
-                      </div>
-                    )
-                  )}
+                  <div className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 py-2.5 text-xs font-bold text-emerald-800">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    Job Completed
+                  </div>
 
                   <button
                     type="button"
                     onClick={() => setIsInvoiceOpen(true)}
                     className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-800 hover:bg-slate-50 transition-colors shadow-xs"
                   >
-                    <FileText className="h-4 w-4 text-emerald-600" />
-                    View Service Invoice
+                    <FileText className="h-4 w-4 text-slate-600" />
+                    View Job Invoice
                   </button>
                 </div>
               )}
@@ -406,17 +382,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
         </div>
       </div>
 
-      {/* Payment Checkout Modal */}
-      {request && request.jobId && (
-        <PaymentModal
-          jobId={request.jobId}
-          isOpen={isPaymentOpen}
-          onClose={() => setIsPaymentOpen(false)}
-          onPaymentSuccess={() => {
-            onStatusChange();
-          }}
-        />
-      )}
+
 
       {/* Invoice Modal */}
       {request && request.jobId && (

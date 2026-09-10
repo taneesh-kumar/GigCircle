@@ -1,5 +1,3 @@
-import { PaymentStatus } from './payment';
-
 export interface Invoice {
   id: number;
   invoiceNumber: string;
@@ -20,7 +18,7 @@ export interface Invoice {
   discountAmount: number;
   totalAmount: number;
   currency: string;
-  paymentStatus: PaymentStatus;
+  paymentStatus: string;
   paymentReference?: string;
   issuedAt: string;
   paidAt?: string;

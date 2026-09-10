@@ -38,6 +38,9 @@ public class WorkerVerificationIntegrationTest {
     @Autowired
     private com.sih.cooperative.repository.NotificationRepository notificationRepository;
 
+    @Autowired
+    private com.sih.cooperative.repository.InvoiceRepository invoiceRepository;
+
     private User worker1;
     private User worker2;
     private User adminUser;
@@ -45,6 +48,7 @@ public class WorkerVerificationIntegrationTest {
     @BeforeEach
     public void setUp() {
         notificationRepository.deleteAll();
+        invoiceRepository.deleteAll();
         verificationDocumentRepository.deleteAll();
         workerVerificationRepository.deleteAll();
         workerProfileRepository.deleteAll();

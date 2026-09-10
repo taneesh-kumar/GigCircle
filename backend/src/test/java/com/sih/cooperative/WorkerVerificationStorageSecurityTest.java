@@ -9,6 +9,7 @@ import com.sih.cooperative.entity.Role;
 import com.sih.cooperative.entity.ServiceCategory;
 import com.sih.cooperative.entity.User;
 import com.sih.cooperative.entity.VerificationDocumentType;
+import com.sih.cooperative.repository.InvoiceRepository;
 import com.sih.cooperative.repository.NotificationRepository;
 import com.sih.cooperative.repository.UserRepository;
 import com.sih.cooperative.repository.VerificationDocumentRepository;
@@ -58,6 +59,9 @@ public class WorkerVerificationStorageSecurityTest {
     private NotificationRepository notificationRepository;
 
     @Autowired
+    private InvoiceRepository invoiceRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String adminToken;
@@ -76,6 +80,7 @@ public class WorkerVerificationStorageSecurityTest {
     @BeforeEach
     void setUp() throws Exception {
         notificationRepository.deleteAll();
+        invoiceRepository.deleteAll();
         verificationDocumentRepository.deleteAll();
         workerVerificationRepository.deleteAll();
         workerProfileRepository.deleteAll();

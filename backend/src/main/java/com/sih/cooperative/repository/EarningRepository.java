@@ -2,6 +2,7 @@ package com.sih.cooperative.repository;
 
 import com.sih.cooperative.entity.Earning;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface EarningRepository extends JpaRepository<Earning, Long> {
+public interface EarningRepository extends JpaRepository<Earning, Long>, JpaSpecificationExecutor<Earning> {
 
     Optional<Earning> findByJobId(Long jobId);
 

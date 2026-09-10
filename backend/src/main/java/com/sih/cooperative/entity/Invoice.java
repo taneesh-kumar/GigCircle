@@ -60,9 +60,8 @@ public class Invoice {
     @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false)
-    private PaymentStatus paymentStatus;
+    private String paymentStatus;
 
     @Column(name = "payment_reference", length = 64)
     private String paymentReference;
@@ -82,7 +81,7 @@ public class Invoice {
     public Invoice() {
     }
 
-    public Invoice(String invoiceNumber, Job job, User customer, User worker, String serviceName, String serviceDescription, BigDecimal serviceCharge, BigDecimal platformFee, BigDecimal taxAmount, BigDecimal discountAmount, BigDecimal totalAmount, PaymentStatus paymentStatus, String paymentReference, LocalDateTime issuedAt, LocalDateTime paidAt) {
+    public Invoice(String invoiceNumber, Job job, User customer, User worker, String serviceName, String serviceDescription, BigDecimal serviceCharge, BigDecimal platformFee, BigDecimal taxAmount, BigDecimal discountAmount, BigDecimal totalAmount, String paymentStatus, String paymentReference, LocalDateTime issuedAt, LocalDateTime paidAt) {
         this.invoiceNumber = invoiceNumber;
         this.job = job;
         this.customer = customer;
@@ -217,11 +216,11 @@ public class Invoice {
         this.totalAmount = totalAmount;
     }
 
-    public PaymentStatus getPaymentStatus() {
+    public String getPaymentStatus() {
         return paymentStatus;
     }
 
-    public void setPaymentStatus(PaymentStatus paymentStatus) {
+    public void setPaymentStatus(String paymentStatus) {
         this.paymentStatus = paymentStatus;
     }
 

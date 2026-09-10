@@ -6,6 +6,7 @@ import com.sih.cooperative.dto.CreateWorkerProfileRequest;
 import com.sih.cooperative.dto.RegisterRequest;
 import com.sih.cooperative.dto.SubmitVerificationDocumentRequest;
 import com.sih.cooperative.entity.*;
+import com.sih.cooperative.repository.InvoiceRepository;
 import com.sih.cooperative.repository.NotificationRepository;
 import com.sih.cooperative.repository.UserRepository;
 import com.sih.cooperative.repository.VerificationDocumentRepository;
@@ -57,6 +58,9 @@ public class WorkerVerificationNotificationIntegrationTest {
     private NotificationRepository notificationRepository;
 
     @Autowired
+    private InvoiceRepository invoiceRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     private String adminToken;
@@ -67,6 +71,7 @@ public class WorkerVerificationNotificationIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         notificationRepository.deleteAll();
+        invoiceRepository.deleteAll();
         verificationDocumentRepository.deleteAll();
         workerVerificationRepository.deleteAll();
         workerProfileRepository.deleteAll();

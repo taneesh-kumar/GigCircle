@@ -5,7 +5,6 @@ import com.sih.cooperative.dto.InvoiceResponse;
 import com.sih.cooperative.entity.*;
 import com.sih.cooperative.repository.InvoiceRepository;
 import com.sih.cooperative.repository.JobRepository;
-import com.sih.cooperative.repository.PaymentRepository;
 import com.sih.cooperative.repository.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -26,20 +25,17 @@ public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final JobRepository jobRepository;
-    private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
     private final EarningsConfig earningsConfig;
     private final NotificationService notificationService;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           JobRepository jobRepository,
-                          PaymentRepository paymentRepository,
                           UserRepository userRepository,
                           EarningsConfig earningsConfig,
                           NotificationService notificationService) {
         this.invoiceRepository = invoiceRepository;
         this.jobRepository = jobRepository;
-        this.paymentRepository = paymentRepository;
         this.userRepository = userRepository;
         this.earningsConfig = earningsConfig;
         this.notificationService = notificationService;
@@ -122,30 +118,9 @@ public class InvoiceService {
         BigDecimal discountAmount = BigDecimal.ZERO.setScale(2);
         BigDecimal totalAmount = serviceCharge.add(platformFee).setScale(2, RoundingMode.HALF_UP);
 
-        // Read payment status and reference from Payment repository
-        Optional<Payment> successPayment = paymentRepository.findFirstByJobIdAndPaymentStatusOrderByCreatedAtDesc(jobId, PaymentStatus.SUCCESS);
-        if (!successPayment.isPresent()) {
-            successPayment = paymentRepository.findFirstByJobIdAndPaymentStatusOrderByCreatedAtDesc(jobId, PaymentStatus.PAID);
-        }
-        Optional<Payment> latestPayment = paymentRepository.findFirstByJobIdOrderByCreatedAtDesc(jobId);
-
-        PaymentStatus paymentStatus;
-        String paymentReference = null;
-        LocalDateTime paidAt = null;
-
-        if (successPayment.isPresent()) {
-            Payment p = successPayment.get();
-            paymentStatus = PaymentStatus.SUCCESS;
-            paymentReference = p.getTransactionReference();
-            paidAt = p.getPaidAt();
-        } else if (latestPayment.isPresent()) {
-            Payment p = latestPayment.get();
-            paymentStatus = p.getStatus();
-            paymentReference = p.getTransactionReference();
-            paidAt = p.getPaidAt();
-        } else {
-            paymentStatus = PaymentStatus.PENDING;
-        }
+        String paymentStatus = job.getStatus() == JobStatus.COMPLETED ? "COMPLETED" : "PENDING";
+        String paymentReference = "INV-REF-" + jobId;
+        LocalDateTime paidAt = job.getCompletedAt();
 
         String serviceName = request.getCategory() != null ? request.getCategory().name() : "Service Request";
         String serviceDescription = request.getDescription();

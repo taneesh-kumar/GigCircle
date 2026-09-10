@@ -51,6 +51,9 @@ class WorkerVerificationWorkflowAcceptanceTest {
     private NotificationRepository notificationRepository;
 
     @Autowired
+    private InvoiceRepository invoiceRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -70,6 +73,7 @@ class WorkerVerificationWorkflowAcceptanceTest {
     @BeforeEach
     void setUp() {
         notificationRepository.deleteAll();
+        invoiceRepository.deleteAll();
         documentRepository.deleteAll();
         verificationRepository.deleteAll();
         workerProfileRepository.deleteAll();

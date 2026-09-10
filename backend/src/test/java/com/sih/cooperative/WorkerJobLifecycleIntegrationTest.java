@@ -57,11 +57,12 @@ public class WorkerJobLifecycleIntegrationTest {
 
     @Autowired
     private EarningRepository earningRepository;
-    @Autowired
-    private PaymentRepository paymentRepository;
 
     @Autowired
     private NotificationRepository notificationRepository;
+
+    @Autowired
+    private InvoiceRepository invoiceRepository;
 
     private String customerToken;
     private String workerToken1;
@@ -70,9 +71,8 @@ public class WorkerJobLifecycleIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         notificationRepository.deleteAll();
-        paymentRepository.deleteAll();
+        invoiceRepository.deleteAll();
         ratingRepository.deleteAll();
-        paymentRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();
@@ -224,16 +224,16 @@ public class WorkerJobLifecycleIntegrationTest {
                         .header("Authorization", "Bearer " + workerToken1))
                 .andExpect(status().isOk());
 
-        // Worker requests completion -> PAYMENT_REQUIRED
+        // Worker requests completion -> COMPLETED
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete")
                         .header("Authorization", "Bearer " + workerToken1))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(jobId))
-                .andExpect(jsonPath("$.jobStatus").value("PAYMENT_REQUIRED"))
+                .andExpect(jsonPath("$.jobStatus").value("COMPLETED"))
                 .andExpect(jsonPath("$.startedAt").exists());
 
         Job job = jobRepository.findById(jobId).orElseThrow();
-        assertEquals(JobStatus.PAYMENT_REQUIRED, job.getStatus());
+        assertEquals(JobStatus.COMPLETED, job.getStatus());
     }
 
     @Test
@@ -364,24 +364,6 @@ public class WorkerJobLifecycleIntegrationTest {
         mockMvc.perform(get("/api/customer/requests/" + requestId)
                         .header("Authorization", "Bearer " + customerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.jobStatus").value("PAYMENT_REQUIRED"))
-                .andExpect(jsonPath("$.startedAt").exists());
-
-        // 4. Customer pays -> COMPLETED state visibility
-        com.sih.cooperative.dto.CreatePaymentRequest payReq = new com.sih.cooperative.dto.CreatePaymentRequest();
-        payReq.setJobId(jobId);
-        payReq.setPaymentMethod(com.sih.cooperative.entity.PaymentMethod.UPI);
-        payReq.setUpiId("test-success@upi");
-
-        mockMvc.perform(post("/api/customer/payments/process")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payReq)))
-                .andExpect(status().isCreated());
-
-        mockMvc.perform(get("/api/customer/requests/" + requestId)
-                        .header("Authorization", "Bearer " + customerToken))
-                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.jobStatus").value("COMPLETED"))
                 .andExpect(jsonPath("$.startedAt").exists())
                 .andExpect(jsonPath("$.completedAt").exists());
@@ -425,17 +407,7 @@ public class WorkerJobLifecycleIntegrationTest {
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete")
                 .header("Authorization", "Bearer " + workerToken1));
 
-        // Customer pays to finalize job completion
-        com.sih.cooperative.dto.CreatePaymentRequest payReq = new com.sih.cooperative.dto.CreatePaymentRequest();
-        payReq.setJobId(jobId);
-        payReq.setPaymentMethod(com.sih.cooperative.entity.PaymentMethod.UPI);
-        payReq.setUpiId("test-success@upi");
 
-        mockMvc.perform(post("/api/customer/payments/process")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payReq)))
-                .andExpect(status().isCreated());
 
         Job persisted = jobRepository.findById(jobId).orElseThrow();
         assertNotNull(persisted.getCreatedAt());
@@ -484,6 +456,6 @@ public class WorkerJobLifecycleIntegrationTest {
                 .andExpect(status().isConflict());
 
         Job finalJob = jobRepository.findById(jobId).orElseThrow();
-        assertEquals(JobStatus.PAYMENT_REQUIRED, finalJob.getStatus());
+        assertEquals(JobStatus.COMPLETED, finalJob.getStatus());
     }
 }

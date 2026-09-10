@@ -26,7 +26,7 @@ public class JobService {
     private final UserRepository userRepository;
     private final WorkerMatchingService workerMatchingService;
     private final NotificationService notificationService;
-    private final PaymentService paymentService;
+    private final EarningService earningService;
 
     public JobService(JobRepository jobRepository,
                       ServiceRequestRepository serviceRequestRepository,
@@ -34,14 +34,14 @@ public class JobService {
                       UserRepository userRepository,
                       WorkerMatchingService workerMatchingService,
                       NotificationService notificationService,
-                      PaymentService paymentService) {
+                      EarningService earningService) {
         this.jobRepository = jobRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.workerProfileRepository = workerProfileRepository;
         this.userRepository = userRepository;
         this.workerMatchingService = workerMatchingService;
         this.notificationService = notificationService;
-        this.paymentService = paymentService;
+        this.earningService = earningService;
     }
 
     private User getAuthenticatedWorker(String email) {
@@ -218,10 +218,16 @@ public class JobService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Only IN_PROGRESS jobs can request completion");
             }
 
-            job.setStatus(JobStatus.PAYMENT_REQUIRED);
+            job.setStatus(JobStatus.COMPLETED);
+            job.setCompletedAt(LocalDateTime.now());
 
             savedJob = jobRepository.save(job);
-            paymentService.ensurePendingPaymentForJob(savedJob);
+            
+            try {
+                earningService.generateEarningForCompletedJob(savedJob);
+            } catch (Exception ex) {
+                // Earning generation logging if needed
+            }
         } catch (ResponseStatusException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -238,18 +244,18 @@ public class JobService {
         try {
             notificationService.createNotification(
                     savedJob.getServiceRequest().getCustomer(),
-                    NotificationType.PAYMENT_REQUIRED,
-                    "Payment Required",
-                    "Your worker has completed the service for Job #" + savedJob.getId() + ". Please complete payment to finalize the job.",
+                    NotificationType.JOB_COMPLETED,
+                    "Job Completed",
+                    "Your worker has completed the service for Job #" + savedJob.getId() + ".",
                     "JOB",
                     savedJob.getId()
             );
 
             notificationService.createNotification(
                     savedJob.getWorker(),
-                    NotificationType.PAYMENT_REQUIRED,
-                    "Awaiting Payment",
-                    "Completion requested for Job #" + savedJob.getId() + ". Customer payment is required.",
+                    NotificationType.JOB_COMPLETED,
+                    "Job Completed",
+                    "You have successfully completed Job #" + savedJob.getId() + ".",
                     "JOB",
                     savedJob.getId()
             );

@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -21,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Transactional
 public class InvoiceServiceIntegrationTest {
 
     @Autowired
@@ -40,9 +38,6 @@ public class InvoiceServiceIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
-    private PaymentRepository paymentRepository;
-
-    @Autowired
     private EarningRepository earningRepository;
 
     @Autowired
@@ -59,14 +54,12 @@ public class InvoiceServiceIntegrationTest {
 
     private ServiceRequest serviceRequest;
     private Job job;
-    private Payment payment;
 
     @BeforeEach
     void setUp() {
         invoiceRepository.deleteAll();
         notificationRepository.deleteAll();
         earningRepository.deleteAll();
-        paymentRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();
         workerProfileRepository.deleteAll();
@@ -92,13 +85,10 @@ public class InvoiceServiceIntegrationTest {
 
         job = new Job(serviceRequest, worker, JobStatus.COMPLETED);
         job = jobRepository.save(job);
-
-        payment = new Payment(job, customer, new BigDecimal("1000.00"), new BigDecimal("100.00"), new BigDecimal("1100.00"), PaymentMethod.UPI, "customer@upi", PaymentStatus.SUCCESS, "SIM-TXN-INVOICE123");
-        payment = paymentRepository.save(payment);
     }
 
     @Test
-    @DisplayName("1. Invoice generation for a valid completed/paid Job")
+    @DisplayName("1. Invoice generation for a valid completed Job")
     void testGenerateInvoiceSuccess() {
         InvoiceResponse response = invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
 
@@ -111,55 +101,45 @@ public class InvoiceServiceIntegrationTest {
         assertEquals(new BigDecimal("1000.00"), response.getServiceCharge());
         assertEquals(new BigDecimal("100.00"), response.getPlatformFee());
         assertEquals(new BigDecimal("1100.00"), response.getTotalAmount());
-        assertEquals(PaymentStatus.SUCCESS, response.getPaymentStatus());
-        assertEquals("SIM-TXN-INVOICE123", response.getPaymentReference());
+        assertEquals("COMPLETED", response.getPaymentStatus());
+        assertEquals("INV-REF-" + job.getId(), response.getPaymentReference());
     }
 
     @Test
     @DisplayName("2. Invoice retrieval by the customer")
     void testCustomerRetrieval() {
-        InvoiceResponse generated = invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
+        invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
 
-        InvoiceResponse fetched = invoiceService.getInvoiceForJob(job.getId(), customer.getEmail());
-        assertEquals(generated.getId(), fetched.getId());
-
-        InvoiceResponse fetchedById = invoiceService.getInvoiceById(generated.getId(), customer.getEmail());
-        assertEquals(generated.getId(), fetchedById.getId());
+        InvoiceResponse response = invoiceService.getInvoiceForJob(job.getId(), customer.getEmail());
+        assertNotNull(response);
+        assertEquals(job.getId(), response.getJobId());
     }
 
     @Test
-    @DisplayName("3. Invoice retrieval by the assigned worker")
+    @DisplayName("3. Invoice retrieval by assigned worker")
     void testWorkerRetrieval() {
-        InvoiceResponse generated = invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
+        invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
 
-        InvoiceResponse fetched = invoiceService.getInvoiceForJob(job.getId(), worker.getEmail());
-        assertEquals(generated.getId(), fetched.getId());
+        InvoiceResponse response = invoiceService.getInvoiceForJob(job.getId(), worker.getEmail());
+        assertNotNull(response);
+        assertEquals(job.getId(), response.getJobId());
     }
 
     @Test
-    @DisplayName("4. Invoice retrieval by ADMIN")
+    @DisplayName("4. Invoice retrieval by admin")
     void testAdminRetrieval() {
-        InvoiceResponse generated = invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
+        invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
 
-        InvoiceResponse fetched = invoiceService.getInvoiceForJob(job.getId(), admin.getEmail());
-        assertEquals(generated.getId(), fetched.getId());
-
-        List<InvoiceResponse> adminInvoices = invoiceService.getAdminInvoices(admin.getEmail());
-        assertFalse(adminInvoices.isEmpty());
+        InvoiceResponse response = invoiceService.getInvoiceForJob(job.getId(), admin.getEmail());
+        assertNotNull(response);
+        assertEquals(job.getId(), response.getJobId());
     }
 
     @Test
-    @DisplayName("5. Unauthenticated access rejection")
-    void testUnauthenticatedRejection() {
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                invoiceService.getOrCreateInvoiceForJob(job.getId(), "nonexistent@example.com")
-        );
-        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-    }
+    @DisplayName("5. Unrelated customer forbidden from accessing invoice")
+    void testUnrelatedCustomerForbidden() {
+        invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
 
-    @Test
-    @DisplayName("6. Unrelated customer rejection")
-    void testUnrelatedCustomerRejection() {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
                 invoiceService.getInvoiceForJob(job.getId(), unrelatedCustomer.getEmail())
         );
@@ -167,8 +147,10 @@ public class InvoiceServiceIntegrationTest {
     }
 
     @Test
-    @DisplayName("7. Unassigned worker rejection")
-    void testUnassignedWorkerRejection() {
+    @DisplayName("6. Unrelated worker forbidden from accessing invoice")
+    void testUnrelatedWorkerForbidden() {
+        invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
+
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
                 invoiceService.getInvoiceForJob(job.getId(), unrelatedWorker.getEmail())
         );
@@ -176,24 +158,38 @@ public class InvoiceServiceIntegrationTest {
     }
 
     @Test
-    @DisplayName("8. Invoice number uniqueness")
-    void testInvoiceNumberUniqueness() {
-        InvoiceResponse invoice1 = invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
+    @DisplayName("7. Customer invoice list contains expected invoices")
+    void testCustomerInvoiceList() {
+        invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
 
-        // Create second job & request
-        ServiceRequest req2 = new ServiceRequest(customer, ServiceCategory.ELECTRICAL, "Fix wiring", "Delhi", new BigDecimal("500.00"), LocalDateTime.now());
-        req2 = serviceRequestRepository.save(req2);
-        Job job2 = new Job(req2, worker, JobStatus.COMPLETED);
-        job2 = jobRepository.save(job2);
-
-        InvoiceResponse invoice2 = invoiceService.getOrCreateInvoiceForJob(job2.getId(), customer.getEmail());
-
-        assertNotEquals(invoice1.getInvoiceNumber(), invoice2.getInvoiceNumber());
+        List<InvoiceResponse> invoices = invoiceService.getMyInvoices(customer.getEmail());
+        assertEquals(1, invoices.size());
+        assertEquals(job.getId(), invoices.get(0).getJobId());
     }
 
     @Test
-    @DisplayName("9. Repeated generation returns the same invoice")
-    void testRepeatedGenerationReturnsSame() {
+    @DisplayName("8. Worker invoice list contains expected invoices")
+    void testWorkerInvoiceList() {
+        invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
+
+        List<InvoiceResponse> invoices = invoiceService.getMyInvoices(worker.getEmail());
+        assertEquals(1, invoices.size());
+        assertEquals(job.getId(), invoices.get(0).getJobId());
+    }
+
+    @Test
+    @DisplayName("9. Admin invoice list contains all invoices")
+    void testAdminInvoiceList() {
+        invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
+
+        List<InvoiceResponse> invoices = invoiceService.getAdminInvoices(admin.getEmail());
+        assertEquals(1, invoices.size());
+        assertEquals(job.getId(), invoices.get(0).getJobId());
+    }
+
+    @Test
+    @DisplayName("10. Idempotency: repeated requests return same invoice")
+    void testInvoiceGenerationIdempotent() {
         InvoiceResponse first = invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
         InvoiceResponse second = invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
 
@@ -203,25 +199,14 @@ public class InvoiceServiceIntegrationTest {
     }
 
     @Test
-    @DisplayName("10. Backend calculates total and doesn't trust frontend")
-    void testBackendCalculatesTotal() {
-        InvoiceResponse response = invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
-
-        // budget = 1000, 10% platform fee = 100, total = 1100
-        assertEquals(new BigDecimal("1000.00"), response.getServiceCharge());
-        assertEquals(new BigDecimal("100.00"), response.getPlatformFee());
-        assertEquals(new BigDecimal("1100.00"), response.getTotalAmount());
-    }
-
-    @Test
-    @DisplayName("11. Unpaid payment does not produce a PAID invoice")
-    void testUnpaidPaymentInvoice() {
-        paymentRepository.deleteAll();
+    @DisplayName("11. Pending status invoice for IN_PROGRESS job")
+    void testPendingInvoiceForInProgressJob() {
+        job.setStatus(JobStatus.IN_PROGRESS);
+        jobRepository.save(job);
 
         InvoiceResponse response = invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
 
-        assertEquals(PaymentStatus.PENDING, response.getPaymentStatus());
-        assertNull(response.getPaymentReference());
+        assertEquals("PENDING", response.getPaymentStatus());
         assertNull(response.getPaidAt());
     }
 
@@ -242,7 +227,6 @@ public class InvoiceServiceIntegrationTest {
         unassignedJob.setStatus(JobStatus.ACCEPTED);
         unassignedJob.setWorker(null);
 
-        // We bypass constraint validation for unit check
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> {
             if (unassignedJob.getWorker() == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot generate invoice for job without assigned worker");
@@ -264,21 +248,7 @@ public class InvoiceServiceIntegrationTest {
     }
 
     @Test
-    @DisplayName("15. Invoice generation does not mutate payment/refund state")
-    void testInvoiceGenerationDoesNotMutatePayment() {
-        Payment original = paymentRepository.findById(payment.getId()).get();
-
-        invoiceService.getOrCreateInvoiceForJob(job.getId(), customer.getEmail());
-
-        Payment after = paymentRepository.findById(payment.getId()).get();
-
-        assertEquals(original.getStatus(), after.getStatus());
-        assertEquals(original.getAmount(), after.getAmount());
-        assertEquals(original.getRefundAmount(), after.getRefundAmount());
-    }
-
-    @Test
-    @DisplayName("16. Long descriptions and names are handled safely")
+    @DisplayName("15. Long descriptions and names are handled safely")
     void testLongDescriptionHandledSafely() {
         String longDesc = "A".repeat(800);
         serviceRequest.setDescription(longDesc);

@@ -54,6 +54,9 @@ public class WorkerVerificationSecurityTest {
     private AdminActivityRepository adminActivityRepository;
 
     @Autowired
+    private com.sih.cooperative.repository.InvoiceRepository invoiceRepository;
+
+    @Autowired
     private com.sih.cooperative.repository.NotificationRepository notificationRepository;
 
     @Autowired
@@ -72,6 +75,7 @@ public class WorkerVerificationSecurityTest {
     @BeforeEach
     void setUp() throws Exception {
         notificationRepository.deleteAll();
+        invoiceRepository.deleteAll();
         adminActivityRepository.deleteAll();
         verificationDocumentRepository.deleteAll();
         workerVerificationRepository.deleteAll();

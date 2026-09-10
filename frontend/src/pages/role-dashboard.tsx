@@ -94,12 +94,8 @@ import {
   markWorkerNotificationReadApi,
   markAdminNotificationReadApi,
   markAllAdminNotificationsReadApi,
-  getAdminPaymentsApi,
-  getAdminPaymentSummaryApi,
   getServiceDemandApi,
   getOperationalAlertsApi,
-  getCustomerPaymentsApi,
-  refundPaymentApi,
 } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { PlatformShell } from '@/components/platform-shell';
@@ -110,8 +106,6 @@ import { CreateRequestModal } from '@/components/create-request-modal';
 import { RequestDetailModal } from '@/components/request-detail-modal';
 import { WorkerProfileModal } from '@/components/worker-profile-modal';
 import { RatingModal } from '@/components/rating-modal';
-import { PaymentModal } from '@/components/payment-modal';
-import { CustomerPaymentHistoryModal } from '@/components/customer-payment-history-modal';
 import { WorkerVerificationSection } from '@/components/worker-verification-section';
 import { AdminVerificationSection } from '@/components/admin-verification-section';
 import { VerifiedWorkerBadge } from '@/components/verified-worker-badge';
@@ -129,7 +123,6 @@ import type { WorkerProfile } from '@/types/worker-profile';
 import type { JobResponse } from '@/types/worker-job';
 import type { Rating, WorkerRatingSummary } from '@/types/rating';
 import type { Earning, PlatformRevenueSummary, WorkerEarningsSummary } from '@/types/earning';
-import type { PaymentResponse, AdminPaymentSummary } from '@/types/payment';
 import type {
   AdminActivity,
   AdminFinancialSummary,
@@ -145,7 +138,6 @@ import type {
   ServiceDemandResponse,
 } from '@/types/admin';
 import { AdminUserDetailModal } from '@/components/admin-user-detail-modal';
-import { AdminFinancialDetailModal } from '@/components/admin-financial-detail-modal';
 import {
   getFinancialSummaryApi,
   getFinancialTransactionsApi,
@@ -260,15 +252,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [ratingWorkerName, setRatingWorkerName] = useState<string | null>(null);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
 
-  // Customer Payment Simulation State
-  const [paymentJobId, setPaymentJobId] = useState<number | null>(null);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false);
-  const [customerPayments, setCustomerPayments] = useState<PaymentResponse[]>([]);
-  const [isLoadingCustomerPayments, setIsLoadingCustomerPayments] = useState(false);
-  const [customerPaymentsError, setCustomerPaymentsError] = useState<string | null>(null);
-  const [refundingPaymentId, setRefundingPaymentId] = useState<number | null>(null);
-
   // Worker State
   const [workerProfile, setWorkerProfile] = useState<WorkerProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(role === 'worker');
@@ -323,8 +306,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [adminJobs, setAdminJobs] = useState<AdminJob[]>([]);
   const [adminRatings, setAdminRatings] = useState<AdminRating[]>([]);
   const [adminActivity, setAdminActivity] = useState<AdminActivity[]>([]);
-  const [adminPayments, setAdminPayments] = useState<PaymentResponse[]>([]);
-  const [adminPaymentSummary, setAdminPaymentSummary] = useState<AdminPaymentSummary | null>(null);
   const [serviceDemand, setServiceDemand] = useState<ServiceDemandResponse[]>([]);
   const [operationalAlerts, setOperationalAlerts] = useState<OperationalAlertResponse[]>([]);
   const [adminJobStatusFilter, setAdminJobStatusFilter] = useState<string>('ALL');
@@ -382,39 +363,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     }
   };
 
-  const fetchCustomerPayments = async () => {
-    if (role !== 'customer') return;
-    setIsLoadingCustomerPayments(true);
-    setCustomerPaymentsError(null);
-    try {
-      const data = await getCustomerPaymentsApi();
-      setCustomerPayments(data);
-    } catch (err: any) {
-      setCustomerPaymentsError(err?.response?.data?.message || 'Failed to load payment history.');
-    } finally {
-      setIsLoadingCustomerPayments(false);
-    }
-  };
 
-  const handleCustomerRefund = async (paymentId: number) => {
-    setRefundingPaymentId(paymentId);
-    try {
-      const updated = await refundPaymentApi(paymentId);
-      toast({
-        title: 'Simulated Refund Processed',
-        description: `Simulated refund of ₹${updated.refundAmount} initiated.`,
-      });
-      fetchCustomerPayments();
-    } catch (err: any) {
-      toast({
-        title: 'Refund Failed',
-        description: err?.response?.data?.message || 'Failed to process refund.',
-        variant: 'destructive',
-      });
-    } finally {
-      setRefundingPaymentId(null);
-    }
-  };
 
   const fetchWorkerProfile = async () => {
     if (role !== 'worker') return;
@@ -587,7 +536,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
     if (role !== 'admin') return;
     setIsLoadingAdminData(true);
     try {
-      const [overview, userRes, workers, reqs, jobs, ratings, activityRes, revenueSummary, revenueLedger, payments, paymentSummary, demand, alerts] = await Promise.all([
+      const [overview, userRes, workers, reqs, jobs, ratings, activityRes, revenueSummary, revenueLedger, demand, alerts] = await Promise.all([
         getAdminOverviewApi(),
         getAdminUsersApi({
           role: adminUserFilter === 'ALL' ? undefined : adminUserFilter,
@@ -603,9 +552,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         getAdminActivityApi({ page: 0, size: 15 }),
         getAdminRevenueSummaryApi(),
         getAdminEarningsApi(),
-        getAdminPaymentsApi(),
-
-        getAdminPaymentSummaryApi(),
         getServiceDemandApi(),
         getOperationalAlertsApi(),
       ]);
@@ -624,8 +570,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       setActivityTotalElements(activityRes.totalElements);
       setAdminRevenueSummary(revenueSummary);
       setAdminEarningsLedger(revenueLedger);
-      setAdminPayments(payments);
-      setAdminPaymentSummary(paymentSummary);
       setServiceDemand(demand);
       setOperationalAlerts(alerts);
 
@@ -645,7 +589,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   useEffect(() => {
     if (role === 'customer') {
       fetchCustomerRequests();
-      fetchCustomerPayments();
     } else if (role === 'worker') {
       fetchWorkerProfile();
       fetchWorkerJobs();
@@ -661,15 +604,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       fetchNotificationsPage();
     } else if (activeTab === 'earnings' && role === 'worker') {
       fetchWorkerEarnings();
-    } else if (activeTab === 'payments' && role === 'customer') {
-      fetchCustomerPayments();
     }
 
     const handleSync = () => {
       fetchNotificationsPage();
       if (role === 'customer') {
         fetchCustomerRequests();
-        fetchCustomerPayments();
       }
       if (role === 'worker') {
         fetchWorkerJobs();
@@ -1519,13 +1459,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         <RefreshCw className={`h-4 w-4 ${isLoadingRequests ? 'animate-spin text-emerald-400' : ''}`} />
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setIsPaymentHistoryModalOpen(true)}
-                        className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2.5 text-xs font-extrabold text-white shadow-2xs hover:bg-slate-800 transition-colors cursor-pointer"
-                      >
-                        <Receipt className="h-4 w-4 text-emerald-400" /> Payment History
-                      </button>
+
 
                       <button
                         type="button"
@@ -1702,29 +1636,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
                                   </button>
 
-                                  {req.jobId && statusStr === 'PAYMENT_REQUIRED' ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setPaymentJobId(req.jobId!);
-                                        setIsPaymentModalOpen(true);
-                                      }}
-                                      className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-black shadow-md transition-all inline-flex items-center gap-1.5 animate-pulse"
-                                    >
-                                      <IndianRupee className="h-4 w-4 text-emerald-200" /> Pay Now (₹{req.budget.toLocaleString()})
-                                    </button>
-                                  ) : req.jobId && statusStr === 'COMPLETED' ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setPaymentJobId(req.jobId!);
-                                        setIsPaymentModalOpen(true);
-                                      }}
-                                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
-                                    >
-                                      <Receipt className="h-3.5 w-3.5 text-emerald-600" /> View Receipt
-                                    </button>
-                                  ) : null}
+
                                 </div>
                                 {statusStr === 'COMPLETED' && (
                                   req.isRated ? (
@@ -1760,132 +1672,24 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             {activeTab === 'payments' && (
               <div className="space-y-6">
                 <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 p-6 md:p-8 shadow-md text-white">
-                  <div className="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
-                  <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0 shadow-inner">
-                        <Receipt className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-                          FINANCIAL RECORDS
-                        </span>
-                        <h2 className="text-2xl sm:text-3xl font-black text-white mt-0.5">Payment Receipts & History</h2>
-                        <p className="text-xs sm:text-sm text-slate-300 mt-1">Track simulated payments and cooperative service invoices.</p>
-                      </div>
+                  <div className="relative z-10 flex items-center justify-between gap-6">
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+                        PAYMENT SYSTEM
+                      </span>
+                      <h2 className="text-2xl sm:text-3xl font-black text-white mt-0.5">Payments & Receipts</h2>
+                      <p className="text-xs sm:text-sm text-slate-300 mt-1">Payment functionality update in progress.</p>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsPaymentHistoryModalOpen(true)}
-                      className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2.5 text-xs font-black shadow-md transition-all inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Receipt className="h-4 w-4" /> Open Receipts Manager
-                    </button>
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-4">
-
-                  {isLoadingCustomerPayments ? (
-                    <div className="py-12 text-center space-y-3">
-                      <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mx-auto" />
-                      <p className="text-xs font-bold text-slate-500">Loading your transactions...</p>
-                    </div>
-                  ) : customerPaymentsError ? (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs text-red-800">
-                      {customerPaymentsError}
-                    </div>
-                  ) : customerPayments.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center space-y-3">
-                      <Receipt className="mx-auto h-8 w-8 text-slate-400" />
-                      <p className="text-sm font-bold text-slate-800">No payment records found</p>
-                      <p className="text-xs text-slate-500 max-w-md mx-auto">
-                        Payments made for completed or assigned service jobs will appear here with transparent transaction receipts.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {customerPayments.map((p) => {
-                        const categoryLabel = p.serviceCategory ? (CATEGORY_LABELS as any)[p.serviceCategory]?.label : 'Service';
-                        return (
-                          <div
-                            key={p.id}
-                            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-slate-300 transition-all space-y-3"
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-display text-sm font-black text-slate-900">
-                                    {categoryLabel}
-                                  </span>
-                                  <span className="font-mono text-[11px] font-bold text-slate-400">
-                                    • Job #{p.jobId}
-                                  </span>
-                                </div>
-                                <p className="font-mono text-xs text-slate-500 mt-0.5 font-semibold">
-                                  Txn: {p.transactionReference}
-                                </p>
-                              </div>
-
-                              <div className="text-right">
-                                <span className="font-display text-base font-black text-slate-900">
-                                  ₹{p.amount.toFixed(2)}
-                                </span>
-                                <div>
-                                  {p.status === 'SUCCESS' ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-200">
-                                      <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                                      Paid
-                                    </span>
-                                  ) : p.status === 'REFUNDED' ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-extrabold text-purple-700 border border-purple-200">
-                                      <RotateCcw className="h-3 w-3 text-purple-600" />
-                                      Refunded
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-extrabold text-red-700 border border-red-200">
-                                      <XCircle className="h-3 w-3 text-red-600" />
-                                      {p.status}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs text-slate-500 font-medium">
-                              <div className="flex items-center gap-2">
-                                {p.paymentMethod === 'UPI' ? (
-                                  <QrCode className="h-3.5 w-3.5 text-emerald-600" />
-                                ) : p.paymentMethod === 'CARD' ? (
-                                  <CreditCard className="h-3.5 w-3.5 text-emerald-600" />
-                                ) : (
-                                  <Banknote className="h-3.5 w-3.5 text-emerald-600" />
-                                )}
-                                <span>{p.paymentMethodDetails || p.paymentMethod}</span>
-                              </div>
-
-                              {p.status === 'SUCCESS' && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleCustomerRefund(p.id)}
-                                  disabled={refundingPaymentId === p.id}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-red-50 hover:text-red-700 transition-colors"
-                                >
-                                  {refundingPaymentId === p.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <RotateCcw className="h-3 w-3" />
-                                  )}
-                                  Simulate Refund
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                <div className="rounded-3xl border border-slate-200/90 bg-white p-8 text-center space-y-3 shadow-xs">
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center space-y-3">
+                    <p className="text-base font-extrabold text-slate-800">Payment will be available soon.</p>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">
+                      Our new payment integration is currently being configured. In-progress jobs move directly to completed upon worker confirmation.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -4059,99 +3863,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
               )}
 
-              {/* PAYMENTS & TRANSACTIONS DIRECTORY */}
-              {(activeTab === 'payments' || activeTab === 'overview') && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-5">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-bold text-slate-900">Payments & Transactions Ledger</h3>
-                        <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-700 border border-emerald-200">
-                          Simulated
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500">Live platform payment simulation transactions and cooperative platform fee ledger</p>
-                    </div>
-                    {activeTab === 'overview' && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchParams({ tab: 'payments' })}
-                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
-                      >
-                        View All Payments →
-                      </button>
-                    )}
-                  </div>
 
-                  {/* Summary Metrics */}
-                  {adminPaymentSummary && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5 space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Volume</span>
-                        <p className="font-mono text-base font-black text-slate-900">₹{adminPaymentSummary.totalSimulatedVolume?.toFixed(2) || '0.00'}</p>
-                      </div>
-                      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-3.5 space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block">Platform Fees</span>
-                        <p className="font-mono text-base font-black text-emerald-800">₹{adminPaymentSummary.totalSimulatedPlatformFees?.toFixed(2) || '0.00'}</p>
-                      </div>
-                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5 space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Successful</span>
-                        <p className="font-mono text-base font-black text-emerald-700">{adminPaymentSummary.successfulTransactions}</p>
-                      </div>
-                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5 space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Refunded / Failed</span>
-                        <p className="font-mono text-base font-black text-slate-700">
-                          {adminPaymentSummary.refundedTransactions} / {adminPaymentSummary.failedTransactions}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="divide-y divide-slate-100 overflow-x-auto">
-                    {adminPayments.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-6 text-center">No payment transactions recorded yet.</p>
-                    ) : (
-                      (activeTab === 'overview' ? adminPayments.slice(0, 5) : adminPayments).map((p) => (
-                        <div key={p.id} className="py-3 px-2 flex flex-wrap items-center justify-between text-xs gap-4 min-w-[650px] hover:bg-slate-50/60 rounded-2xl transition-all">
-                          <div className="flex items-center gap-3 flex-1 min-w-[180px]">
-                            <div className="h-9 w-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 text-emerald-600">
-                              <Receipt className="h-4.5 w-4.5" />
-                            </div>
-                            <div>
-                              <strong className="text-slate-800 font-extrabold text-xs block">{p.serviceCategory}</strong>
-                              <span className="font-mono text-[11px] text-slate-400 font-semibold">{p.transactionReference}</span>
-                            </div>
-                          </div>
-                          <div className="w-[120px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Amount & Fee</span>
-                            <div className="mt-0.5">
-                              <strong className="text-slate-900 font-extrabold font-mono">₹{p.amount.toFixed(2)}</strong>
-                              <span className="text-[10px] text-slate-400 block font-mono font-medium">(Fee: ₹{p.platformFee.toFixed(2)})</span>
-                            </div>
-                          </div>
-                          <div className="w-[130px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer</span>
-                            <span className="font-bold text-slate-700 block mt-0.5 truncate">{p.customerName}</span>
-                          </div>
-                          <div className="w-[110px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Method</span>
-                            <span className="font-bold text-slate-600 block mt-0.5">{p.paymentMethod}</span>
-                          </div>
-                          <div className="w-[90px] shrink-0 flex justify-end">
-                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase border ${
-                              p.status === 'SUCCESS' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                              p.status === 'REFUNDED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                              'bg-red-50 text-red-700 border-red-200'
-                            }`}>
-                              {p.status === 'SUCCESS' ? 'Paid' : p.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* RATINGS & REVIEWS DIRECTORY */}
               {(activeTab === 'ratings' || activeTab === 'overview') && (
@@ -4414,23 +4126,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             workerName={ratingWorkerName}
             onSuccess={fetchCustomerRequests}
           />
-          <PaymentModal
-            isOpen={isPaymentModalOpen}
-            jobId={paymentJobId || 0}
-            onClose={() => {
-              setIsPaymentModalOpen(false);
-              setPaymentJobId(null);
-            }}
-            onPaymentSuccess={() => {
-              fetchCustomerRequests();
-              fetchWorkerJobs();
-              window.dispatchEvent(new CustomEvent('gigcircle-notifications-updated'));
-            }}
-          />
-          <CustomerPaymentHistoryModal
-            isOpen={isPaymentHistoryModalOpen}
-            onClose={() => setIsPaymentHistoryModalOpen(false)}
-          />
         </>
       )}
 
@@ -4468,10 +4163,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             onClose={() => setSelectedDetailUserId(null)}
           />
 
-          <AdminFinancialDetailModal
-            transactionId={selectedFinancialTxnId}
-            onClose={() => setSelectedFinancialTxnId(null)}
-          />
 
           {/* Status Action Confirmation Modal */}
           {statusModalUser && statusModalAction && (

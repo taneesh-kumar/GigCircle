@@ -53,11 +53,12 @@ public class ServiceRequestIntegrationTest {
 
     @Autowired
     private EarningRepository earningRepository;
-    @Autowired
-    private PaymentRepository paymentRepository;
 
     @Autowired
     private NotificationRepository notificationRepository;
+
+    @Autowired
+    private InvoiceRepository invoiceRepository;
 
     private String customerAToken;
     private String customerBToken;
@@ -66,9 +67,8 @@ public class ServiceRequestIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         notificationRepository.deleteAll();
-        paymentRepository.deleteAll();
+        invoiceRepository.deleteAll();
         ratingRepository.deleteAll();
-        paymentRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();

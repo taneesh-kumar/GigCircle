@@ -52,11 +52,13 @@ public class EarningIntegrationTest {
 
     @Autowired
     private EarningRepository earningRepository;
-    @Autowired
-    private PaymentRepository paymentRepository;
+
 
     @Autowired
     private NotificationRepository notificationRepository;
+
+    @Autowired
+    private InvoiceRepository invoiceRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -70,9 +72,8 @@ public class EarningIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         notificationRepository.deleteAll();
-        paymentRepository.deleteAll();
+        invoiceRepository.deleteAll();
         ratingRepository.deleteAll();
-        paymentRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();
@@ -129,20 +130,6 @@ public class EarningIntegrationTest {
     private Long completeJob(Long jobId, String workerToken, String customerToken) throws Exception {
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/start").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
         mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
-
-        // Perform customer simulated payment to complete job
-        com.sih.cooperative.dto.CreatePaymentRequest payReq = new com.sih.cooperative.dto.CreatePaymentRequest();
-        payReq.setJobId(jobId);
-        payReq.setPaymentMethod(com.sih.cooperative.entity.PaymentMethod.UPI);
-        payReq.setUpiId("test-success@upi");
-
-        mockMvc.perform(post("/api/customer/payments/process")
-                        .header("Authorization", "Bearer " + customerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payReq)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("SUCCESS"));
-
         return jobId;
     }
 
