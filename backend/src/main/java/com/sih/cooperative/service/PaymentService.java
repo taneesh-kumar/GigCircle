@@ -370,6 +370,6 @@ public class PaymentService {
         BigDecimal workerEarning = grossAmount.subtract(platformFee).setScale(2, java.math.RoundingMode.HALF_UP);
         Earning earning = new Earning(job, worker, customer, grossAmount, platformFee, workerEarning,
                 new BigDecimal("10.00"), EarningStatus.AVAILABLE);
-        return earningRepository.save(earning);
+        return earningRepository.saveAndFlush(earning);
     }
 }
