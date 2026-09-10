@@ -1,64 +1,31 @@
-import { ServiceCategory } from './service-request';
-import type { JobStatus } from './worker-job';
+export type PaymentMethod = 'PHONEPE';
 
-export type PaymentMethod = 'UPI' | 'CARD' | 'CASH';
+export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'INITIATED' | 'CANCELLED' | 'PAID';
 
-export type PaymentStatus = 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'REFUNDED';
-
-export interface PaymentSummary {
-  jobId: number;
-  jobStatus: JobStatus;
-  serviceCategory: ServiceCategory;
-  serviceDescription: string;
-  workerName?: string;
-  serviceAmount: number;
-  platformFee: number;
-  feePercentage: number;
-  totalAmount: number;
-  currency: string;
-  alreadyPaid: boolean;
-  existingPaymentStatus?: PaymentStatus;
-  existingTransactionReference?: string;
-}
-
-export interface CreatePaymentRequest {
-  jobId: number;
-  paymentMethod: PaymentMethod;
-  upiId?: string;
-  cardNumber?: string;
-  cardExpiry?: string;
-  cardCvv?: string;
-}
-
-export interface PaymentResponse {
+export interface Payment {
   id: number;
   jobId: number;
-  serviceCategory: ServiceCategory;
-  serviceDescription: string;
+  serviceRequestId: number;
   customerId: number;
   customerName: string;
-  workerId?: number;
-  workerName?: string;
-  serviceAmount: number;
-  platformFee: number;
+  workerId: number;
+  workerName: string;
+  earningId: number;
   amount: number;
-  currency: string;
+  platformFee: number;
+  workerEarning: number;
   paymentMethod: PaymentMethod;
-  paymentMethodDetails?: string;
-  status: PaymentStatus;
-  transactionReference: string;
-  paidAt?: string;
-  failureReason?: string;
-  refundAmount?: number;
-  refundedAt?: string;
+  paymentStatus: PaymentStatus;
+  transactionId: string;
+  merchantOrderId?: string;
+  phonepeTransactionId?: string;
+  paymentInstrument?: string;
+  redirectUrl?: string;
   createdAt: string;
+  paidAt?: string;
 }
 
-export interface AdminPaymentSummary {
-  totalTransactions: number;
-  successfulTransactions: number;
-  failedTransactions: number;
-  refundedTransactions: number;
-  totalSimulatedVolume: number;
-  totalSimulatedPlatformFees: number;
+export interface PaymentRequest {
+  jobId: number;
 }
+

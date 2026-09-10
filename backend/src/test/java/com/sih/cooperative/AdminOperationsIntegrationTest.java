@@ -53,6 +53,8 @@ public class AdminOperationsIntegrationTest {
 
     @Autowired
     private EarningRepository earningRepository;
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Autowired
     private NotificationRepository notificationRepository;
@@ -88,6 +90,7 @@ public class AdminOperationsIntegrationTest {
         disputeRepository.deleteAll();
         paymentRepository.deleteAll();
         ratingRepository.deleteAll();
+        paymentRepository.deleteAll();
         earningRepository.deleteAll();
         jobRepository.deleteAll();
         serviceRequestRepository.deleteAll();

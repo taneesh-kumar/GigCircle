@@ -40,6 +40,10 @@ public class Job {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status")
+    private PaymentStatus paymentStatus;
+
     public Job() {
     }
 
@@ -59,9 +63,6 @@ public class Job {
         this.updatedAt = now;
         if (this.status == null) {
             this.status = JobStatus.ACCEPTED;
-        }
-        if (this.status == JobStatus.ACCEPTED && this.acceptedAt == null) {
-            this.acceptedAt = now;
         }
     }
 
@@ -140,5 +141,13 @@ public class Job {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public PaymentStatus getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(PaymentStatus paymentStatus) {
+        this.paymentStatus = paymentStatus;
     }
 }

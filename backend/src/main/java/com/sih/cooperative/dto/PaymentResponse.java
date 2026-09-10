@@ -1,9 +1,8 @@
 package com.sih.cooperative.dto;
 
+import com.sih.cooperative.entity.Job;
 import com.sih.cooperative.entity.Payment;
-import com.sih.cooperative.entity.PaymentMethod;
 import com.sih.cooperative.entity.PaymentStatus;
-import com.sih.cooperative.entity.ServiceCategory;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,224 +11,137 @@ public class PaymentResponse {
 
     private Long id;
     private Long jobId;
-    private ServiceCategory serviceCategory;
-    private String serviceDescription;
+    private Long serviceRequestId;
     private Long customerId;
     private String customerName;
     private Long workerId;
     private String workerName;
-    private BigDecimal serviceAmount;
-    private BigDecimal platformFee;
+    private Long earningId;
     private BigDecimal amount;
-    private String currency;
-    private PaymentMethod paymentMethod;
-    private String paymentMethodDetails;
-    private PaymentStatus status;
-    private String transactionReference;
-    private LocalDateTime paidAt;
-    private String failureReason;
-    private BigDecimal refundAmount;
-    private LocalDateTime refundedAt;
+    private BigDecimal platformFee;
+    private BigDecimal totalAmount;
+    private BigDecimal workerEarning;
+    private String paymentMethod;
+    private PaymentStatus paymentStatus;
+    private String transactionId;
+    private String merchantOrderId;
+    private String phonepeTransactionId;
+    private String paymentInstrument;
+    private String redirectUrl;
     private LocalDateTime createdAt;
+    private LocalDateTime paidAt;
 
     public PaymentResponse() {
     }
 
-    public static PaymentResponse fromEntity(Payment payment) {
-        PaymentResponse res = new PaymentResponse();
-        res.setId(payment.getId());
-        res.setJobId(payment.getJob().getId());
-        if (payment.getJob().getServiceRequest() != null) {
-            res.setServiceCategory(payment.getJob().getServiceRequest().getCategory());
-            res.setServiceDescription(payment.getJob().getServiceRequest().getDescription());
-        }
-        res.setCustomerId(payment.getCustomer().getId());
-        res.setCustomerName(payment.getCustomer().getName());
-        if (payment.getJob().getWorker() != null) {
-            res.setWorkerId(payment.getJob().getWorker().getId());
-            res.setWorkerName(payment.getJob().getWorker().getName());
-        }
-        res.setServiceAmount(payment.getServiceAmount());
-        res.setPlatformFee(payment.getPlatformFee());
-        res.setAmount(payment.getAmount());
-        res.setCurrency(payment.getCurrency());
-        res.setPaymentMethod(payment.getPaymentMethod());
-        res.setPaymentMethodDetails(payment.getPaymentMethodDetails());
-        res.setStatus(payment.getStatus());
-        res.setTransactionReference(payment.getTransactionReference());
-        res.setPaidAt(payment.getPaidAt());
-        res.setFailureReason(payment.getFailureReason());
-        res.setRefundAmount(payment.getRefundAmount());
-        res.setRefundedAt(payment.getRefundedAt());
-        res.setCreatedAt(payment.getCreatedAt());
-        return res;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
+    public PaymentResponse(Long id, Long jobId, Long serviceRequestId, Long customerId, String customerName,
+                           Long workerId, String workerName, Long earningId, BigDecimal amount,
+                           BigDecimal platformFee, BigDecimal totalAmount, BigDecimal workerEarning, String paymentMethod,
+                           PaymentStatus paymentStatus, String transactionId, String merchantOrderId,
+                           String phonepeTransactionId, String paymentInstrument, String redirectUrl,
+                           LocalDateTime createdAt, LocalDateTime paidAt) {
         this.id = id;
-    }
-
-    public Long getJobId() {
-        return jobId;
-    }
-
-    public void setJobId(Long jobId) {
         this.jobId = jobId;
-    }
-
-    public ServiceCategory getServiceCategory() {
-        return serviceCategory;
-    }
-
-    public void setServiceCategory(ServiceCategory serviceCategory) {
-        this.serviceCategory = serviceCategory;
-    }
-
-    public String getServiceDescription() {
-        return serviceDescription;
-    }
-
-    public void setServiceDescription(String serviceDescription) {
-        this.serviceDescription = serviceDescription;
-    }
-
-    public Long getCustomerId() {
-        return customerId;
-    }
-
-    public void setCustomerId(Long customerId) {
+        this.serviceRequestId = serviceRequestId;
         this.customerId = customerId;
-    }
-
-    public String getCustomerName() {
-        return customerName;
-    }
-
-    public void setCustomerName(String customerName) {
         this.customerName = customerName;
-    }
-
-    public Long getWorkerId() {
-        return workerId;
-    }
-
-    public void setWorkerId(Long workerId) {
         this.workerId = workerId;
-    }
-
-    public String getWorkerName() {
-        return workerName;
-    }
-
-    public void setWorkerName(String workerName) {
         this.workerName = workerName;
-    }
-
-    public BigDecimal getServiceAmount() {
-        return serviceAmount;
-    }
-
-    public void setServiceAmount(BigDecimal serviceAmount) {
-        this.serviceAmount = serviceAmount;
-    }
-
-    public BigDecimal getPlatformFee() {
-        return platformFee;
-    }
-
-    public void setPlatformFee(BigDecimal platformFee) {
-        this.platformFee = platformFee;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
+        this.earningId = earningId;
         this.amount = amount;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
-
-    public PaymentMethod getPaymentMethod() {
-        return paymentMethod;
-    }
-
-    public void setPaymentMethod(PaymentMethod paymentMethod) {
+        this.platformFee = platformFee;
+        this.totalAmount = totalAmount;
+        this.workerEarning = workerEarning;
         this.paymentMethod = paymentMethod;
-    }
-
-    public String getPaymentMethodDetails() {
-        return paymentMethodDetails;
-    }
-
-    public void setPaymentMethodDetails(String paymentMethodDetails) {
-        this.paymentMethodDetails = paymentMethodDetails;
-    }
-
-    public PaymentStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(PaymentStatus status) {
-        this.status = status;
-    }
-
-    public String getTransactionReference() {
-        return transactionReference;
-    }
-
-    public void setTransactionReference(String transactionReference) {
-        this.transactionReference = transactionReference;
-    }
-
-    public LocalDateTime getPaidAt() {
-        return paidAt;
-    }
-
-    public void setPaidAt(LocalDateTime paidAt) {
+        this.paymentStatus = paymentStatus;
+        this.transactionId = transactionId;
+        this.merchantOrderId = merchantOrderId;
+        this.phonepeTransactionId = phonepeTransactionId;
+        this.paymentInstrument = paymentInstrument;
+        this.redirectUrl = redirectUrl;
+        this.createdAt = createdAt;
         this.paidAt = paidAt;
     }
 
-    public String getFailureReason() {
-        return failureReason;
+    public static PaymentResponse fromEntity(Payment payment) {
+        if (payment == null) return null;
+
+        Job job = payment.getJob();
+        Long serviceRequestId = (job != null && job.getServiceRequest() != null) ? job.getServiceRequest().getId() : null;
+        Long workerId = (job != null && job.getWorker() != null) ? job.getWorker().getId() : null;
+        String workerName = (job != null && job.getWorker() != null) ? job.getWorker().getName() : null;
+        Long earningId = (payment.getEarning() != null) ? payment.getEarning().getId() : null;
+
+        BigDecimal totalAmount = (payment.getAmount() != null && payment.getPlatformFee() != null)
+                ? payment.getAmount().add(payment.getPlatformFee())
+                : null;
+
+        return new PaymentResponse(
+                payment.getId(),
+                job != null ? job.getId() : null,
+                serviceRequestId,
+                payment.getCustomer() != null ? payment.getCustomer().getId() : null,
+                payment.getCustomer() != null ? payment.getCustomer().getName() : null,
+                workerId,
+                workerName,
+                earningId,
+                payment.getAmount(),
+                payment.getPlatformFee(),
+                totalAmount,
+                payment.getWorkerEarning(),
+                payment.getPaymentMethod(),
+                payment.getPaymentStatus(),
+                payment.getTransactionId(),
+                payment.getMerchantOrderId(),
+                payment.getPhonepeTransactionId(),
+                payment.getPaymentInstrument(),
+                payment.getRedirectUrl(),
+                payment.getCreatedAt(),
+                payment.getPaidAt()
+        );
     }
 
-    public void setFailureReason(String failureReason) {
-        this.failureReason = failureReason;
-    }
+    public Long getId() { return id; }
+    public Long getJobId() { return jobId; }
+    public Long getServiceRequestId() { return serviceRequestId; }
+    public Long getCustomerId() { return customerId; }
+    public String getCustomerName() { return customerName; }
+    public Long getWorkerId() { return workerId; }
+    public String getWorkerName() { return workerName; }
+    public Long getEarningId() { return earningId; }
+    public BigDecimal getAmount() { return amount; }
+    public BigDecimal getPlatformFee() { return platformFee; }
+    public BigDecimal getTotalAmount() { return totalAmount; }
+    public BigDecimal getWorkerEarning() { return workerEarning; }
+    public String getPaymentMethod() { return paymentMethod; }
+    public PaymentStatus getPaymentStatus() { return paymentStatus; }
+    public String getTransactionId() { return transactionId; }
+    public String getMerchantOrderId() { return merchantOrderId; }
+    public String getPhonepeTransactionId() { return phonepeTransactionId; }
+    public String getPaymentInstrument() { return paymentInstrument; }
+    public String getRedirectUrl() { return redirectUrl; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getPaidAt() { return paidAt; }
 
-    public BigDecimal getRefundAmount() {
-        return refundAmount;
-    }
-
-    public void setRefundAmount(BigDecimal refundAmount) {
-        this.refundAmount = refundAmount;
-    }
-
-    public LocalDateTime getRefundedAt() {
-        return refundedAt;
-    }
-
-    public void setRefundedAt(LocalDateTime refundedAt) {
-        this.refundedAt = refundedAt;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
+    public void setId(Long id) { this.id = id; }
+    public void setJobId(Long jobId) { this.jobId = jobId; }
+    public void setServiceRequestId(Long serviceRequestId) { this.serviceRequestId = serviceRequestId; }
+    public void setCustomerId(Long customerId) { this.customerId = customerId; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
+    public void setWorkerId(Long workerId) { this.workerId = workerId; }
+    public void setWorkerName(String workerName) { this.workerName = workerName; }
+    public void setEarningId(Long earningId) { this.earningId = earningId; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
+    public void setPlatformFee(BigDecimal platformFee) { this.platformFee = platformFee; }
+    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
+    public void setWorkerEarning(BigDecimal workerEarning) { this.workerEarning = workerEarning; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+    public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
+    public void setMerchantOrderId(String merchantOrderId) { this.merchantOrderId = merchantOrderId; }
+    public void setPhonepeTransactionId(String phonepeTransactionId) { this.phonepeTransactionId = phonepeTransactionId; }
+    public void setPaymentInstrument(String paymentInstrument) { this.paymentInstrument = paymentInstrument; }
+    public void setRedirectUrl(String redirectUrl) { this.redirectUrl = redirectUrl; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
 }

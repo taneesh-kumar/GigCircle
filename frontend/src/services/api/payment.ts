@@ -1,47 +1,34 @@
-import apiClient from './client';
-import type {
-  PaymentSummary,
-  CreatePaymentRequest,
-  PaymentResponse,
-  AdminPaymentSummary,
-} from '@/types/payment';
+import api from './client';
+import type { Payment, PaymentRequest } from '@/types/payment';
 
-export async function getPaymentSummaryApi(jobId: number): Promise<PaymentSummary> {
-  const response = await apiClient.get<PaymentSummary>(`/customer/payments/summary/${jobId}`);
+export const initiatePaymentApi = async (request: PaymentRequest): Promise<Payment> => {
+  const response = await api.post<Payment>('/payments/initiate', request);
   return response.data;
-}
+};
 
-export async function processPaymentApi(data: CreatePaymentRequest): Promise<PaymentResponse> {
-  const response = await apiClient.post<PaymentResponse>('/customer/payments/process', data);
+export const completePaymentApi = async (
+  paymentId: number,
+  paymentMethod: string,
+  upiId?: string
+): Promise<Payment> => {
+  const response = await api.post<Payment>(`/payments/${paymentId}/complete`, {
+    paymentMethod,
+    upiId: upiId || undefined,
+  });
   return response.data;
-}
+};
 
-export async function getCustomerPaymentsApi(): Promise<PaymentResponse[]> {
-  const response = await apiClient.get<PaymentResponse[]>('/customer/payments');
+export const getCustomerPaymentsApi = async (): Promise<Payment[]> => {
+  const response = await api.get<Payment[]>('/payments/customer');
   return response.data;
-}
+};
 
-export async function getCustomerPaymentDetailApi(id: number): Promise<PaymentResponse> {
-  const response = await apiClient.get<PaymentResponse>(`/customer/payments/${id}`);
+export const getPaymentByJobApi = async (jobId: number): Promise<Payment> => {
+  const response = await api.get<Payment>(`/payments/job/${jobId}`);
   return response.data;
-}
+};
 
-export async function cancelPaymentApi(id: number): Promise<PaymentResponse> {
-  const response = await apiClient.post<PaymentResponse>(`/customer/payments/${id}/cancel`);
+export const getPaymentByIdApi = async (paymentId: number): Promise<Payment> => {
+  const response = await api.get<Payment>(`/payments/${paymentId}`);
   return response.data;
-}
-
-export async function refundPaymentApi(id: number): Promise<PaymentResponse> {
-  const response = await apiClient.post<PaymentResponse>(`/customer/payments/${id}/refund`);
-  return response.data;
-}
-
-export async function getAdminPaymentsApi(): Promise<PaymentResponse[]> {
-  const response = await apiClient.get<PaymentResponse[]>('/admin/payments');
-  return response.data;
-}
-
-export async function getAdminPaymentSummaryApi(): Promise<AdminPaymentSummary> {
-  const response = await apiClient.get<AdminPaymentSummary>('/admin/payments/summary');
-  return response.data;
-}
+};
