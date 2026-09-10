@@ -25,4 +25,10 @@ public class AdminPaymentController {
         List<PaymentResponse> payments = paymentService.getAllPayments(principal.getName());
         return ResponseEntity.ok(payments);
     }
+
+    @GetMapping("/summary")
+    public ResponseEntity<com.sih.cooperative.dto.AdminPaymentSummaryResponse> getPaymentSummary(Principal principal) {
+        com.sih.cooperative.dto.AdminPaymentSummaryResponse summary = paymentService.getPaymentSummary(principal.getName());
+        return ResponseEntity.ok(summary);
+    }
 }

@@ -318,6 +318,41 @@ public class PaymentService {
                 .stream().map(PaymentResponse::fromEntity).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public com.sih.cooperative.dto.AdminPaymentSummaryResponse getPaymentSummary(String adminEmail) {
+        getAuthenticatedCustomer(adminEmail, Role.ADMIN);
+        List<Payment> allPayments = paymentRepository.findAll();
+
+        long totalTransactions = allPayments.size();
+        long successfulTransactions = allPayments.stream()
+                .filter(p -> p.getPaymentStatus() == PaymentStatus.SUCCESS).count();
+        long failedTransactions = allPayments.stream()
+                .filter(p -> p.getPaymentStatus() == PaymentStatus.FAILED).count();
+        long refundedTransactions = allPayments.stream()
+                .filter(p -> p.getPaymentStatus() == PaymentStatus.REFUNDED).count();
+
+        BigDecimal totalVolume = allPayments.stream()
+                .filter(p -> p.getPaymentStatus() == PaymentStatus.SUCCESS)
+                .map(Payment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal platformFees = allPayments.stream()
+                .filter(p -> p.getPaymentStatus() == PaymentStatus.SUCCESS)
+                .map(Payment::getPlatformFee)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new com.sih.cooperative.dto.AdminPaymentSummaryResponse(
+                totalTransactions,
+                successfulTransactions,
+                failedTransactions,
+                refundedTransactions,
+                totalVolume,
+                platformFees,
+                totalVolume,
+                platformFees
+        );
+    }
+
     private Earning generateEarningForJob(Job job, User customer) {
         if (job.getStatus() != JobStatus.COMPLETED && job.getStatus() != JobStatus.PAYMENT_REQUIRED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Earning can only be generated for completed or payment-required jobs");
