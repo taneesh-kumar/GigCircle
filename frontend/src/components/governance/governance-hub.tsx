@@ -152,14 +152,14 @@ export function CooperativeGovernanceSection() {
     }
   };
 
-  const handleOpenVoting = async (proposalId: number) => {
+  const handleOpenVoting = async (proposalId: number, durationDays: number = 7) => {
     try {
       setActionLoadingId(proposalId);
-      const updated = await openProposalApi(proposalId, { votingDurationDays: 7 });
+      const updated = await openProposalApi(proposalId, { votingDurationDays: durationDays });
 
       toast({
         title: 'Proposal Voting Opened',
-        description: 'Eligible cooperative workers have been notified to cast their votes.',
+        description: `Eligible cooperative workers have been notified. Voting duration: ${durationDays >= 1 ? `${durationDays} day(s)` : 'Demo window'}.`,
       });
 
       setProposals((prev) => prev.map((p) => (p.id === proposalId ? updated : p)));
@@ -388,12 +388,33 @@ export function CooperativeGovernanceSection() {
                   </div>
 
                   {/* LIVE / FINAL TALLY VISUALIZATION */}
-                  <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 space-y-3">
+                  <div className={`rounded-2xl border p-4 space-y-3 ${
+                    proposal.status === 'OPEN'
+                      ? 'border-blue-100 bg-blue-50/40'
+                      : proposal.status === 'PASSED'
+                      ? 'border-emerald-100 bg-emerald-50/40'
+                      : proposal.status === 'REJECTED'
+                      ? 'border-rose-100 bg-rose-50/40'
+                      : 'border-slate-100 bg-slate-50/70'
+                  }`}>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-extrabold text-slate-700 flex items-center gap-1.5">
-                        <Users className="h-3.5 w-3.5 text-slate-400" />
-                        {proposal.status === 'OPEN' ? 'Live Ballot Tally' : 'Final Certified Tally'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
+                          proposal.status === 'OPEN'
+                            ? 'bg-blue-600 text-white animate-pulse'
+                            : proposal.status === 'PASSED'
+                            ? 'bg-emerald-600 text-white'
+                            : proposal.status === 'REJECTED'
+                            ? 'bg-rose-600 text-white'
+                            : 'bg-slate-600 text-white'
+                        }`}>
+                          {proposal.status === 'OPEN' ? 'LIVE BALLOT' : 'CERTIFIED FINAL'}
+                        </span>
+                        <span className="font-extrabold text-slate-700 flex items-center gap-1.5">
+                          <Users className="h-3.5 w-3.5 text-slate-400" />
+                          {proposal.status === 'OPEN' ? 'Live Progress' : 'Certified Outcome'}
+                        </span>
+                      </div>
                       <span className="font-mono font-bold text-slate-800">{total} Votes Cast</span>
                     </div>
 
@@ -472,22 +493,33 @@ export function CooperativeGovernanceSection() {
                   {canManage && (
                     <div className="flex items-center justify-between gap-2 pt-1">
                       {proposal.status === 'DRAFT' && (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenVoting(proposal.id)}
-                          disabled={actionLoadingId === proposal.id}
-                          className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 py-2.5 text-xs font-bold text-white transition-colors shadow-2xs inline-flex items-center justify-center gap-1.5"
-                        >
-                          {actionLoadingId === proposal.id ? (
-                            <>
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Opening...
-                            </>
-                          ) : (
-                            <>
-                              <Clock3 className="h-3.5 w-3.5" /> Open for Worker Voting (7 Days)
-                            </>
-                          )}
-                        </button>
+                        <div className="flex items-center gap-2 w-full">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenVoting(proposal.id, 7)}
+                            disabled={actionLoadingId === proposal.id}
+                            className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 py-2.5 text-xs font-bold text-white transition-colors shadow-2xs inline-flex items-center justify-center gap-1.5"
+                          >
+                            {actionLoadingId === proposal.id ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Opening...
+                              </>
+                            ) : (
+                              <>
+                                <Clock3 className="h-3.5 w-3.5" /> Open (7 Days)
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenVoting(proposal.id, 1)}
+                            disabled={actionLoadingId === proposal.id}
+                            title="Open for short demo window (1 day)"
+                            className="rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 py-2.5 px-3 text-[11px] font-bold text-blue-700 transition-colors shadow-2xs"
+                          >
+                            ⚡ Demo (1d)
+                          </button>
+                        </div>
                       )}
 
                       {proposal.status === 'OPEN' && (

@@ -37,3 +37,4 @@ app:
 
 gigcircle:
   platform-fee-percentage: ${PLATFORM_FEE_PERCENTAGE:10.00}
+  governance-closure-interval-ms: ${GOVERNANCE_CLOSURE_INTERVAL_MS:60000}

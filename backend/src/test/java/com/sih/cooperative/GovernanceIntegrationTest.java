@@ -540,6 +540,47 @@ public class GovernanceIntegrationTest {
         assertEquals(ProposalStatus.REJECTED, updated.getStatus());
     }
 
+    @Test
+    @DisplayName("Non-creator non-admin cannot close proposal (403 Forbidden)")
+    public void testNonCreatorCannotCloseProposal() throws Exception {
+        // workerUser1 creates proposal
+        GovernanceProposal proposal = new GovernanceProposal(
+                "Health Insurance Co-op Plan",
+                "Subsidized tier-1 health insurance plan for verified cooperative workers.",
+                ProposalCategory.BENEFITS,
+                workerUser1
+        );
+        proposal.setStatus(ProposalStatus.OPEN);
+        proposal = proposalRepository.save(proposal);
+
+        // workerUser2 attempts to close it -> should be forbidden (403)
+        mockMvc.perform(post("/api/governance/proposals/" + proposal.getId() + "/close")
+                        .header("Authorization", worker2Token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Attempting to vote on a CLOSED or PASSED proposal is rejected (400 Bad Request)")
+    public void testVoteOnClosedProposalRejected() throws Exception {
+        GovernanceProposal proposal = new GovernanceProposal(
+                "Finalized Equipment Safety Standards",
+                "Finalized standards ready for archival.",
+                ProposalCategory.POLICY,
+                workerUser1
+        );
+        proposal.setStatus(ProposalStatus.PASSED);
+        proposal = proposalRepository.save(proposal);
+
+        CastVoteRequest voteReq = new CastVoteRequest();
+        voteReq.setVoteChoice(VoteType.YES);
+
+        mockMvc.perform(post("/api/governance/proposals/" + proposal.getId() + "/vote")
+                        .header("Authorization", worker2Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(voteReq)))
+                .andExpect(status().isBadRequest());
+    }
+
     @org.junit.jupiter.api.AfterEach
     public void tearDown() {
         voteRepository.deleteAll();

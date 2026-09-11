@@ -29,10 +29,10 @@ public class GovernanceProposalScheduler {
     }
 
     /**
-     * Run every minute to check for expired proposals whose voting period has ended.
+     * Run periodically to check for expired proposals whose voting period has ended.
      * Closes them idempotently and calculates final PASSED / REJECTED status.
      */
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRateString = "${gigcircle.governance-closure-interval-ms:60000}")
     @Transactional
     public void autoCloseExpiredProposals() {
         LocalDateTime now = LocalDateTime.now();
