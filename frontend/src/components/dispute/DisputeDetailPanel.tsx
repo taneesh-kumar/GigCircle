@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, Clock, History, MessageSquare, RefreshCw, User, ShieldAlert } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTranslation } from 'react-i18next';
 
 interface DisputeDetailPanelProps {
   dispute: DisputeDetailResponse;
@@ -14,6 +15,7 @@ interface DisputeDetailPanelProps {
 }
 
 export const DisputeDetailPanel: React.FC<DisputeDetailPanelProps> = ({ dispute, onRefresh }) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [responseMsg, setResponseMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -34,7 +36,7 @@ export const DisputeDetailPanel: React.FC<DisputeDetailPanelProps> = ({ dispute,
       setResponseMsg('');
       if (onRefresh) onRefresh();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to submit response');
+      setError(err.response?.data?.message || t('errors.serverError'));
     } finally {
       setSubmitting(false);
     }
@@ -45,21 +47,21 @@ export const DisputeDetailPanel: React.FC<DisputeDetailPanelProps> = ({ dispute,
       <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold">Dispute #{dispute.id}</h2>
+            <h2 className="text-xl font-bold">{t('dispute.panelTitle', { id: dispute.id, defaultValue: `Dispute #${dispute.id}` })}</h2>
             <DisputeStatusBadge status={dispute.status} />
           </div>
-          <p className="text-sm text-muted-foreground mt-1">Associated with Job #{dispute.jobId}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t('dispute.associatedJob', { id: dispute.jobId, defaultValue: `Associated with Job #${dispute.jobId}` })}</p>
         </div>
         <div className="text-right text-xs text-muted-foreground">
-          <p>Created: {new Date(dispute.createdAt).toLocaleString()}</p>
-          <p>Updated: {new Date(dispute.updatedAt).toLocaleString()}</p>
+          <p>{t('dispute.created', 'Created')}: {new Date(dispute.createdAt).toLocaleString()}</p>
+          <p>{t('dispute.updated', 'Updated')}: {new Date(dispute.updatedAt).toLocaleString()}</p>
         </div>
       </div>
 
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>{t('common.error')}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -67,25 +69,25 @@ export const DisputeDetailPanel: React.FC<DisputeDetailPanelProps> = ({ dispute,
       {/* Primary Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-md">
         <div>
-          <span className="text-xs font-semibold uppercase text-muted-foreground">Raised By</span>
+          <span className="text-xs font-semibold uppercase text-muted-foreground">{t('dispute.raisedBy', 'Raised By')}</span>
           <div className="flex items-center gap-2 mt-1">
             <User className="h-4 w-4 text-primary" />
             <span className="font-medium text-sm">{dispute.raisedBy.name} ({dispute.raisedBy.role})</span>
           </div>
         </div>
         <div>
-          <span className="text-xs font-semibold uppercase text-muted-foreground">Against User</span>
+          <span className="text-xs font-semibold uppercase text-muted-foreground">{t('dispute.againstUser', 'Against User')}</span>
           <div className="flex items-center gap-2 mt-1">
             <User className="h-4 w-4 text-destructive" />
             <span className="font-medium text-sm">{dispute.againstUser.name} ({dispute.againstUser.role})</span>
           </div>
         </div>
         <div className="md:col-span-2">
-          <span className="text-xs font-semibold uppercase text-muted-foreground">Reason</span>
-          <p className="font-medium text-sm mt-1">{dispute.reason.replace(/_/g, ' ')}</p>
+          <span className="text-xs font-semibold uppercase text-muted-foreground">{t('modals.dispute.reasonLabel')}</span>
+          <p className="font-medium text-sm mt-1">{t(`status.dispute.${dispute.reason}`, dispute.reason.replace(/_/g, ' '))}</p>
         </div>
         <div className="md:col-span-2">
-          <span className="text-xs font-semibold uppercase text-muted-foreground">Description</span>
+          <span className="text-xs font-semibold uppercase text-muted-foreground">{t('modals.dispute.descriptionLabel')}</span>
           <p className="text-sm mt-1 whitespace-pre-wrap">{dispute.description}</p>
         </div>
       </div>
@@ -95,7 +97,7 @@ export const DisputeDetailPanel: React.FC<DisputeDetailPanelProps> = ({ dispute,
         <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-md p-4 space-y-2">
           <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold">
             <ShieldAlert className="h-5 w-5" />
-            <span>Resolution Summary</span>
+            <span>{t('dispute.resolutionSummary', 'Resolution Summary')}</span>
           </div>
           {dispute.resolutionNotes && (
             <p className="text-sm text-emerald-900 dark:text-emerald-200 whitespace-pre-wrap">
@@ -104,7 +106,11 @@ export const DisputeDetailPanel: React.FC<DisputeDetailPanelProps> = ({ dispute,
           )}
           {dispute.resolvedBy && (
             <p className="text-xs text-emerald-700 dark:text-emerald-400">
-              Resolved by {dispute.resolvedBy.name} on {dispute.resolvedAt ? new Date(dispute.resolvedAt).toLocaleString() : 'N/A'}
+              {t('dispute.resolvedByInfo', {
+                name: dispute.resolvedBy.name,
+                date: dispute.resolvedAt ? new Date(dispute.resolvedAt).toLocaleString() : 'N/A',
+                defaultValue: `Resolved by ${dispute.resolvedBy.name} on ${dispute.resolvedAt ? new Date(dispute.resolvedAt).toLocaleString() : 'N/A'}`
+              })}
             </p>
           )}
         </div>
@@ -114,7 +120,7 @@ export const DisputeDetailPanel: React.FC<DisputeDetailPanelProps> = ({ dispute,
       <div className="space-y-3">
         <div className="flex items-center gap-2 font-semibold text-md border-b pb-2">
           <History className="h-5 w-5 text-primary" />
-          <span>Dispute History Timeline</span>
+          <span>{t('dispute.timelineTitle', 'Dispute History Timeline')}</span>
         </div>
         <div className="space-y-3 pl-2 border-l-2 border-muted ml-2">
           {dispute.history.map((h) => (
@@ -127,7 +133,7 @@ export const DisputeDetailPanel: React.FC<DisputeDetailPanelProps> = ({ dispute,
                 <span>{new Date(h.createdAt).toLocaleString()}</span>
               </div>
               <div className="flex items-center gap-2">
-                {h.oldStatus && <span className="text-xs text-muted-foreground">{h.oldStatus} →</span>}
+                {h.oldStatus && <span className="text-xs text-muted-foreground">{t(`status.dispute.${h.oldStatus}`, h.oldStatus)} →</span>}
                 <DisputeStatusBadge status={h.newStatus} />
               </div>
               {h.comment && <p className="text-muted-foreground italic text-xs mt-1">"{h.comment}"</p>}
@@ -141,10 +147,10 @@ export const DisputeDetailPanel: React.FC<DisputeDetailPanelProps> = ({ dispute,
         <form onSubmit={handleRespond} className="space-y-3 pt-4 border-t">
           <div className="flex items-center gap-2 font-semibold text-sm">
             <MessageSquare className="h-4 w-4 text-primary" />
-            <span>Respond to Dispute</span>
+            <span>{t('dispute.respondTitle', 'Respond to Dispute')}</span>
           </div>
           <Textarea
-            placeholder="Provide additional details or response..."
+            placeholder={t('dispute.respondPlaceholder', 'Provide additional details or response...')}
             value={responseMsg}
             onChange={(e) => setResponseMsg(e.target.value)}
             maxLength={2000}
@@ -154,7 +160,7 @@ export const DisputeDetailPanel: React.FC<DisputeDetailPanelProps> = ({ dispute,
           <div className="flex justify-end">
             <Button type="submit" disabled={!responseMsg.trim() || submitting}>
               {submitting && <RefreshCw className="h-4 w-4 animate-spin mr-2" />}
-              Submit Response
+              {t('dispute.submitResponse', 'Submit Response')}
             </Button>
           </div>
         </form>
@@ -162,7 +168,7 @@ export const DisputeDetailPanel: React.FC<DisputeDetailPanelProps> = ({ dispute,
 
       {isClosed && !isAdmin && (
         <div className="p-3 bg-muted rounded-md text-xs text-center text-muted-foreground">
-          This dispute is closed. Further participant responses are disabled.
+          {t('dispute.closedNotice', 'This dispute is closed. Further participant responses are disabled.')}
         </div>
       )}
     </div>

@@ -4,6 +4,7 @@ import {
   AlertCircle, IndianRupee, ShieldCheck, Smartphone, ChevronLeft,
   Lock, Beaker
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getPaymentForJobApi, initiatePaymentApi, simulatePaymentApi } from '@/services/api/payment';
 import type { PaymentResponse } from '@/types/payment';
 import { useToast } from '@/hooks/use-toast';
@@ -32,6 +33,7 @@ export function DemoPaymentModal({
   onClose,
   onPaymentComplete,
 }: DemoPaymentModalProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const [step, setStep] = useState<ModalStep>('method-select');
@@ -185,14 +187,14 @@ export function DemoPaymentModal({
             </div>
             <div>
               <p id="demo-payment-modal-title" className="text-xs font-bold text-white">GigCircle Pay</p>
-              <p className="text-[10px] text-slate-400">Secure Demo Gateway</p>
+              <p className="text-[10px] text-slate-400">{t('modals.payment.subtitle')}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             <X className="h-4 w-4" />
           </button>
@@ -203,11 +205,11 @@ export function DemoPaymentModal({
           <div className="bg-slate-50 border-b border-slate-100 px-5 py-3 flex items-center justify-between">
             <div className="text-xs text-slate-500 space-y-0.5">
               {serviceName && <p className="font-bold text-slate-700 text-[11px]">{serviceName}</p>}
-              {workerName && <p className="text-[10px] text-slate-400">Worker: {workerName}</p>}
-              <p className="text-[10px] text-slate-400">Job #{jobId}</p>
+              {workerName && <p className="text-[10px] text-slate-400">{t('customer.payments.table.worker')}: {workerName}</p>}
+              <p className="text-[10px] text-slate-400">{t('customer.payments.table.job')} #{jobId}</p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Amount</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('common.amount')}</p>
               <div className="flex items-baseline gap-0.5 font-black text-slate-900 text-lg font-mono">
                 <IndianRupee className="h-3.5 w-3.5 text-emerald-600 self-center" />
                 <span>{displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -220,7 +222,7 @@ export function DemoPaymentModal({
         {isInitializing && (
           <div className="flex flex-col items-center justify-center py-14 space-y-3 text-slate-500">
             <Loader2 className="h-7 w-7 animate-spin text-emerald-600" />
-            <p className="text-xs font-bold">Initializing payment...</p>
+            <p className="text-xs font-bold">{t('common.loading')}</p>
           </div>
         )}
 
@@ -230,7 +232,7 @@ export function DemoPaymentModal({
             <div className="rounded-2xl border border-red-200 bg-red-50/60 p-4 text-xs text-red-700 space-y-2">
               <div className="flex items-center gap-2 font-bold">
                 <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
-                Unable to Load Payment
+                {t('common.somethingWentWrong')}
               </div>
               <p>{loadError}</p>
             </div>
@@ -239,7 +241,7 @@ export function DemoPaymentModal({
               onClick={loadOrInitiatePayment}
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-900 transition-colors"
             >
-              <RefreshCw className="h-3.5 w-3.5" /> Try Again
+              <RefreshCw className="h-3.5 w-3.5" /> {t('common.retry')}
             </button>
           </div>
         )}
@@ -247,7 +249,7 @@ export function DemoPaymentModal({
         {/* ─── METHOD SELECTION ─── */}
         {!isInitializing && step === 'method-select' && (
           <div className="p-5 space-y-4">
-            <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Choose Payment Method</p>
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">{t('modals.payment.selectMethod')}</p>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
@@ -274,7 +276,7 @@ export function DemoPaymentModal({
               >
                 <Wallet className="h-5 w-5 text-slate-400 group-hover:text-emerald-600 transition-colors" />
                 <span className="text-[11px] font-bold text-slate-700 group-hover:text-emerald-700">Coop Wallet</span>
-                <span className="text-[8px] text-slate-400 leading-tight text-center">Instant Balance</span>
+                <span className="text-[8px] text-slate-400 leading-tight text-center">Instant</span>
               </button>
             </div>
 
@@ -286,7 +288,7 @@ export function DemoPaymentModal({
                 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <Beaker className="h-3 w-3" />
-                {showDevControls ? 'Hide' : 'Show'} Demo Simulation Controls
+                {showDevControls ? 'Hide' : 'Show'} Demo Controls
               </button>
               {showDevControls && (
                 <div className="mt-3 rounded-2xl border border-dashed border-amber-300 bg-amber-50/40 p-3 space-y-2">
@@ -334,11 +336,10 @@ export function DemoPaymentModal({
               onClick={() => setStep('method-select')}
               className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
             >
-              <ChevronLeft className="h-4 w-4" /> Back
+              <ChevronLeft className="h-4 w-4" /> {t('common.back')}
             </button>
 
             <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 flex flex-col items-center gap-2">
-              {/* Demo QR area */}
               <div className="w-28 h-28 rounded-xl border-2 border-dashed border-slate-300 bg-white flex items-center justify-center">
                 <div className="grid grid-cols-3 gap-1 p-2 opacity-30">
                   {Array.from({length:9}).map((_,i) => (
@@ -351,7 +352,7 @@ export function DemoPaymentModal({
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
-                — OR Enter UPI ID —
+                {t('modals.payment.upi.label')}
               </label>
               <input
                 type="text"
@@ -360,7 +361,6 @@ export function DemoPaymentModal({
                 placeholder="yourname@upi"
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-mono text-slate-800 placeholder-slate-300 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
-              <p className="text-[10px] text-slate-400">Example: name@okhdfc, name@ybl</p>
             </div>
 
             <button
@@ -370,7 +370,7 @@ export function DemoPaymentModal({
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <IndianRupee className="h-4 w-4" />
-              Pay ₹{displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              {t('modals.payment.upi.verifyAndPay', { amount: displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) })}
             </button>
           </div>
         )}
@@ -383,12 +383,12 @@ export function DemoPaymentModal({
               onClick={() => setStep('method-select')}
               className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
             >
-              <ChevronLeft className="h-4 w-4" /> Back
+              <ChevronLeft className="h-4 w-4" /> {t('common.back')}
             </button>
 
             <div className="space-y-2">
               <div>
-                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">Card Number</label>
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">{t('modals.payment.card.number')}</label>
                 <input
                   type="text"
                   value={cardNumber}
@@ -399,7 +399,7 @@ export function DemoPaymentModal({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">Expiry</label>
+                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">{t('modals.payment.card.expiry')}</label>
                   <input
                     type="text"
                     value={expiry}
@@ -409,7 +409,7 @@ export function DemoPaymentModal({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">CVV</label>
+                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">{t('modals.payment.card.cvv')}</label>
                   <input
                     type="password"
                     maxLength={4}
@@ -421,7 +421,7 @@ export function DemoPaymentModal({
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">Cardholder Name</label>
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">{t('modals.payment.card.name')}</label>
                 <input
                   type="text"
                   value={cardholderName}
@@ -439,9 +439,8 @@ export function DemoPaymentModal({
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Lock className="h-4 w-4" />
-              Pay ₹{displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              {t('modals.payment.card.payBtn', { amount: displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) })}
             </button>
-            <p className="text-center text-[9px] text-slate-400">Your card details are not stored. Demo only.</p>
           </div>
         )}
 
@@ -453,7 +452,7 @@ export function DemoPaymentModal({
               onClick={() => setStep('method-select')}
               className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
             >
-              <ChevronLeft className="h-4 w-4" /> Back
+              <ChevronLeft className="h-4 w-4" /> {t('common.back')}
             </button>
 
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-2">
@@ -462,12 +461,8 @@ export function DemoPaymentModal({
                 Cooperative Member Demo Wallet
               </div>
               <p className="text-[11px] text-emerald-700">
-                Simulated pre-funded cooperative wallet for seamless 1-click checkout.
+                {t('modals.payment.wallet.balance')}
               </p>
-              <div className="pt-2 border-t border-emerald-200/60 flex justify-between text-xs">
-                <span className="text-emerald-700 font-medium">Available Demo Balance:</span>
-                <span className="font-mono font-bold text-emerald-900">₹25,000.00</span>
-              </div>
             </div>
 
             <button
@@ -476,7 +471,7 @@ export function DemoPaymentModal({
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm"
             >
               <CheckCircle2 className="h-4 w-4" />
-              Pay ₹{displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} via Wallet
+              {t('modals.payment.wallet.payBtn', { amount: displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) })}
             </button>
           </div>
         )}
@@ -491,20 +486,11 @@ export function DemoPaymentModal({
               </div>
             </div>
             <div className="space-y-1">
-              <p className="font-bold text-slate-900">Processing Payment</p>
+              <p className="font-bold text-slate-900">{t('modals.payment.processing')}</p>
               <div className="flex items-baseline gap-0.5 justify-center font-black text-emerald-700 text-xl font-mono">
                 <IndianRupee className="h-4 w-4 self-center" />
                 <span>{displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
-            </div>
-            <div className="text-xs text-slate-500 space-y-1">
-              <p className="font-medium">Connecting to Demo Payment Gateway...</p>
-              <p className="text-slate-400">Please wait. Do not refresh or go back.</p>
-            </div>
-            <div className="flex gap-1 mt-2">
-              {[0, 1, 2].map(i => (
-                <div key={i} className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-              ))}
             </div>
           </div>
         )}
@@ -517,7 +503,7 @@ export function DemoPaymentModal({
                 <CheckCircle2 className="h-7 w-7 text-emerald-600" />
               </div>
               <div>
-                <p className="font-black text-slate-900 text-lg">Payment Successful</p>
+                <p className="font-black text-slate-900 text-lg">{t('modals.payment.successTitle')}</p>
                 <div className="flex items-baseline gap-0.5 justify-center font-black text-emerald-700 text-2xl font-mono mt-1">
                   <IndianRupee className="h-4 w-4 self-center" />
                   <span>{displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -528,7 +514,7 @@ export function DemoPaymentModal({
             {/* Receipt */}
             <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-3 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-500">Payment Method</span>
+                <span className="text-slate-500">{t('customer.payments.table.action')}</span>
                 <span className="font-bold text-slate-800 capitalize">
                   {selectedMethod === 'upi' ? 'UPI' : selectedMethod === 'card' ? 'Debit / Credit Card' : 'Cooperative Wallet'}
                 </span>
@@ -540,19 +526,15 @@ export function DemoPaymentModal({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Date & Time</span>
+                <span className="text-slate-500">{t('common.date')} & {t('common.time')}</span>
                 <span className="font-bold text-slate-800">{formatTxnDate()}</span>
               </div>
               <div className="flex justify-between border-t border-slate-200 pt-2">
-                <span className="text-slate-500">Status</span>
+                <span className="text-slate-500">{t('common.status')}</span>
                 <span className="inline-flex items-center gap-1 font-bold text-emerald-700">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Successful
+                  <ShieldCheck className="h-3.5 w-3.5" /> {t('common.success')}
                 </span>
               </div>
-            </div>
-
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-700 text-center font-medium">
-              ✓ Job is now marked as <strong>Completed</strong>
             </div>
 
             <button
@@ -560,7 +542,7 @@ export function DemoPaymentModal({
               onClick={onClose}
               className="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 transition-colors"
             >
-              Done
+              {t('modals.payment.closeBtn')}
             </button>
           </div>
         )}
@@ -573,14 +555,14 @@ export function DemoPaymentModal({
                 <XCircle className="h-7 w-7 text-red-600" />
               </div>
               <div>
-                <p className="font-black text-slate-900 text-lg">Payment Failed</p>
-                <p className="text-xs text-slate-500 mt-1">We couldn't complete your payment.</p>
+                <p className="font-black text-slate-900 text-lg">{t('modals.payment.failedTitle')}</p>
+                <p className="text-xs text-slate-500 mt-1">{t('modals.payment.failedDesc')}</p>
               </div>
             </div>
 
             <div className="rounded-2xl border border-red-200 bg-red-50/60 p-4 text-xs text-red-700 space-y-1">
-              <p className="font-bold">Reason:</p>
-              <p>{payment?.failureReason || 'Payment was declined. Please try again.'}</p>
+              <p className="font-bold">{t('common.error')}:</p>
+              <p>{payment?.failureReason || t('common.somethingWentWrong')}</p>
             </div>
 
             <div className="space-y-2">
@@ -590,14 +572,14 @@ export function DemoPaymentModal({
                 className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white hover:bg-slate-800 transition-colors"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
-                Try Again
+                {t('modals.payment.retryBtn')}
               </button>
               <button
                 type="button"
                 onClick={() => { setStep('method-select'); setUpiId(''); setCardNumber(''); setExpiry(''); setCvv(''); setCardholderName(''); }}
                 className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
               >
-                Change Payment Method
+                {t('modals.payment.selectMethod')}
               </button>
             </div>
           </div>
@@ -607,7 +589,7 @@ export function DemoPaymentModal({
         {!isInitializing && step !== 'processing' && (
           <div className="px-5 pb-4 flex items-center justify-center gap-1.5 text-[9px] text-slate-400">
             <Lock className="h-2.5 w-2.5" />
-            <span>256-bit SSL encrypted · Demo gateway · No real transactions</span>
+            <span>{t('modals.payment.simulatedNotice')}</span>
           </div>
         )}
       </div>

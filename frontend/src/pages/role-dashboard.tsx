@@ -148,6 +148,8 @@ import {
 } from '@/services/api/admin';
 import type { Notification } from '@/types/notification';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
+import { getCategoryLabel, getJobStatusLabel, getRequestStatusLabel, getPaymentStatusLabel, getVerificationStatusLabel } from '@/i18n';
 
 
 type RoleKey = 'customer' | 'worker' | 'admin';
@@ -215,8 +217,29 @@ const getCategoryIcon = (category: string) => {
 };
 
 export default function RoleDashboard({ role }: { role: RoleKey }) {
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
-  const content = roleContent[role];
+  
+  const content = {
+    customer: {
+      eyebrow: t('customer.eyebrow', roleContent.customer.eyebrow),
+      title: t('customer.title', roleContent.customer.title),
+      intro: t('customer.subtitle', roleContent.customer.intro),
+      stat: '01',
+      statLabel: t('customer.statLabel', roleContent.customer.statLabel),
+      icon: House,
+    },
+    worker: {
+      eyebrow: t('worker.eyebrow', roleContent.worker.eyebrow),
+      title: t('worker.title', roleContent.worker.title),
+      intro: t('worker.subtitle', roleContent.worker.intro),
+      stat: '02',
+      statLabel: t('worker.statLabel', roleContent.worker.statLabel),
+      icon: HandHeart,
+    },
+    admin: roleContent.admin,
+  }[role];
+
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1114,20 +1137,20 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             <Bell className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">Notifications</h2>
-            <p className="text-xs text-slate-500 mt-0.5 font-medium">Recent updates and activity alerts</p>
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">{t('notifications.title', 'Notifications')}</h2>
+            <p className="text-xs text-slate-500 mt-0.5 font-medium">{t('notifications.subtitle', 'Recent updates and activity alerts')}</p>
           </div>
         </div>
 
         {/* NOTIFICATIONS LIST CONTAINER */}
         <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs overflow-hidden divide-y divide-slate-100">
           {isLoadingNotifications ? (
-            <div className="p-8 text-center text-xs text-slate-400">Loading updates...</div>
+            <div className="p-8 text-center text-xs text-slate-400">{t('common.loading', 'Loading updates...')}</div>
           ) : notificationsList.length === 0 ? (
             <div className="py-12 text-center">
               <Bell className="mx-auto h-8 w-8 text-slate-300" />
-              <p className="mt-3 text-sm font-semibold text-slate-700">You're all caught up.</p>
-              <p className="text-xs text-slate-500 mt-1">No new activity requires your attention.</p>
+              <p className="mt-3 text-sm font-semibold text-slate-700">{t('notifications.noNotifications', 'No notifications yet.')}</p>
+              <p className="text-xs text-slate-500 mt-1">{t('notifications.allCaughtUp', 'No new activity requires your attention.')}</p>
             </div>
           ) : (
             notificationsList.map((n) => (
@@ -1206,11 +1229,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs flex items-center justify-between hover:shadow-md hover:border-emerald-300 transition-all">
                     <div>
-                      <span className="text-xs font-semibold text-slate-600 block">Active Requests</span>
+                      <span className="text-xs font-semibold text-slate-600 block">{t('customer.overview.activeRequests', 'Active Requests')}</span>
                       <div className="mt-1 text-3xl font-bold text-slate-900">
                         {requests.filter((r) => r.status === 'OPEN' && r.jobStatus !== 'COMPLETED').length}
                       </div>
-                      <span className="text-[10px] font-semibold text-emerald-700 mt-1 block">In Progress or Open</span>
+                      <span className="text-[10px] font-semibold text-emerald-700 mt-1 block">{t('customer.overview.activeRequestsSubtitle', 'In Progress or Open')}</span>
                     </div>
                     <div className="h-11 w-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
                       <Wrench className="h-5.5 w-5.5" />
@@ -1219,11 +1242,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                   <div className="rounded-2xl border border-teal-200/90 bg-gradient-to-br from-teal-50/70 via-white to-emerald-50/40 p-5 shadow-xs flex items-center justify-between hover:shadow-md hover:border-teal-300 transition-all">
                     <div>
-                      <span className="text-xs font-semibold text-slate-600 block">Completed Services</span>
+                      <span className="text-xs font-semibold text-slate-600 block">{t('customer.overview.completedServices', 'Completed Services')}</span>
                       <div className="mt-1 text-3xl font-bold text-slate-900">
                         {requests.filter((r) => r.jobStatus === 'COMPLETED').length}
                       </div>
-                      <span className="text-[10px] font-semibold text-emerald-700 mt-1 block">Verified Work Done</span>
+                      <span className="text-[10px] font-semibold text-emerald-700 mt-1 block">{t('customer.overview.completedSubtitle', 'Verified Work Done')}</span>
                     </div>
                     <div className="h-11 w-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
                       <CheckCheck className="h-5.5 w-5.5" />
@@ -1232,11 +1255,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                   <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-slate-50/40 p-5 shadow-xs flex items-center justify-between hover:shadow-md hover:border-blue-300 transition-all">
                     <div>
-                      <span className="text-xs font-semibold text-slate-600 block">Total Investment</span>
+                      <span className="text-xs font-semibold text-slate-600 block">{t('customer.overview.totalInvestment', 'Total Investment')}</span>
                       <div className="mt-1 text-3xl font-bold text-slate-900">
                         ₹{requests.reduce((acc, r) => acc + (r.budget || 0), 0).toLocaleString()}
                       </div>
-                      <span className="text-[10px] font-semibold text-slate-500 mt-1 block">Transparent Budget</span>
+                      <span className="text-[10px] font-semibold text-slate-500 mt-1 block">{t('customer.overview.investmentSubtitle', 'Transparent Budget')}</span>
                     </div>
                     <div className="h-11 w-11 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
                       <IndianRupee className="h-5.5 w-5.5" />
@@ -1245,9 +1268,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                   <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-5 shadow-xs flex items-center justify-between hover:shadow-md hover:border-indigo-300 transition-all">
                     <div>
-                      <span className="text-xs font-semibold text-slate-600 block">Total Requests</span>
+                      <span className="text-xs font-semibold text-slate-600 block">{t('customer.overview.totalRequests', 'Total Requests')}</span>
                       <div className="mt-1 text-3xl font-bold text-slate-900">{requests.length}</div>
-                      <span className="text-[10px] font-semibold text-slate-500 mt-1 block">Lifetime Requests</span>
+                      <span className="text-[10px] font-semibold text-slate-500 mt-1 block">{t('customer.overview.totalRequestsSubtitle', 'Lifetime Requests')}</span>
                     </div>
                     <div className="h-11 w-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
                       <FileText className="h-5.5 w-5.5" />
@@ -1258,21 +1281,21 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 {/* QUICK ACTIONS BANNER */}
                 <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-r from-blue-50/80 via-white to-emerald-50/60 p-6 shadow-xs flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">Need help with household repairs or services?</h3>
-                    <p className="text-xs text-slate-600 mt-1">Submit a transparent service request and match with trusted local workers.</p>
+                    <h3 className="text-lg font-bold text-slate-900">{t('customer.overview.helpBannerTitle', 'Need help with household repairs or services?')}</h3>
+                    <p className="text-xs text-slate-600 mt-1">{t('customer.overview.helpBannerSubtitle', 'Submit a transparent service request and match with trusted local workers.')}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setIsCreateModalOpen(true)}
-                      className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors"
+                      className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors cursor-pointer"
                     >
-                      <Plus className="h-4 w-4" /> Request a Service
+                      <Plus className="h-4 w-4" /> {t('customer.overview.requestServiceBtn', 'Request a Service')}
                     </button>
                     <button
                       onClick={() => setSearchParams({ tab: 'requests' })}
-                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
                     >
-                      View All Requests <ArrowRight className="h-3.5 w-3.5" />
+                      {t('customer.overview.viewAllRequests', 'View All Requests')} <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>
@@ -1284,18 +1307,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       <div className="flex items-center gap-2">
                         <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                          ACTIVE EXECUTION
+                          {t('customer.overview.activeExecutionBadge', 'ACTIVE EXECUTION')}
                         </span>
                       </div>
-                      <h3 className="text-xl font-bold text-slate-900">Recent Service Activity</h3>
-                      <p className="text-xs text-slate-500">Your latest requested services and live execution progress.</p>
+                      <h3 className="text-xl font-bold text-slate-900">{t('customer.overview.recentActivityTitle', 'Recent Service Activity')}</h3>
+                      <p className="text-xs text-slate-500">{t('customer.overview.recentActivitySubtitle', 'Your latest requested services and live execution progress.')}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSearchParams({ tab: 'requests' })}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-3.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-all shadow-2xs"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-3.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-all shadow-2xs cursor-pointer"
                     >
-                      View all requests <ArrowRight className="h-3.5 w-3.5" />
+                      {t('customer.overview.viewAllRequests', 'View all requests')} <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
 
@@ -1305,13 +1328,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
                           <Wrench className="h-5 w-5" />
                         </div>
-                        <p className="text-xs font-bold text-slate-800">No service requests created yet</p>
-                        <p className="text-[11px] text-slate-500">Click "Request a Service" above to match with verified local workers.</p>
+                        <p className="text-xs font-bold text-slate-800">{t('customer.overview.noRequestsYet', 'No service requests created yet')}</p>
+                        <p className="text-[11px] text-slate-500">{t('customer.overview.noRequestsYetHint', 'Click "Request a Service" above to match with verified local workers.')}</p>
                       </div>
                     ) : (
                       requests.slice(0, 4).map((req) => {
                         const statusStr = req.jobStatus || req.status;
-                        const categoryInfo = CATEGORY_LABELS[req.category] || { label: req.category, description: '' };
                         return (
                           <div
                             key={req.id}
@@ -1327,7 +1349,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     {req.description}
                                   </span>
                                   <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700">
-                                    {categoryInfo.label}
+                                    {getCategoryLabel(t, req.category)}
                                   </span>
                                   <span
                                     className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
@@ -1353,19 +1375,19 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     ) : (
                                       <Clock3 className="h-3 w-3 text-amber-600" />
                                     )}
-                                    {statusStr === 'PAYMENT_REQUIRED' ? 'PAYMENT REQUIRED' : statusStr}
+                                    {statusStr === 'PAYMENT_REQUIRED' ? t('status.job.PAYMENT_REQUIRED', 'Payment Required') : (getJobStatusLabel(t, statusStr) || getRequestStatusLabel(t, statusStr))}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
                                   {req.workerName ? (
                                     <span className="flex items-center gap-1.5 font-medium text-slate-600">
-                                      <User className="h-3.5 w-3.5 text-slate-400" /> Assigned Worker: <strong className="text-slate-800 font-semibold">{req.workerName}</strong>
+                                      <User className="h-3.5 w-3.5 text-slate-400" /> {t('customer.overview.assignedWorker', 'Assigned Worker:')} <strong className="text-slate-800 font-semibold">{req.workerName}</strong>
                                       <VerifiedWorkerBadge isVerified={req.isWorkerVerified || req.isVerified} size="sm" />
                                     </span>
                                   ) : (
 
                                     <span className="flex items-center gap-1 text-slate-400 italic">
-                                      <Clock3 className="h-3.5 w-3.5 text-slate-400" /> Awaiting Worker Assignment
+                                      <Clock3 className="h-3.5 w-3.5 text-slate-400" /> {t('customer.overview.awaitingWorker', 'Awaiting Worker Assignment')}
                                     </span>
                                   )}
                                   {req.location && (
@@ -1379,7 +1401,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                             <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-4 py-2 text-right shrink-0 self-end sm:self-center hover:bg-emerald-100/50 transition-colors">
                               <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">
-                                Budget
+                                {t('customer.overview.budgetLabel', 'Budget')}
                               </span>
                               <span className="text-sm font-black text-emerald-700 font-mono">
                                 ₹{req.budget.toLocaleString()}
@@ -1396,35 +1418,35 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="rounded-3xl border border-slate-200/90 bg-gradient-to-br from-slate-900 via-blue-950 to-emerald-950 p-6 md:p-8 text-white shadow-md space-y-4">
                   <div className="space-y-1">
                     <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-                      COOPERATIVE WORKFLOW
+                      {t('customer.overview.coopWorkflowBadge', 'COOPERATIVE WORKFLOW')}
                     </span>
-                    <h3 className="text-xl font-bold text-white">The Cooperative Loop</h3>
-                    <p className="text-xs text-slate-300">Your request strengthens the local neighborhood network.</p>
+                    <h3 className="text-xl font-bold text-white">{t('customer.overview.coopLoopTitle', 'The Cooperative Loop')}</h3>
+                    <p className="text-xs text-slate-300">{t('customer.overview.coopLoopSubtitle', 'Your request strengthens the local neighborhood network.')}</p>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-4 pt-2 text-xs">
                     <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md">
                       <span className="font-mono text-emerald-400 font-bold">01</span>
-                      <p className="font-bold text-white mt-1">Request a service</p>
-                      <p className="text-[11px] text-slate-300 mt-0.5">Describe your household need & set budget.</p>
+                      <p className="font-bold text-white mt-1">{t('customer.overview.step1Title', 'Request a service')}</p>
+                      <p className="text-[11px] text-slate-300 mt-0.5">{t('customer.overview.step1Desc', 'Describe your household need & set budget.')}</p>
                     </div>
 
                     <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md">
                       <span className="font-mono text-emerald-400 font-bold">02</span>
-                      <p className="font-bold text-white mt-1">Connect with worker</p>
-                      <p className="text-[11px] text-slate-300 mt-0.5">Match with verified local skills nearby.</p>
+                      <p className="font-bold text-white mt-1">{t('customer.overview.step2Title', 'Connect with worker')}</p>
+                      <p className="text-[11px] text-slate-300 mt-0.5">{t('customer.overview.step2Desc', 'Match with verified local skills nearby.')}</p>
                     </div>
 
                     <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md">
                       <span className="font-mono text-emerald-400 font-bold">03</span>
-                      <p className="font-bold text-white mt-1">Complete the job</p>
-                      <p className="text-[11px] text-slate-300 mt-0.5">Track work & transparent 90/10 ledger payout.</p>
+                      <p className="font-bold text-white mt-1">{t('customer.overview.step3Title', 'Complete the job')}</p>
+                      <p className="text-[11px] text-slate-300 mt-0.5">{t('customer.overview.step3Desc', 'Track work & transparent 90/10 ledger payout.')}</p>
                     </div>
 
                     <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-md">
                       <span className="font-mono text-emerald-400 font-bold">04</span>
-                      <p className="font-bold text-white mt-1">Rate & strengthen</p>
-                      <p className="text-[11px] text-slate-300 mt-0.5">Build community trust through real ratings.</p>
+                      <p className="font-bold text-white mt-1">{t('customer.overview.step4Title', 'Rate & strengthen')}</p>
+                      <p className="text-[11px] text-slate-300 mt-0.5">{t('customer.overview.step4Desc', 'Build community trust through real ratings.')}</p>
                     </div>
                   </div>
                 </div>
@@ -1439,11 +1461,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
                     <div>
                       <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-                        CUSTOMER WORKSPACE
+                        {t('customer.requests.eyebrow', 'CUSTOMER WORKSPACE')}
                       </span>
-                      <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">My Service Requests</h2>
+                      <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">{t('customer.requests.title', 'My Service Requests')}</h2>
                       <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-                        Manage the services you've requested and track their execution progress in real-time.
+                        {t('customer.requests.subtitle', 'Manage the services you\'ve requested and track their execution progress in real-time.')}
                       </p>
                     </div>
 
@@ -1460,7 +1482,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 : 'text-slate-400 hover:text-white'
                             }`}
                           >
-                            {st}
+                            {getRequestStatusLabel(t, st) || st}
                           </button>
                         ))}
                       </div>
@@ -1470,19 +1492,17 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={fetchCustomerRequests}
                         disabled={isLoadingRequests}
                         className="p-2.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
-                        title="Refresh requests"
+                        title={t('common.refresh', 'Refresh requests')}
                       >
                         <RefreshCw className={`h-4 w-4 ${isLoadingRequests ? 'animate-spin text-emerald-400' : ''}`} />
                       </button>
-
-
 
                       <button
                         type="button"
                         onClick={() => setIsCreateModalOpen(true)}
                         className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2.5 text-xs font-black shadow-md transition-all inline-flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Plus className="h-4 w-4" /> Request a Service
+                        <Plus className="h-4 w-4" /> {t('customer.requests.create', 'Request a Service')}
                       </button>
                     </div>
                   </div>
@@ -1501,17 +1521,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     ) : filteredRequests.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-10 text-center">
                         <Wrench className="mx-auto h-8 w-8 text-slate-400" />
-                        <h3 className="mt-3 text-base font-bold text-slate-900">No {filterStatus.toLowerCase()} service requests</h3>
+                        <h3 className="mt-3 text-base font-bold text-slate-900">
+                          {t('customer.requests.emptyTitle', { status: getRequestStatusLabel(t, filterStatus) || filterStatus, defaultValue: `No ${filterStatus.toLowerCase()} service requests` })}
+                        </h3>
                         <p className="mt-1 text-xs text-slate-500">
                           {filterStatus === 'OPEN'
-                            ? 'Create a service request to get started.'
-                            : `You currently have no ${filterStatus.toLowerCase()} requests.`}
+                            ? t('customer.requests.emptyOpenHint', 'Create a service request to get started.')
+                            : t('customer.requests.emptyHint', { status: getRequestStatusLabel(t, filterStatus)?.toLowerCase() || filterStatus.toLowerCase(), defaultValue: `You currently have no ${filterStatus.toLowerCase()} requests.` })}
                         </p>
                       </div>
                     ) : (
                       <div className="grid gap-6 md:grid-cols-2">
                         {filteredRequests.map((req) => {
-                          const categoryInfo = CATEGORY_LABELS[req.category] || { label: req.category, description: '' };
                           const statusStr = req.jobStatus || req.status;
                           const currentStage =
                             statusStr === 'COMPLETED'
@@ -1532,7 +1553,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               <div className="space-y-4">
                                 <div className="flex items-center justify-between gap-2">
                                   <span className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
-                                    {categoryInfo.label}
+                                    {getCategoryLabel(t, req.category)}
                                   </span>
                                   <span
                                     className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
@@ -1558,7 +1579,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     ) : (
                                       <Clock3 className="h-3 w-3 text-amber-600" />
                                     )}
-                                    {statusStr === 'PAYMENT_REQUIRED' ? 'PAYMENT REQUIRED' : statusStr}
+                                    {statusStr === 'PAYMENT_REQUIRED' ? t('status.job.PAYMENT_REQUIRED', 'Payment Required') : (getJobStatusLabel(t, statusStr) || getRequestStatusLabel(t, statusStr))}
                                   </span>
                                 </div>
 
@@ -1572,10 +1593,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     </h3>
                                     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-slate-500">
                                       <span className="flex items-center gap-1 font-medium text-slate-600">
-                                        <MapPin className="h-3.5 w-3.5 text-slate-400" /> Location: <strong className="text-slate-800 font-semibold">{req.location}</strong>
+                                        <MapPin className="h-3.5 w-3.5 text-slate-400" /> {t('customer.requests.locationLabel', 'Location:')} <strong className="text-slate-800 font-semibold">{req.location}</strong>
                                       </span>
                                       <span className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-1 text-xs font-bold text-emerald-700">
-                                        Budget: <strong className="text-emerald-800 font-extrabold font-mono text-sm">₹{req.budget.toLocaleString()}</strong>
+                                        {t('customer.requests.budgetLabel', 'Budget:')} <strong className="text-emerald-800 font-extrabold font-mono text-sm">₹{req.budget.toLocaleString()}</strong>
                                       </span>
                                     </div>
                                   </div>
@@ -1585,16 +1606,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   <div className="pt-2.5 space-y-2">
                                     <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
                                       <span className={currentStage >= 1 ? 'text-emerald-700 flex items-center gap-1' : 'flex items-center gap-1'}>
-                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 1 ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Requested
+                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 1 ? 'bg-emerald-500' : 'bg-slate-300'}`} /> {t('customer.requests.stageRequested', 'Requested')}
                                       </span>
                                       <span className={currentStage >= 2 ? 'text-amber-700 flex items-center gap-1' : 'flex items-center gap-1'}>
-                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 2 ? 'bg-amber-500' : 'bg-slate-300'}`} /> Assigned
+                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 2 ? 'bg-amber-500' : 'bg-slate-300'}`} /> {t('customer.requests.stageAssigned', 'Assigned')}
                                       </span>
                                       <span className={currentStage >= 3 ? 'text-blue-700 flex items-center gap-1' : 'flex items-center gap-1'}>
-                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 3 ? 'bg-blue-500' : 'bg-slate-300'}`} /> In Progress
+                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 3 ? 'bg-blue-500' : 'bg-slate-300'}`} /> {t('customer.requests.stageInProgress', 'In Progress')}
                                       </span>
                                       <span className={currentStage >= 4 ? 'text-emerald-700 flex items-center gap-1' : 'flex items-center gap-1'}>
-                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 4 ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Completed
+                                        <span className={`h-1.5 w-1.5 rounded-full ${currentStage >= 4 ? 'bg-emerald-500' : 'bg-slate-300'}`} /> {t('customer.requests.stageCompleted', 'Completed')}
                                       </span>
                                     </div>
                                     <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex p-0.5 border border-slate-200/40">
@@ -1621,9 +1642,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                       {req.workerName ? req.workerName.substring(0, 2).toUpperCase() : 'GC'}
                                     </div>
                                     <div>
-                                      <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Assigned Worker</span>
+                                      <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">{t('customer.requests.assignedWorker', 'Assigned Worker')}</span>
                                       <span className="font-bold text-slate-900">
-                                        {req.workerName || 'Awaiting Worker Match'}
+                                        {req.workerName || t('customer.requests.awaitingWorkerMatch', 'Awaiting Worker Match')}
                                       </span>
                                     </div>
                                   </div>
@@ -1634,10 +1655,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                       className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer"
                                     >
                                       <MessageSquare className="h-3.5 w-3.5 text-emerald-400" />
-                                      <span>Chat with Worker</span>
+                                      <span>{t('customer.requests.chatWithWorker', 'Chat with Worker')}</span>
                                     </button>
                                   ) : (
-                                    <span className="inline-flex h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" title="Searching for worker" />
+                                    <span className="inline-flex h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" title={t('customer.requests.awaitingWorkerMatch', 'Searching for worker')} />
                                   )}
                                 </div>
                               </div>
@@ -1647,9 +1668,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   <button
                                     type="button"
                                     onClick={() => handleOpenDetail(req)}
-                                    className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
+                                    className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
                                   >
-                                    <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
+                                    <Eye className="h-3.5 w-3.5 text-slate-400" /> {t('customer.requests.viewDetails', 'View Details')}
                                   </button>
 
 
@@ -1665,7 +1686,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                       }}
                                       className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer"
                                     >
-                                      <CreditCard className="h-3.5 w-3.5" /> Pay Now
+                                      <CreditCard className="h-3.5 w-3.5" /> {t('customer.requests.payNow', 'Pay Now')}
                                     </button>
                                   )}
                                   {statusStr === 'COMPLETED' && req.jobId && (
@@ -1677,14 +1698,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                       }}
                                       className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition-colors inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
                                     >
-                                      <Receipt className="h-3.5 w-3.5 text-emerald-600" /> Invoice
+                                      <Receipt className="h-3.5 w-3.5 text-emerald-600" /> {t('customer.requests.invoice', 'Invoice')}
                                     </button>
                                   )}
                                 </div>
                                 {statusStr === 'COMPLETED' && (
                                   req.isRated ? (
                                     <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200/80 px-3.5 py-2 text-xs font-extrabold text-amber-700">
-                                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> Rated
+                                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> {t('customer.requests.rated', 'Rated')}
                                     </span>
                                   ) : (
                                     <button
@@ -1696,9 +1717,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                           setIsRatingModalOpen(true);
                                         }
                                       }}
-                                      className="rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5"
+                                      className="rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5 cursor-pointer"
                                     >
-                                      <Star className="h-3.5 w-3.5" /> Rate Service
+                                      <Star className="h-3.5 w-3.5" /> {t('customer.requests.rateService', 'Rate Service')}
                                     </button>
                                   )
                                 )}
@@ -1719,16 +1740,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
                       <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-                        DEMO PAYMENT SYSTEM
+                        {t('customer.payments.eyebrow', 'DEMO PAYMENT SYSTEM')}
                       </span>
-                      <h2 className="text-2xl sm:text-3xl font-black text-white mt-0.5">Payments & Receipts</h2>
+                      <h2 className="text-2xl sm:text-3xl font-black text-white mt-0.5">{t('customer.payments.title', 'Payments & Receipts')}</h2>
                       <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                        View demo payments, complete pending checkouts, and inspect tax invoices.
+                        {t('customer.payments.subtitle', 'View demo payments, complete pending checkouts, and inspect tax invoices.')}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-bold text-emerald-300 backdrop-blur-md">
-                        ✓ 256-Bit Demo Gateway Active
+                        {t('customer.payments.gatewayBadge', '✓ 256-Bit Demo Gateway Active')}
                       </span>
                     </div>
                   </div>
@@ -1738,11 +1759,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-semibold text-slate-600 block">Total Investment</span>
+                      <span className="text-xs font-semibold text-slate-600 block">{t('customer.payments.totalInvestment', 'Total Investment')}</span>
                       <div className="mt-1 text-2xl font-black text-emerald-700 font-mono">
                         ₹{requests.filter(r => (r.jobStatus || r.status) === 'COMPLETED').reduce((sum, r) => sum + (r.budget || 0), 0).toLocaleString()}
                       </div>
-                      <span className="text-[10px] font-semibold text-emerald-600 mt-1 block">Completed Services</span>
+                      <span className="text-[10px] font-semibold text-emerald-600 mt-1 block">{t('customer.payments.completedServices', 'Completed Services')}</span>
                     </div>
                     <div className="h-11 w-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
                       <IndianRupee className="h-5.5 w-5.5" />
@@ -1751,11 +1772,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                   <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 p-5 shadow-xs flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-semibold text-slate-600 block">Awaiting Payment</span>
+                      <span className="text-xs font-semibold text-slate-600 block">{t('customer.payments.awaitingPayment', 'Awaiting Payment')}</span>
                       <div className="mt-1 text-2xl font-black text-amber-700 font-mono">
                         {requests.filter(r => (r.jobStatus || r.status) === 'PAYMENT_REQUIRED').length}
                       </div>
-                      <span className="text-[10px] font-semibold text-amber-600 mt-1 block">Pending Customer Action</span>
+                      <span className="text-[10px] font-semibold text-amber-600 mt-1 block">{t('customer.payments.pendingAction', 'Pending Customer Action')}</span>
                     </div>
                     <div className="h-11 w-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
                       <Clock3 className="h-5.5 w-5.5" />
@@ -1764,11 +1785,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                   <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-semibold text-slate-600 block">Invoices Generated</span>
+                      <span className="text-xs font-semibold text-slate-600 block">{t('customer.payments.invoicesGenerated', 'Invoices Generated')}</span>
                       <div className="mt-1 text-2xl font-black text-blue-700 font-mono">
                         {requests.filter(r => (r.jobStatus || r.status) === 'COMPLETED').length}
                       </div>
-                      <span className="text-[10px] font-semibold text-blue-600 mt-1 block">Receipts Ready</span>
+                      <span className="text-[10px] font-semibold text-blue-600 mt-1 block">{t('customer.payments.receiptsReady', 'Receipts Ready')}</span>
                     </div>
                     <div className="h-11 w-11 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
                       <Receipt className="h-5.5 w-5.5" />
@@ -1782,8 +1803,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <div className="flex items-center gap-2">
                       <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
                       <div>
-                        <h3 className="text-base font-bold text-slate-900">Services Awaiting Payment</h3>
-                        <p className="text-xs text-slate-600">The worker has completed the service. Complete payment to finalize the job.</p>
+                        <h3 className="text-base font-bold text-slate-900">{t('customer.payments.awaitingPaymentTitle', 'Services Awaiting Payment')}</h3>
+                        <p className="text-xs text-slate-600">{t('customer.payments.awaitingPaymentSubtitle', 'The worker has completed the service. Complete payment to finalize the job.')}</p>
                       </div>
                     </div>
 
@@ -1793,9 +1814,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-slate-900 text-sm">{req.description}</span>
-                              <span className="rounded-md bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2 py-0.5">PAYMENT REQUIRED</span>
+                              <span className="rounded-md bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2 py-0.5">{t('status.job.PAYMENT_REQUIRED', 'PAYMENT REQUIRED')}</span>
                             </div>
-                            <p className="text-xs text-slate-500">Worker: <strong>{req.workerName || 'Assigned Worker'}</strong> · Job #{req.jobId || req.id}</p>
+                            <p className="text-xs text-slate-500">{t('customer.overview.assignedWorker', 'Worker:')} <strong>{req.workerName || t('customer.requests.awaitingWorkerMatch', 'Assigned Worker')}</strong> · Job #{req.jobId || req.id}</p>
                           </div>
 
                           <div className="flex items-center gap-3 self-end sm:self-center">
@@ -1811,7 +1832,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               }}
                               className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5 cursor-pointer"
                             >
-                              <CreditCard className="h-4 w-4" /> Pay Now
+                              <CreditCard className="h-4 w-4" /> {t('customer.payments.payNow', 'Pay Now')}
                             </button>
                           </div>
                         </div>
@@ -1824,19 +1845,19 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Payment & Invoice History</h3>
-                      <p className="text-xs text-slate-500">Receipts and invoices for completed service requests.</p>
+                      <h3 className="text-lg font-bold text-slate-900">{t('customer.payments.historyTitle', 'Payment & Invoice History')}</h3>
+                      <p className="text-xs text-slate-500">{t('customer.payments.historySubtitle', 'Receipts and invoices for completed service requests.')}</p>
                     </div>
                     <span className="rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-extrabold">
-                      {requests.filter(r => (r.jobStatus || r.status) === 'COMPLETED').length} Transactions
+                      {t('customer.payments.transactionsCount', { count: requests.filter(r => (r.jobStatus || r.status) === 'COMPLETED').length, defaultValue: `${requests.filter(r => (r.jobStatus || r.status) === 'COMPLETED').length} Transactions` })}
                     </span>
                   </div>
 
                   {requests.filter(r => (r.jobStatus || r.status) === 'COMPLETED').length === 0 ? (
                     <div className="py-12 text-center space-y-2 text-slate-500">
                       <Receipt className="h-10 w-10 mx-auto text-slate-300" />
-                      <p className="text-sm font-bold text-slate-700">No completed payments yet</p>
-                      <p className="text-xs text-slate-400">Completed jobs and payment receipts will appear here.</p>
+                      <p className="text-sm font-bold text-slate-700">{t('customer.payments.noPaymentsYet', 'No completed payments yet')}</p>
+                      <p className="text-xs text-slate-400">{t('customer.payments.noPaymentsYetSubtitle', 'Completed jobs and payment receipts will appear here.')}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1846,7 +1867,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-bold text-slate-900 text-sm">{req.description}</span>
                               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-700">
-                                <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Paid & Completed
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600" /> {t('customer.payments.paidAndCompleted', 'Paid & Completed')}
                               </span>
                             </div>
                             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
@@ -1866,7 +1887,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 }}
                                 className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition-colors inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
                               >
-                                <Receipt className="h-3.5 w-3.5 text-emerald-600" /> Invoice & Receipt
+                                <Receipt className="h-3.5 w-3.5 text-emerald-600" /> {t('customer.payments.invoiceAndReceipt', 'Invoice & Receipt')}
                               </button>
                             )}
                           </div>
@@ -1896,7 +1917,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                     <div className="space-y-2 text-center sm:text-left flex-1">
                       <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
-                        <h2 className="text-2xl font-black text-white tracking-tight">{user?.name || 'Customer Account'}</h2>
+                        <h2 className="text-2xl font-black text-white tracking-tight">{user?.name || t('customer.profile.customerAccount', 'Customer Account')}</h2>
                         <span className="rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-0.5 text-[11px] font-extrabold uppercase tracking-wider">
                           {user?.role || 'Customer'}
                         </span>
@@ -1916,32 +1937,32 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       <User className="h-4.5 w-4.5" />
                     </div>
                     <div>
-                      <h3 className="text-base font-extrabold text-slate-900">Account Details</h3>
+                      <h3 className="text-base font-extrabold text-slate-900">{t('customer.profile.accountDetails', 'Account Details')}</h3>
                     </div>
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 hover:border-emerald-300 hover:shadow-2xs transition-all">
-                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">Full Name</span>
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">{t('customer.profile.fullName', 'Full Name')}</span>
                       <span className="text-sm font-extrabold text-slate-900 block">{user?.name || 'John Customer'}</span>
                     </div>
 
                     <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 hover:border-emerald-300 hover:shadow-2xs transition-all">
-                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">Email Address</span>
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">{t('customer.profile.emailAddress', 'Email Address')}</span>
                       <span className="text-sm font-extrabold text-slate-900 block break-all">{user?.email || 'john.customer@example.com'}</span>
                     </div>
 
                     <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 hover:border-emerald-300 hover:shadow-2xs transition-all">
-                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">Account Role</span>
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">{t('customer.profile.accountRole', 'Account Role')}</span>
                       <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl uppercase tracking-wider">
                         {user?.role || 'CUSTOMER'}
                       </span>
                     </div>
 
                     <div className="rounded-2xl border border-slate-200/80 bg-white p-4.5 hover:border-emerald-300 hover:shadow-2xs transition-all">
-                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">Account Status</span>
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">{t('customer.profile.accountStatus', 'Account Status')}</span>
                       <span className="inline-flex items-center gap-2 text-xs font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Active
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> {t('customer.profile.active', 'Active')}
                       </span>
                     </div>
                   </div>
@@ -1954,14 +1975,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       <Activity className="h-4.5 w-4.5" />
                     </div>
                     <div>
-                      <h3 className="text-base font-extrabold text-slate-900">Activity Summary</h3>
+                      <h3 className="text-base font-extrabold text-slate-900">{t('customer.profile.activitySummary', 'Activity Summary')}</h3>
                     </div>
                   </div>
 
                   <div className="grid sm:grid-cols-3 gap-4">
                     <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/60 via-white to-slate-50 p-4.5 hover:border-blue-200 hover:shadow-xs transition-all">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Total Requests</span>
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">{t('customer.profile.totalRequests', 'Total Requests')}</span>
                         <Briefcase className="h-4 w-4 text-blue-600" />
                       </div>
                       <strong className="text-2xl font-black text-slate-900 font-mono block">{requests.length}</strong>
@@ -1969,7 +1990,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                     <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/60 via-white to-slate-50 p-4.5 hover:border-emerald-200 hover:shadow-xs transition-all">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Completed Services</span>
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">{t('customer.profile.completedServices', 'Completed Services')}</span>
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                       </div>
                       <strong className="text-2xl font-black text-emerald-700 font-mono block">
@@ -1979,7 +2000,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                     <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-slate-50 p-4.5 hover:border-indigo-200 hover:shadow-xs transition-all">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Total Spent</span>
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">{t('customer.profile.totalSpent', 'Total Spent')}</span>
                         <IndianRupee className="h-4 w-4 text-indigo-600" />
                       </div>
                       <strong className="text-2xl font-black text-slate-900 font-mono block">
@@ -2004,13 +2025,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
                     <div>
                       <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-                        WORKER WORKSPACE
+                        {t('worker.workspace', 'WORKER WORKSPACE')}
                       </span>
                       <h2 className="text-2xl sm:text-3xl font-bold text-white mt-1">
-                        Worker Operations & Execution
+                        {t('worker.dashboard.operationsTitle', 'Worker Operations & Execution')}
                       </h2>
                       <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-                        Manage your availability, discover jobs, execute assigned work, and track your cooperative earnings.
+                        {t('worker.dashboard.operationsSubtitle', 'Manage your availability, discover jobs, execute assigned work, and track your cooperative earnings.')}
                       </p>
                     </div>
 
@@ -2026,7 +2047,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
                           }`}
                         >
-                          {workerProfile.available ? 'Status: Available' : 'Status: Unavailable'}
+                          {workerProfile.available ? t('worker.dashboard.statusAvailable', 'Status: Available') : t('worker.dashboard.statusUnavailable', 'Status: Unavailable')}
                         </button>
 
                         <button
@@ -2037,13 +2058,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             fetchWorkerRatings();
                             fetchWorkerEarnings();
                             toast({
-                              title: 'Dashboard Refreshed',
-                              description: 'Worker profile, jobs, and earnings updated.',
+                              title: t('common.refreshed', 'Dashboard Refreshed'),
+                              description: t('worker.dashboard.refreshedDesc', 'Worker profile, jobs, and earnings updated.'),
                             });
                           }}
                           disabled={isLoadingProfile || isLoadingJobs || isLoadingWorkerEarnings}
                           className="p-2.5 rounded-xl border border-slate-700 bg-slate-800/80 text-slate-300 hover:text-white transition-colors disabled:opacity-50"
-                          title="Refresh worker workspace"
+                          title={t('worker.dashboard.refreshTitle', 'Refresh worker workspace')}
                         >
                           <RefreshCw className={`h-4 w-4 ${(isLoadingProfile || isLoadingJobs || isLoadingWorkerEarnings) ? 'animate-spin' : ''}`} />
                         </button>
@@ -2053,7 +2074,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           onClick={() => setIsProfileModalOpen(true)}
                           className="rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-700"
                         >
-                          Edit Profile
+                          {t('worker.profile.editProfileBtn', 'Edit Profile')}
                         </button>
                       </div>
                     )}
@@ -2065,18 +2086,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-lg text-white">{workerProfile.workerName}</span>
                           <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2.5 py-0.5 text-[10px] font-extrabold uppercase">
-                            {workerProfile.available ? 'AVAILABLE FOR WORK' : 'UNAVAILABLE'}
+                            {workerProfile.available ? t('worker.dashboard.availableBadge', 'AVAILABLE FOR WORK') : t('worker.dashboard.unavailableBadge', 'UNAVAILABLE')}
                           </span>
                         </div>
                         <p className="text-slate-400">
-                          ₹{workerProfile.hourlyRate}/hr • {workerProfile.experienceYears} Years Exp • {workerProfile.serviceLocation || 'Goa'} ({workerProfile.serviceRadiusKm || 15} km)
+                          ₹{workerProfile.hourlyRate}/hr • {workerProfile.experienceYears} {t('worker.profile.yearsExp', 'Years Exp')} • {workerProfile.serviceLocation || 'Goa'} ({workerProfile.serviceRadiusKm || 15} km)
                         </p>
                       </div>
 
                       <div className="flex flex-wrap gap-1.5">
                         {workerProfile.serviceCategories?.map((cat) => (
                           <span key={cat} className="rounded-lg bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-semibold text-emerald-300">
-                            {CATEGORY_LABELS[cat]?.label || cat}
+                            {getCategoryLabel(t, cat)}
                           </span>
                         ))}
                       </div>
@@ -2088,7 +2109,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                   <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-emerald-300 transition-all">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Available Jobs</span>
+                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">{t('navigation.availableJobs', 'Available Jobs')}</span>
                       <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
                         <Briefcase className="h-4.5 w-4.5" />
                       </div>
@@ -2098,14 +2119,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         {availableJobs.length}
                       </div>
                       <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100/70 rounded-full px-2.5 py-0.5">
-                        Matching Skills
+                        {t('worker.dashboard.matchingSkills', 'Matching Skills')}
                       </span>
                     </div>
                   </div>
 
                   <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-blue-300 transition-all">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Assigned Jobs</span>
+                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">{t('navigation.assignedJobs', 'Assigned Jobs')}</span>
                       <div className="h-9 w-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
                         <Clock3 className="h-4.5 w-4.5" />
                       </div>
@@ -2115,14 +2136,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         {assignedJobs.length}
                       </div>
                       <span className="inline-block text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-100/70 rounded-full px-2.5 py-0.5">
-                        Active Execution
+                        {t('worker.dashboard.activeExecution', 'Active Execution')}
                       </span>
                     </div>
                   </div>
 
                   <div className="rounded-2xl border border-teal-200/90 bg-gradient-to-br from-teal-50/70 via-white to-emerald-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-teal-300 transition-all">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Completed Jobs</span>
+                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">{t('worker.dashboard.completedJobs', 'Completed Jobs')}</span>
                       <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
                         <CheckCheck className="h-4.5 w-4.5" />
                       </div>
@@ -2132,14 +2153,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         {workerEarningsSummary?.totalJobs || assignedJobs.filter((j) => j.jobStatus === 'COMPLETED').length}
                       </div>
                       <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100/70 rounded-full px-2.5 py-0.5">
-                        Verified Work
+                        {t('worker.dashboard.verifiedWork', 'Verified Work')}
                       </span>
                     </div>
                   </div>
 
                   <div className="rounded-2xl border border-emerald-300 bg-gradient-to-br from-emerald-100/60 via-white to-emerald-50/80 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-emerald-400 transition-all">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-800 leading-tight">Ledger Balance</span>
+                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-800 leading-tight">{t('worker.dashboard.ledgerBalance', 'Ledger Balance')}</span>
                       <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
                         <IndianRupee className="h-4.5 w-4.5" />
                       </div>
@@ -2149,14 +2170,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         ₹{workerEarningsSummary?.totalWorkerEarnings?.toFixed(2) || '0.00'}
                       </div>
                       <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/50 rounded-full px-2.5 py-0.5">
-                        Net 90% Payout
+                        {t('worker.dashboard.netPayoutBadge', 'Net 90% Payout')}
                       </span>
                     </div>
                   </div>
 
                   <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-amber-300 transition-all">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Average Rating</span>
+                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">{t('worker.dashboard.averageRating', 'Average Rating')}</span>
                       <div className="h-9 w-9 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
                         <Star className="h-4.5 w-4.5 fill-white text-white" />
                       </div>
@@ -2166,7 +2187,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
                       </div>
                       <span className="inline-block text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-100/70 rounded-full px-2.5 py-0.5">
-                        ({workerRatingSummary?.totalRatings || 0} reviews)
+                        {t('worker.dashboard.reviewsCount', '({{count}} reviews)', { count: workerRatingSummary?.totalRatings || 0 })}
                       </span>
                     </div>
                   </div>
@@ -2181,18 +2202,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         <div className="flex items-center gap-2">
                           <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                           <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                            ACTIVE EXECUTION
+                            {t('worker.dashboard.activeExecutionUpper', 'ACTIVE EXECUTION')}
                           </span>
                         </div>
                         <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                          Recent Jobs Summary
+                          {t('worker.dashboard.recentJobsSummary', 'Recent Jobs Summary')}
                         </h3>
                       </div>
                       <button
                         onClick={() => setSearchParams({ tab: 'assigned' })}
                         className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200/80 bg-emerald-50/60 px-3.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-all shadow-2xs"
                       >
-                        View all assigned <ArrowRight className="h-3.5 w-3.5" />
+                        {t('worker.dashboard.viewAllAssigned', 'View all assigned')} <ArrowRight className="h-3.5 w-3.5" />
                       </button>
                     </div>
 
@@ -2202,8 +2223,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
                             <Briefcase className="h-5 w-5" />
                           </div>
-                          <p className="text-xs font-bold text-slate-800">No active or assigned jobs</p>
-                          <p className="text-[11px] text-slate-500">Check "Available Jobs" to discover and accept work nearby.</p>
+                          <p className="text-xs font-bold text-slate-800">{t('worker.assigned.noJobsTitle', 'No active or assigned jobs')}</p>
+                          <p className="text-[11px] text-slate-500">{t('worker.dashboard.noJobsHint', 'Check "Available Jobs" to discover and accept work nearby.')}</p>
                         </div>
                       ) : (
                         assignedJobs.slice(0, 3).map((job) => {
@@ -2238,12 +2259,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                       ) : (
                                         <Clock3 className="h-3 w-3 text-amber-600" />
                                       )}
-                                      {status}
+                                      {getJobStatusLabel(t, status)}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-3 text-[11px] text-slate-500">
                                     <span className="flex items-center gap-1 font-medium text-slate-600">
-                                      <User className="h-3.5 w-3.5 text-slate-400" /> Customer: <strong className="text-slate-800 font-semibold">{job.customerName || 'Customer'}</strong>
+                                      <User className="h-3.5 w-3.5 text-slate-400" /> {t('common.customer', 'Customer')}: <strong className="text-slate-800 font-semibold">{job.customerName || t('common.customer', 'Customer')}</strong>
                                     </span>
                                     {job.location && (
                                       <span className="flex items-center gap-1 hidden sm:flex">
@@ -2256,7 +2277,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                               <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3.5 py-1.5 text-right shrink-0 self-end sm:self-center">
                                 <span className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-800 block">
-                                  Job Budget
+                                  {t('worker.available.budget', 'Job Budget')}
                                 </span>
                                 <span className="text-sm font-black text-emerald-800 font-mono">
                                   ₹{job.budget}
@@ -2274,25 +2295,25 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     {/* OVERVIEW EARNINGS SUMMARY */}
                     <div className="rounded-3xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/60 via-white to-teal-50/30 p-6 shadow-xs space-y-3">
                       <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                        FINANCIAL SUMMARY
+                        {t('worker.dashboard.financialSummary', 'FINANCIAL SUMMARY')}
                       </span>
-                      <h4 className="text-base font-bold text-slate-900">Earnings Summary</h4>
+                      <h4 className="text-base font-bold text-slate-900">{t('worker.dashboard.earningsSummary', 'Earnings Summary')}</h4>
 
                       <div className="space-y-2 text-xs">
                         <div className="flex justify-between py-1 border-b border-slate-100">
-                          <span className="text-slate-500">Available in Ledger</span>
+                          <span className="text-slate-500">{t('worker.dashboard.availableInLedger', 'Available in Ledger')}</span>
                           <strong className="text-emerald-700 font-bold">
                             ₹{workerEarningsSummary?.totalWorkerEarnings?.toFixed(2) || '0.00'}
                           </strong>
                         </div>
                         <div className="flex justify-between py-1 border-b border-slate-100">
-                          <span className="text-slate-500">Gross Job Value</span>
+                          <span className="text-slate-500">{t('worker.dashboard.grossJobValue', 'Gross Job Value')}</span>
                           <strong className="text-slate-900">
                             ₹{workerEarningsSummary?.totalGross?.toFixed(2) || '0.00'}
                           </strong>
                         </div>
                         <div className="flex justify-between py-1 border-b border-slate-100">
-                          <span className="text-slate-500">Cooperative Fees (10%)</span>
+                          <span className="text-slate-500">{t('worker.dashboard.coopFeesPercent', 'Cooperative Fees (10%)')}</span>
                           <strong className="text-slate-600">
                             ₹{workerEarningsSummary?.totalPlatformFees?.toFixed(2) || '0.00'}
                           </strong>
@@ -2303,17 +2324,17 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'earnings' })}
                         className="w-full mt-2 rounded-xl border border-slate-200 bg-white py-2 text-center text-xs font-bold text-slate-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-colors shadow-xs"
                       >
-                        View Full Earnings Ledger →
+                        {t('worker.dashboard.viewFullLedger', 'View Full Earnings Ledger →')}
                       </button>
                     </div>
 
                     {/* OVERVIEW RATING SUMMARY */}
                     <div className="rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-50/60 via-white to-orange-50/30 p-6 shadow-xs space-y-3">
                       <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                        REPUTATION SUMMARY
+                        {t('worker.dashboard.reputationSummary', 'REPUTATION SUMMARY')}
                       </span>
                       <div className="flex items-center justify-between">
-                        <h4 className="text-base font-bold text-slate-900">Ratings & Reviews</h4>
+                        <h4 className="text-base font-bold text-slate-900">{t('worker.ratings.title', 'Ratings & Reviews')}</h4>
                         <div className="flex items-center gap-1 text-amber-600 font-bold text-sm">
                           <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                           {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
@@ -2321,14 +2342,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       </div>
 
                       <p className="text-xs text-slate-500">
-                        Based on {workerRatingSummary?.totalRatings || 0} verified customer job reviews.
+                        {t('worker.dashboard.basedOnReviews', 'Based on {{count}} verified customer job reviews.', { count: workerRatingSummary?.totalRatings || 0 })}
                       </p>
 
                       <button
                         onClick={() => setSearchParams({ tab: 'ratings' })}
                         className="w-full mt-2 rounded-xl border border-slate-200 bg-white py-2 text-center text-xs font-bold text-slate-700 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-colors shadow-xs"
                       >
-                        View All Reviews →
+                        {t('worker.dashboard.viewAllReviews', 'View All Reviews →')}
                       </button>
                     </div>
                   </div>
@@ -2337,32 +2358,32 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 {/* WORKER QUICK ACTIONS ROW */}
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-3">
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                    QUICK ACTIONS
+                    {t('worker.dashboard.quickActionsUpper', 'QUICK ACTIONS')}
                   </span>
                   <div className="flex flex-wrap items-center gap-3">
                     <button
                       onClick={() => setSearchParams({ tab: 'available' })}
                       className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
                     >
-                      <Search className="h-4 w-4" /> Find Available Jobs
+                      <Search className="h-4 w-4" /> {t('worker.dashboard.findAvailableJobs', 'Find Available Jobs')}
                     </button>
                     <button
                       onClick={() => setSearchParams({ tab: 'assigned' })}
                       className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
                     >
-                      <Briefcase className="h-4 w-4 text-slate-500" /> View Assigned Jobs
+                      <Briefcase className="h-4 w-4 text-slate-500" /> {t('worker.dashboard.viewAssignedJobs', 'View Assigned Jobs')}
                     </button>
                     <button
                       onClick={() => setSearchParams({ tab: 'earnings' })}
                       className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
                     >
-                      <Wallet className="h-4 w-4 text-slate-500" /> View Earnings
+                      <Wallet className="h-4 w-4 text-slate-500" /> {t('worker.dashboard.viewEarnings', 'View Earnings')}
                     </button>
                     <button
                       onClick={() => setSearchParams({ tab: 'ratings' })}
                       className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
                     >
-                      <Star className="h-4 w-4 text-slate-500" /> View Reviews
+                      <Star className="h-4 w-4 text-slate-500" /> {t('worker.dashboard.viewReviews', 'View Reviews')}
                     </button>
                   </div>
                 </div>
@@ -2376,11 +2397,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                        JOB DISCOVERY WORKSPACE
+                        {t('worker.available.discoveryWorkspace', 'JOB DISCOVERY WORKSPACE')}
                       </span>
-                      <h2 className="text-2xl font-bold text-slate-900 mt-0.5">Available Jobs</h2>
+                      <h2 className="text-2xl font-bold text-slate-900 mt-0.5">{t('navigation.availableJobs', 'Available Jobs')}</h2>
                       <p className="text-xs text-slate-600 mt-1">
-                        Find service requests that match your skills and availability.
+                        {t('worker.available.subtitle', 'Find service requests that match your skills and availability.')}
                       </p>
                     </div>
                     <button
@@ -2388,7 +2409,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       onClick={fetchWorkerJobs}
                       disabled={isLoadingJobs}
                       className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50"
-                      title="Refresh available jobs"
+                      title={t('worker.available.refreshTitle', 'Refresh available jobs')}
                     >
                       <RefreshCw className={`h-4 w-4 ${isLoadingJobs ? 'animate-spin' : ''}`} />
                     </button>
@@ -2406,9 +2427,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   ) : availableJobs.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center space-y-3">
                       <Search className="mx-auto h-8 w-8 text-slate-400" />
-                      <h3 className="text-base font-bold text-slate-900">No available jobs right now</h3>
+                      <h3 className="text-base font-bold text-slate-900">{t('worker.available.noJobsTitle', 'No available jobs right now')}</h3>
                       <p className="text-xs text-slate-500 max-w-md mx-auto">
-                        New service opportunities will appear here when customers submit requests matching your skills.
+                        {t('worker.available.noJobsDesc', 'New service opportunities will appear here when customers submit requests matching your skills.')}
                       </p>
                     </div>
                   ) : (
@@ -2421,10 +2442,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           <div className="space-y-5">
                             <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
                               <span className="rounded-xl bg-emerald-50 border border-emerald-200/60 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
-                                {CATEGORY_LABELS[job.category]?.label || job.category}
+                                {getCategoryLabel(t, job.category)}
                               </span>
                               <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 border border-slate-200 px-3 py-1 text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">
-                                <Clock3 className="h-3.5 w-3.5 text-emerald-600 animate-pulse" /> OPEN
+                                <Clock3 className="h-3.5 w-3.5 text-emerald-600 animate-pulse" /> {getJobStatusLabel(t, 'OPEN')}
                               </span>
                             </div>
 
@@ -2439,7 +2460,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     <MapPin className="h-3.5 w-3.5 text-slate-400" /> {job.location || 'Goa'}
                                   </span>
                                   <span className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
-                                    Budget: <strong className="text-emerald-900 font-extrabold font-mono text-sm ml-1">₹{job.budget.toLocaleString()}</strong>
+                                    {t('requests.budget', 'Budget')}: <strong className="text-emerald-900 font-extrabold font-mono text-sm ml-1">₹{job.budget.toLocaleString()}</strong>
                                   </span>
                                 </div>
                               </div>
@@ -2452,7 +2473,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               onClick={() => handleOpenDetail(job)}
                               className="flex-1 rounded-xl border border-slate-300 bg-white py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
                             >
-                              <Eye className="h-4 w-4 text-slate-400" /> Details
+                              <Eye className="h-4 w-4 text-slate-400" /> {t('common.details', 'Details')}
                             </button>
 
                             <button
@@ -2463,10 +2484,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             >
                               {acceptingRequestId === job.id ? (
                                 <>
-                                  <RefreshCw className="h-4 w-4 animate-spin" /> Accepting...
+                                  <RefreshCw className="h-4 w-4 animate-spin" /> {t('worker.available.accepting', 'Accepting...')}
                                 </>
                               ) : (
-                                'Accept Job'
+                                t('worker.available.acceptBtn', 'Accept Job')
                               )}
                             </button>
                           </div>
@@ -2485,11 +2506,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                       <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                        JOB EXECUTION WORKSPACE
+                        {t('worker.assigned.executionWorkspace', 'JOB EXECUTION WORKSPACE')}
                       </span>
-                      <h2 className="text-2xl font-bold text-slate-900 mt-0.5">Assigned Jobs</h2>
+                      <h2 className="text-2xl font-bold text-slate-900 mt-0.5">{t('navigation.assignedJobs', 'Assigned Jobs')}</h2>
                       <p className="text-xs text-slate-600 mt-1">
-                        Manage accepted service jobs and track execution progress.
+                        {t('worker.assigned.subtitle', 'Manage accepted service jobs and track execution progress.')}
                       </p>
                     </div>
 
@@ -2506,7 +2527,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 : 'text-slate-600 hover:text-slate-900'
                             }`}
                           >
-                            {st === 'PAYMENT_REQUIRED' ? 'AWAITING PAYMENT' : st}
+                            {st === 'ALL' ? t('common.all', 'All') : getJobStatusLabel(t, st)}
                           </button>
                         ))}
                       </div>
@@ -2516,7 +2537,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={fetchWorkerJobs}
                         disabled={isLoadingJobs}
                         className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50"
-                        title="Refresh assigned jobs"
+                        title={t('worker.assigned.refreshTitle', 'Refresh assigned jobs')}
                       >
                         <RefreshCw className={`h-4 w-4 ${isLoadingJobs ? 'animate-spin' : ''}`} />
                       </button>
@@ -2526,9 +2547,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   {filteredAssignedJobs.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center space-y-3">
                       <Briefcase className="mx-auto h-8 w-8 text-slate-400" />
-                      <h3 className="text-base font-bold text-slate-900">No assigned jobs</h3>
+                      <h3 className="text-base font-bold text-slate-900">{t('worker.assigned.noJobsTitle', 'No assigned jobs')}</h3>
                       <p className="text-xs text-slate-500 max-w-md mx-auto">
-                        Accept jobs from the Available Jobs tab to manage job execution here.
+                        {t('worker.assigned.noJobsDesc', 'Accept jobs from the Available Jobs tab to manage job execution here.')}
                       </p>
                     </div>
                   ) : (
@@ -2548,7 +2569,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             <div className="space-y-5">
                               <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
                                 <span className="rounded-xl bg-emerald-50 border border-emerald-200/60 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
-                                  {CATEGORY_LABELS[job.category]?.label || job.category}
+                                  {getCategoryLabel(t, job.category)}
                                 </span>
                                 <span
                                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider ${
@@ -2570,7 +2591,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   ) : (
                                     <Clock3 className="h-3.5 w-3.5 text-slate-600" />
                                   )}
-                                  {isPaymentRequired ? 'AWAITING PAYMENT' : status}
+                                  {getJobStatusLabel(t, status)}
                                 </span>
                               </div>
 
@@ -2584,10 +2605,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   </h3>
                                   <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-slate-600">
                                     <span className="flex items-center gap-1.5 font-medium bg-slate-100/80 px-2.5 py-1 rounded-lg border border-slate-200/60">
-                                      <User className="h-3.5 w-3.5 text-slate-400" /> Customer: <strong className="text-slate-900 font-bold">{job.customerName || 'Customer'}</strong>
+                                      <User className="h-3.5 w-3.5 text-slate-400" /> {t('common.customer', 'Customer')}: <strong className="text-slate-900 font-bold">{job.customerName || t('common.customer', 'Customer')}</strong>
                                     </span>
                                     <span className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs">
-                                      Budget: <strong className="text-emerald-900 font-extrabold font-mono text-sm ml-1">₹{job.budget.toLocaleString()}</strong>
+                                      {t('requests.budget', 'Budget')}: <strong className="text-emerald-900 font-extrabold font-mono text-sm ml-1">₹{job.budget.toLocaleString()}</strong>
                                     </span>
                                   </div>
                                 </div>
@@ -2597,16 +2618,16 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               <div className="pt-2 space-y-2.5 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100">
                                 <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wide">
                                   <span className="text-emerald-700 flex items-center gap-1">
-                                    <span className="h-2 w-2 rounded-full bg-emerald-500" /> Assigned
+                                    <span className="h-2 w-2 rounded-full bg-emerald-500" /> {getJobStatusLabel(t, 'ASSIGNED')}
                                   </span>
                                   <span className={isInProgress || isPaymentRequired || isCompleted ? 'text-blue-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
-                                    <span className={`h-2 w-2 rounded-full ${isInProgress || isPaymentRequired || isCompleted ? 'bg-blue-500' : 'bg-slate-300'}`} /> In Progress
+                                    <span className={`h-2 w-2 rounded-full ${isInProgress || isPaymentRequired || isCompleted ? 'bg-blue-500' : 'bg-slate-300'}`} /> {getJobStatusLabel(t, 'IN_PROGRESS')}
                                   </span>
                                   <span className={isPaymentRequired || isCompleted ? 'text-amber-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
-                                    <span className={`h-2 w-2 rounded-full ${isPaymentRequired || isCompleted ? 'bg-amber-500' : 'bg-slate-300'}`} /> Awaiting Payment
+                                    <span className={`h-2 w-2 rounded-full ${isPaymentRequired || isCompleted ? 'bg-amber-500' : 'bg-slate-300'}`} /> {getJobStatusLabel(t, 'PAYMENT_REQUIRED')}
                                   </span>
                                   <span className={isCompleted ? 'text-emerald-700 flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
-                                    <span className={`h-2 w-2 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} /> Completed
+                                    <span className={`h-2 w-2 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-slate-300'}`} /> {getJobStatusLabel(t, 'COMPLETED')}
                                   </span>
                                 </div>
                                 <div className="h-2.5 w-full bg-slate-200/70 rounded-full overflow-hidden flex p-0.5 border border-slate-200/60">
@@ -2638,10 +2659,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   >
                                     {operatingJobId === job.id ? (
                                       <>
-                                        <RefreshCw className="h-4 w-4 animate-spin" /> Starting Execution...
+                                        <RefreshCw className="h-4 w-4 animate-spin" /> {t('worker.assigned.startingExecution', 'Starting Execution...')}
                                       </>
                                     ) : (
-                                      'Start Job Execution'
+                                      t('worker.assigned.startJobBtn', 'Start Job Execution')
                                     )}
                                   </button>
                                   <button
@@ -2650,7 +2671,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     disabled={operatingJobId === job.id}
                                     className="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 px-4 py-2.5 text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                                   >
-                                    Decline
+                                    {t('worker.available.declineBtn', 'Decline')}
                                   </button>
                                 </div>
                               )}
@@ -2665,10 +2686,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   >
                                     {operatingJobId === job.id ? (
                                       <>
-                                        <RefreshCw className="h-4 w-4 animate-spin" /> Submitting Completion...
+                                        <RefreshCw className="h-4 w-4 animate-spin" /> {t('worker.assigned.submittingCompletion', 'Submitting Completion...')}
                                       </>
                                     ) : (
-                                      'Complete Job'
+                                      t('worker.assigned.completeJobBtn', 'Complete Job')
                                     )}
                                   </button>
                                   <button
@@ -2677,7 +2698,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     disabled={operatingJobId === job.id}
                                     className="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 px-4 py-2.5 text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                                   >
-                                    Decline
+                                    {t('worker.available.declineBtn', 'Decline')}
                                   </button>
                                 </div>
                               )}
@@ -2685,7 +2706,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               {isPaymentRequired && (
                                 <div className="rounded-xl bg-amber-50/90 border border-amber-200 p-2.5 text-xs font-bold text-amber-900 flex items-center justify-center gap-2 shadow-2xs">
                                   <Clock3 className="h-4 w-4 text-amber-600 shrink-0" />
-                                  <span>Awaiting Customer Payment</span>
+                                  <span>{t('worker.assigned.awaitingCustomerPayment', 'Awaiting Customer Payment')}</span>
                                 </div>
                               )}
 
@@ -2715,7 +2736,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   })}
                                   className="flex-1 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition-colors inline-flex items-center justify-center gap-1.5 shadow-2xs"
                                 >
-                                  <Eye className="h-3.5 w-3.5 text-slate-400" /> View Details
+                                  <Eye className="h-3.5 w-3.5 text-slate-400" /> {t('common.viewDetails', 'View Details')}
                                 </button>
 
                                 <button
@@ -2724,7 +2745,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   className="flex-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 text-xs font-bold transition-all shadow-2xs inline-flex items-center justify-center gap-1.5 cursor-pointer"
                                 >
                                   <MessageSquare className="h-3.5 w-3.5 text-emerald-400" />
-                                  <span>Open Chat</span>
+                                  <span>{t('chat.openChat', 'Open Chat')}</span>
                                 </button>
 
                                 {isCompleted && (
@@ -2735,10 +2756,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                       setIsInvoiceModalOpen(true);
                                     }}
                                     className="rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-3.5 py-2 text-xs font-bold transition-all shadow-2xs inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                                    title="View Job Invoice"
+                                    title={t('invoice.viewTaxInvoice', 'View Job Invoice')}
                                   >
                                     <Receipt className="h-3.5 w-3.5 text-emerald-600" />
-                                    <span>Invoice</span>
+                                    <span>{t('invoice.title', 'Invoice')}</span>
                                   </button>
                                 )}
                               </div>
@@ -2758,11 +2779,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-                      FINANCIAL TRANSPARENCY
+                      {t('worker.earnings.financialTransparency', 'FINANCIAL TRANSPARENCY')}
                     </span>
-                    <h2 className="text-2xl font-bold text-slate-900 mt-0.5">💰 Earnings Ledger</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 mt-0.5">💰 {t('worker.earnings.title', 'Earnings Ledger')}</h2>
                     <p className="text-xs text-slate-600 mt-0.5">
-                      Transparent record of completed job earnings with 10% cooperative fee deduction.
+                      {t('worker.earnings.subtitle', 'Transparent record of completed job earnings with 10% cooperative fee deduction.')}
                     </p>
                   </div>
                   <button
@@ -2770,13 +2791,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     onClick={async () => {
                       await Promise.all([fetchWorkerEarnings(), fetchWorkerJobs()]);
                       toast({
-                        title: 'Earnings Refreshed',
-                        description: 'Your cooperative earnings ledger has been updated.',
+                        title: t('common.refreshed', 'Earnings Refreshed'),
+                        description: t('worker.earnings.refreshedDesc', 'Your cooperative earnings ledger has been updated.'),
                       });
                     }}
                     disabled={isLoadingWorkerEarnings}
                     className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50"
-                    title="Refresh Earnings Ledger"
+                    title={t('worker.earnings.refreshTitle', 'Refresh Earnings Ledger')}
                   >
                     <RefreshCw className={`h-4 w-4 ${isLoadingWorkerEarnings ? 'animate-spin' : ''}`} />
                   </button>
@@ -2793,7 +2814,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       <div className="text-2xl font-bold text-slate-900">
                         ₹{workerEarningsSummary?.totalWorkerEarnings?.toFixed(2) || '0.00'}
                       </div>
-                      <span className="text-[11px] font-bold text-emerald-700 block">Available in GigCircle Ledger</span>
+                      <span className="text-[11px] font-bold text-emerald-700 block">{t('worker.earnings.availableInLedger', 'Available in GigCircle Ledger')}</span>
                     </div>
                   </div>
 
@@ -2806,7 +2827,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       <div className="text-2xl font-bold text-slate-900">
                         ₹{workerEarningsSummary?.totalGross?.toFixed(2) || '0.00'}
                       </div>
-                      <span className="text-[11px] font-semibold text-slate-500 block">Total Gross Job Value</span>
+                      <span className="text-[11px] font-semibold text-slate-500 block">{t('worker.earnings.totalGross', 'Total Gross Job Value')}</span>
                     </div>
                   </div>
 
@@ -2819,7 +2840,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       <div className="text-2xl font-bold text-slate-900">
                         ₹{workerEarningsSummary?.totalPlatformFees?.toFixed(2) || '0.00'}
                       </div>
-                      <span className="text-[11px] font-semibold text-slate-500 block">Cooperative Fees (10%)</span>
+                      <span className="text-[11px] font-semibold text-slate-500 block">{t('worker.earnings.coopFees', 'Cooperative Fees (10%)')}</span>
                     </div>
                   </div>
 
@@ -2832,7 +2853,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       <div className="text-2xl font-bold text-slate-900">
                         {workerEarningsSummary?.totalJobs || 0}
                       </div>
-                      <span className="text-[11px] font-semibold text-slate-500 block">Completed Jobs</span>
+                      <span className="text-[11px] font-semibold text-slate-500 block">{t('worker.earnings.completedJobs', 'Completed Jobs')}</span>
                     </div>
                   </div>
                 </div>
@@ -2841,14 +2862,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="rounded-2xl border border-emerald-300 bg-emerald-50/60 p-4 text-xs flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-2 text-emerald-900 font-bold">
                     <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                    <span>Transparent Cooperative Ledger Formula:</span>
+                    <span>{t('worker.earnings.formulaTitle', 'Transparent Cooperative Ledger Formula:')}</span>
                   </div>
                   <div className="flex items-center gap-3 font-mono font-bold text-slate-800">
-                    <span>Gross Job Value</span>
+                    <span>{t('worker.earnings.grossLabel', 'Gross Job Value')}</span>
                     <span className="text-slate-400">→</span>
-                    <span className="text-slate-600">10% Cooperative Fee</span>
+                    <span className="text-slate-600">{t('worker.earnings.coopFeeLabel', '10% Cooperative Fee')}</span>
                     <span className="text-slate-400">→</span>
-                    <span className="text-emerald-700">90% Worker Payout</span>
+                    <span className="text-emerald-700">{t('worker.earnings.payoutLabel', '90% Worker Payout')}</span>
                   </div>
                 </div>
 
@@ -2858,7 +2879,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <div className="h-7 w-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
                       <Receipt className="h-4 w-4" />
                     </div>
-                    <h3 className="text-base font-extrabold text-slate-900">Completed Job Transactions</h3>
+                    <h3 className="text-base font-extrabold text-slate-900">{t('worker.earnings.transactionsTitle', 'Completed Job Transactions')}</h3>
                   </div>
 
                   <div className="space-y-3">
@@ -2867,8 +2888,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
                           <Receipt className="h-5 w-5" />
                         </div>
-                        <p className="text-xs font-bold text-slate-800">No earnings transactions recorded yet</p>
-                        <p className="text-[11px] text-slate-500">Complete assigned jobs to generate payouts and ledger entries.</p>
+                        <p className="text-xs font-bold text-slate-800">{t('worker.earnings.noEarningsTitle', 'No earnings transactions recorded yet')}</p>
+                        <p className="text-[11px] text-slate-500">{t('worker.earnings.noEarningsDesc', 'Complete assigned jobs to generate payouts and ledger entries.')}</p>
                       </div>
                     ) : (
                       workerEarnings.map((e) => (
@@ -2882,10 +2903,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             </div>
                             <div>
                               <span className="font-bold text-slate-900 text-sm group-hover:text-emerald-950 block">
-                                Job Contract #{e.jobId}
+                                {t('worker.earnings.jobContract', 'Job Contract #{{id}}', { id: e.jobId })}
                               </span>
                               <span className="text-slate-500 text-[11px] flex items-center gap-1 mt-0.5">
-                                Gross Amount: <strong className="text-slate-700 font-semibold">₹{e.grossAmount?.toFixed(2)}</strong>
+                                {t('worker.earnings.grossAmount', 'Gross Amount')}: <strong className="text-slate-700 font-semibold">₹{e.grossAmount?.toFixed(2)}</strong>
                               </span>
                             </div>
                           </div>
@@ -2894,10 +2915,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               <span className="text-emerald-700 font-extrabold text-sm block leading-tight">
                                 +₹{e.workerEarning?.toFixed(2)}
                               </span>
-                              <span className="text-slate-400 text-[10px]">Cooperative Payout (90%)</span>
+                              <span className="text-slate-400 text-[10px]">{t('worker.earnings.coopPayout', 'Cooperative Payout (90%)')}</span>
                             </div>
                             <div className="rounded-xl bg-slate-100 border border-slate-200/60 px-3 py-1.5 text-right hidden sm:block">
-                              <span className="text-slate-600 font-extrabold text-[10px] block leading-none">Coop Fee</span>
+                              <span className="text-slate-600 font-extrabold text-[10px] block leading-none">{t('worker.earnings.coopFee', 'Coop Fee')}</span>
                               <span className="text-slate-500 text-[10px] font-medium block mt-0.5">
                                 ₹{e.platformFee?.toFixed(2)} (10%)
                               </span>
@@ -2909,10 +2930,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 setIsInvoiceModalOpen(true);
                               }}
                               className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 p-2 text-xs font-bold text-slate-700 transition-colors shadow-2xs inline-flex items-center gap-1.5"
-                              title="View Tax Invoice"
+                              title={t('invoice.viewTaxInvoice', 'View Tax Invoice')}
                             >
                               <Receipt className="h-3.5 w-3.5 text-emerald-600" />
-                              <span className="hidden md:inline">Invoice</span>
+                              <span className="hidden md:inline">{t('invoice.title', 'Invoice')}</span>
                             </button>
                           </div>
                         </div>
@@ -2931,14 +2952,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <div className="flex items-center gap-2">
                       <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                       <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-700">
-                        PUBLIC REPUTATION
+                        {t('worker.ratings.publicReputation', 'PUBLIC REPUTATION')}
                       </span>
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                      Ratings & Reviews
+                      {t('worker.ratings.title', 'Ratings & Reviews')}
                     </h2>
                     <p className="text-xs text-slate-600 leading-relaxed">
-                      Verified customer ratings & feedback from completed community service jobs.
+                      {t('worker.ratings.subtitle', 'Verified customer ratings & feedback from completed community service jobs.')}
                     </p>
                   </div>
 
@@ -2948,13 +2969,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       onClick={async () => {
                         await fetchWorkerRatings();
                         toast({
-                          title: 'Ratings Refreshed',
-                          description: 'Customer ratings and review summaries updated.',
+                          title: t('common.refreshed', 'Ratings Refreshed'),
+                          description: t('worker.ratings.refreshedDesc', 'Customer ratings and review summaries updated.'),
                         });
                       }}
                       disabled={isLoadingWorkerRatings}
                       className="p-2.5 rounded-xl border border-amber-200 bg-white text-amber-700 hover:text-amber-900 transition-colors disabled:opacity-50"
-                      title="Refresh reviews"
+                      title={t('worker.ratings.refreshTitle', 'Refresh reviews')}
                     >
                       <RefreshCw className={`h-4 w-4 ${isLoadingWorkerRatings ? 'animate-spin' : ''}`} />
                     </button>
@@ -2968,7 +2989,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'}
                         </span>
                         <span className="text-[11px] font-bold text-amber-700 block mt-1">
-                          {workerRatingSummary?.totalRatings || 0} verified reviews
+                          {t('worker.ratings.verifiedReviews', '{{count}} verified reviews', { count: workerRatingSummary?.totalRatings || 0 })}
                         </span>
                       </div>
                     </div>
@@ -2981,7 +3002,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <div className="h-7 w-7 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
                       <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                     </div>
-                    <h3 className="text-base font-extrabold text-slate-900">Customer Feedback</h3>
+                    <h3 className="text-base font-extrabold text-slate-900">{t('worker.ratings.customerFeedback', 'Customer Feedback')}</h3>
                   </div>
 
                   {workerRatings.length === 0 ? (
@@ -2989,8 +3010,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100">
                         <Star className="h-5.5 w-5.5 fill-amber-400 text-amber-400 animate-pulse" />
                       </div>
-                      <h4 className="text-sm font-bold text-slate-800">No reviews received yet</h4>
-                      <p className="text-xs text-slate-500">Complete assigned community jobs to start receiving verified customer ratings.</p>
+                      <h4 className="text-sm font-bold text-slate-800">{t('worker.ratings.noRatingsTitle', 'No reviews received yet')}</h4>
+                      <p className="text-xs text-slate-500">{t('worker.ratings.noRatingsDesc', 'Complete assigned community jobs to start receiving verified customer ratings.')}</p>
                     </div>
                   ) : (
                     <div className="grid gap-4 md:grid-cols-2">
@@ -3002,10 +3023,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5">
                               <div className="h-8 w-8 rounded-full bg-slate-900 text-white font-extrabold text-[10px] flex items-center justify-center shadow-xs shrink-0">
-                                {(rating.customerName || 'Customer').substring(0, 2).toUpperCase()}
+                                {(rating.customerName || t('common.customer', 'Customer')).substring(0, 2).toUpperCase()}
                               </div>
                               <span className="font-extrabold text-slate-900 text-xs truncate">
-                                {rating.customerName || `Customer #${rating.customerId}`}
+                                {rating.customerName || `${t('common.customer', 'Customer')} #${rating.customerId}`}
                               </span>
                             </div>
                             <div className="inline-flex items-center gap-1 rounded-xl bg-amber-50 border border-amber-200/80 px-2.5 py-1 text-amber-700 font-extrabold text-xs shrink-0 shadow-2xs">
@@ -3016,7 +3037,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           <div className="relative">
                             <span className="absolute -top-3 -left-1 text-slate-200 text-3xl font-serif select-none pointer-events-none">“</span>
                             <p className="text-xs text-slate-600 italic pl-3 relative z-10 leading-relaxed font-medium">
-                              {rating.review || 'Great service quality!'}
+                              {rating.review || t('ratings.modal.commentsPlaceholder', 'Great service quality!')}
                             </p>
                           </div>
                         </div>
@@ -3041,13 +3062,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                   <div className="space-y-2 text-center sm:text-left flex-1">
                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                      <h2 className="text-2xl font-black text-slate-900">{workerProfile?.workerName || 'Worker Profile'}</h2>
+                      <h2 className="text-2xl font-black text-slate-900">{workerProfile?.workerName || t('worker.profile.title', 'Worker Profile')}</h2>
                       <span className={`rounded-lg border px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
                         workerProfile?.available
                           ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                           : 'bg-slate-100 border-slate-200 text-slate-500'
                       }`}>
-                        {workerProfile?.available ? 'Available' : 'Unavailable'}
+                        {workerProfile?.available ? t('common.available', 'Available') : t('common.unavailable', 'Unavailable')}
                       </span>
                     </div>
 
@@ -3056,7 +3077,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-600 font-medium">
                       <span className="flex items-center gap-1 text-amber-600 font-bold">
                         <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                        {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'} ({workerRatingSummary?.totalRatings || 0} reviews)
+                        {workerRatingSummary?.averageRating ? workerRatingSummary.averageRating.toFixed(1) : '5.0'} ({t('worker.ratings.verifiedReviews', '{{count}} verified reviews', { count: workerRatingSummary?.totalRatings || 0 })})
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin className="h-3.5 w-3.5 text-slate-400" /> {workerProfile?.serviceLocation || 'Goa'}
@@ -3069,7 +3090,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     onClick={() => setIsProfileModalOpen(true)}
                     className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
                   >
-                    <Edit className="h-3.5 w-3.5 text-slate-400" /> Edit Profile
+                    <Edit className="h-3.5 w-3.5 text-slate-400" /> {t('worker.profile.editProfileBtn', 'Edit Profile')}
                   </button>
                 </div>
 
@@ -3079,28 +3100,28 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <div className="h-7 w-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
                       <Wrench className="h-4 w-4" />
                     </div>
-                    <h3 className="text-base font-extrabold text-slate-900">Professional Information</h3>
+                    <h3 className="text-base font-extrabold text-slate-900">{t('worker.profile.profInfo', 'Professional Information')}</h3>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-2">
                     <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Hourly Rate</span>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">{t('worker.profile.hourlyRate', 'Hourly Rate')}</span>
                       <strong className="text-lg font-black text-emerald-700 font-mono block mt-1">₹{workerProfile?.hourlyRate || 100}/hr</strong>
                     </div>
                     <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Experience</span>
-                      <strong className="text-lg font-extrabold text-slate-900 block mt-1">{workerProfile?.experienceYears || 2} Years</strong>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">{t('worker.profile.experience', 'Experience')}</span>
+                      <strong className="text-lg font-extrabold text-slate-900 block mt-1">{workerProfile?.experienceYears || 2} {t('worker.profile.yearsExp', 'Years Exp')}</strong>
                     </div>
                     <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Service Radius</span>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">{t('worker.profile.serviceRadius', 'Service Radius')}</span>
                       <strong className="text-lg font-extrabold text-slate-900 block mt-1">{workerProfile?.serviceRadiusKm || 15} km</strong>
                     </div>
                     <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">Skills & Categories</span>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">{t('worker.profile.skillsTitle', 'Skills & Categories')}</span>
                       <div className="flex flex-wrap gap-1.5">
                         {workerProfile?.serviceCategories?.map((c) => (
                           <span key={c} className="rounded-lg bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 text-[10px] font-extrabold text-emerald-700 uppercase tracking-wide">
-                            {CATEGORY_LABELS[c]?.label || c}
+                            {getCategoryLabel(t, c)}
                           </span>
                         ))}
                       </div>

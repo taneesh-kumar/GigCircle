@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Calendar, Clock, MapPin, X, Loader2, Ban, CheckCircle2, ShieldAlert, IndianRupee, Clock3, Activity, User, Compass, Sparkles, FileText, MessageSquare, CreditCard } from 'lucide-react';
 import { cancelServiceRequestApi, getWorkerRecommendationsForRequestApi } from '@/services/api';
+import { useTranslation } from 'react-i18next';
 import { CATEGORY_LABELS, type ServiceRequest, type WorkerRecommendationResult } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
 import { RecommendedWorkerCard } from '@/components/recommended-worker-card';
@@ -23,6 +24,7 @@ interface RequestDetailModalProps {
 }
 
 export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, showCancelButton = false }: RequestDetailModalProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
@@ -131,7 +133,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
             <div className="flex items-center gap-2">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                Request #{request.id}
+                {t('customer.requests.requestCard.requestId', { id: request.id })}
               </span>
               <span
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
@@ -157,11 +159,11 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                 ) : (
                   <Clock3 className="h-3 w-3 text-amber-600" />
                 )}
-                {jobStatusStr === 'PAYMENT_REQUIRED' ? 'PAYMENT REQUIRED' : jobStatusStr}
+                {t(`status.job.${jobStatusStr}`, t(`status.request.${jobStatusStr}`, jobStatusStr))}
               </span>
             </div>
             <h2 id="detail-modal-title" className="font-display text-2xl font-black text-slate-900">
-              {categoryInfo.label}
+              {t(`categories.${request.category}.label`, categoryInfo.label)}
             </h2>
           </div>
           <button
@@ -170,7 +172,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
               onClose();
             }}
             className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-            aria-label="Close details"
+            aria-label={t('common.close')}
           >
             <X className="h-5 w-5" />
           </button>
@@ -187,7 +189,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
         <div className="mt-6 space-y-6">
           {/* Description */}
           <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Description</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">{t('modals.createRequest.descriptionLabel')}</span>
             <p className="mt-2 whitespace-pre-wrap rounded-2xl border border-slate-100 bg-slate-50/50 p-4 text-xs sm:text-sm leading-relaxed text-slate-800 font-medium">
               {request.description}
             </p>
@@ -200,7 +202,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                 <MapPin className="h-5 w-5" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Location</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">{t('common.location')}</span>
                 <p className="mt-0.5 text-sm font-extrabold text-slate-950">{request.location}</p>
               </div>
             </div>
@@ -210,7 +212,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                 <IndianRupee className="h-4.5 w-4.5" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Budget</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">{t('customer.requests.requestCard.budget')}</span>
                 <p className="mt-0.5 text-base font-black text-emerald-700 font-mono">₹{request.budget.toLocaleString()}</p>
               </div>
             </div>
@@ -220,7 +222,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                 <Calendar className="h-5 w-5" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Preferred Time</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">{t('customer.requests.requestCard.scheduledFor')}</span>
                 <p className="mt-0.5 text-xs font-extrabold text-slate-950">{formatDateTime(request.preferredTime)}</p>
               </div>
             </div>
@@ -230,7 +232,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                 <Clock className="h-5 w-5" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Requested On</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">{t('customer.requests.requestCard.createdOn')}</span>
                 <p className="mt-0.5 text-xs font-extrabold text-slate-950">{formatDateTime(request.createdAt)}</p>
               </div>
             </div>
@@ -245,7 +247,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                     {request.workerName.substring(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">Assigned Worker</span>
+                    <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">{t('customer.requests.requestCard.assignedTo')}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-slate-900">{request.workerName}</span>
                       <VerifiedWorkerBadge isVerified={request.isWorkerVerified || request.isVerified} size="sm" />
@@ -254,7 +256,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
 
                 </div>
                 <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-[10px] font-extrabold uppercase text-emerald-800 border border-emerald-200">
-                  Matched & Verified
+                  {t('common.verified')}
                 </span>
               </div>
 
@@ -267,7 +269,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                       className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors shadow-xs"
                     >
                       <AlertTriangle className="h-4 w-4 text-amber-600" />
-                      {isDisputeOpen ? 'Hide Dispute' : 'Dispute / Help'}
+                      {isDisputeOpen ? t('common.close') : t('customer.requests.requestCard.dispute')}
                     </button>
                   </div>
 
@@ -292,8 +294,8 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                   <div className="rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3 flex items-center gap-2.5 text-xs text-amber-800">
                     <IndianRupee className="h-4 w-4 text-amber-600 shrink-0" />
                     <div>
-                      <p className="font-bold">Payment Required</p>
-                      <p className="text-amber-700/80 leading-snug">The worker has completed the service. Please complete payment to finalize the job.</p>
+                      <p className="font-bold">{t('status.job.PAYMENT_REQUIRED')}</p>
+                      <p className="text-amber-700/80 leading-snug">{t('customer.requests.subtitle')}</p>
                     </div>
                   </div>
                   <button
@@ -302,7 +304,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                     className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm"
                   >
                     <CreditCard className="h-4 w-4" />
-                    Pay Now — ₹{request.budget.toLocaleString()}
+                    {t('customer.requests.requestCard.payNow')} — ₹{request.budget.toLocaleString()}
                   </button>
                 </div>
               )}
@@ -312,30 +314,12 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                   <div className="w-full inline-flex items-center justify-between rounded-xl bg-emerald-50/80 border border-emerald-200 p-3 text-xs font-bold text-emerald-800">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                      <span>Job Completed &amp; Paid</span>
+                      <span>{t('status.job.COMPLETED')}</span>
                     </div>
                     <span className="font-mono text-[10px] text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-300">
-                      Paid ₹{request.budget.toLocaleString()}
+                      {t('status.payment.SUCCESS')} ₹{request.budget.toLocaleString()}
                     </span>
                   </div>
-
-                  {user?.role === 'WORKER' && (
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-1.5 text-xs">
-                      <p className="font-extrabold uppercase tracking-wider text-[10px] text-slate-500">Earnings Breakdown</p>
-                      <div className="flex justify-between text-slate-600 text-[11px]">
-                        <span>Gross Service Budget:</span>
-                        <span className="font-mono font-medium">₹{request.budget.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-slate-500 text-[11px]">
-                        <span>Cooperative Platform Fee (10%):</span>
-                        <span className="font-mono text-red-600">-₹{(request.budget * 0.1).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between pt-1.5 border-t border-slate-200 text-slate-900 font-bold text-xs">
-                        <span className="text-emerald-700">Net Worker Earning:</span>
-                        <span className="font-mono text-emerald-700">₹{(request.budget * 0.9).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  )}
 
                   <button
                     type="button"
@@ -343,7 +327,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                     className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-800 hover:bg-slate-50 transition-colors shadow-xs"
                   >
                     <FileText className="h-4 w-4 text-slate-600" />
-                    View Job Invoice &amp; Receipt
+                    {t('customer.requests.requestCard.viewInvoice')}
                   </button>
                 </div>
               )}
@@ -357,7 +341,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-emerald-600" />
                 <h3 className="font-display text-sm font-bold text-slate-900">
-                  Available Nearby Workers
+                  {t('modals.requestDetail.recommendationsTitle')}
                 </h3>
               </div>
               <RecommendedWorkerCard recommendationResult={recommendationResult} isLoading={isLoadingRecs} />
@@ -370,9 +354,9 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />
                 <div>
-                  <h4 className="font-bold text-red-800">Cancel this request?</h4>
+                  <h4 className="font-bold text-red-800">{t('customer.requests.cancelConfirmTitle')}</h4>
                   <p className="mt-1 text-red-700/80 leading-relaxed">
-                    This request has not yet been assigned to a worker. Once cancelled, it will remain in your record as CANCELLED.
+                    {t('customer.requests.cancelConfirmDesc')}
                   </p>
                 </div>
               </div>
@@ -383,7 +367,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                   disabled={isCancelling}
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2 font-bold text-slate-700 hover:bg-slate-50 transition-colors text-xs"
                 >
-                  Keep Request
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="button"
@@ -393,10 +377,10 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                 >
                   {isCancelling ? (
                     <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Cancelling...
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('common.loading')}
                     </>
                   ) : (
-                    'Confirm Cancellation'
+                    t('common.confirm')
                   )}
                 </button>
               </div>
@@ -414,7 +398,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
             }}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
           >
-            Close
+            {t('common.close')}
           </button>
 
           {isCancellable && !isConfirmingCancel && (
@@ -423,7 +407,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
               onClick={() => setIsConfirmingCancel(true)}
               className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-xs"
             >
-              <Ban className="h-4 w-4" /> Cancel Request
+              <Ban className="h-4 w-4" /> {t('customer.requests.requestCard.cancel')}
             </button>
           )}
         </div>

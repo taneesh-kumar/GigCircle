@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FileText, X, CheckCircle2, Clock3, IndianRupee, User, Calendar, ShieldCheck, AlertCircle, Loader2, Printer, Download } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Invoice } from '@/types/invoice';
 import { getInvoiceForJobApi, generateInvoiceApi } from '@/services/api/invoice';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +12,7 @@ interface InvoiceModalProps {
 }
 
 export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,13 +36,13 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
           const generated = await generateInvoiceApi(jobId);
           setInvoice(generated);
         } catch (genErr: any) {
-          const msg = genErr?.response?.data?.message || 'Failed to generate invoice for this job.';
+          const msg = genErr?.response?.data?.message || t('common.somethingWentWrong');
           setError(msg);
         } finally {
           setIsGenerating(false);
         }
       } else {
-        const msg = err?.response?.data?.message || 'Failed to retrieve invoice.';
+        const msg = err?.response?.data?.message || t('common.somethingWentWrong');
         setError(msg);
       }
     } finally {
@@ -60,7 +62,7 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
   if (!isOpen || !jobId) return null;
 
   const formatDate = (isoString?: string) => {
-    if (!isoString) return 'N/A';
+    if (!isoString) return t('common.na');
     try {
       return new Intl.DateTimeFormat('en-IN', {
         dateStyle: 'medium',
@@ -70,6 +72,8 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
       return isoString;
     }
   };
+
+  const isPaid = invoice?.paymentStatus === 'SUCCESS' || invoice?.paymentStatus === 'COMPLETED';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs animate-rise-in">
@@ -85,17 +89,17 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-emerald-600" />
               <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                Official Transaction Record
+                {t('modals.invoice.subtitle')}
               </span>
             </div>
             <h2 id="invoice-modal-title" className="font-display text-2xl font-black text-slate-900">
-              Tax Invoice
+              {t('modals.invoice.title')}
             </h2>
           </div>
           <button
             onClick={onClose}
             className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-            aria-label="Close invoice"
+            aria-label={t('common.close')}
           >
             <X className="h-5 w-5" />
           </button>
@@ -105,7 +109,7 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
         {isLoading || isGenerating ? (
           <div className="py-12 flex flex-col items-center justify-center space-y-3">
             <Loader2 className="h-8 w-8 text-emerald-600 animate-spin" />
-            <p className="text-xs font-bold text-slate-600">Retrieving official invoice details...</p>
+            <p className="text-xs font-bold text-slate-600">{t('common.loading')}</p>
           </div>
         ) : error ? (
           <div className="py-8 space-y-4">
@@ -119,7 +123,7 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
                 onClick={fetchOrCreateInvoice}
                 className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition-colors"
               >
-                Retry Invoice Generation
+                {t('common.retry')}
               </button>
             </div>
           </div>
@@ -128,28 +132,28 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
             {/* Invoice Top Details */}
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-slate-50 p-4 border border-slate-100">
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">Invoice Number</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">{t('modals.invoice.invoiceNumber')}</span>
                 <span className="font-mono text-sm font-black text-slate-900">{invoice.invoiceNumber}</span>
               </div>
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">Issue Date</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">{t('modals.invoice.date')}</span>
                 <span className="text-xs font-bold text-slate-700">{formatDate(invoice.issuedAt)}</span>
               </div>
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">Payment Status</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">{t('modals.invoice.paymentStatus')}</span>
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider ${
-                    invoice.paymentStatus === 'SUCCESS' || invoice.paymentStatus === 'COMPLETED'
+                    isPaid
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                       : 'bg-amber-100 text-amber-900 border border-amber-300'
                   }`}
                 >
-                  {invoice.paymentStatus === 'SUCCESS' || invoice.paymentStatus === 'COMPLETED' ? (
+                  {isPaid ? (
                     <CheckCircle2 className="h-3 w-3 text-emerald-700" />
                   ) : (
                     <Clock3 className="h-3 w-3 text-amber-700" />
                   )}
-                  {invoice.paymentStatus === 'SUCCESS' || invoice.paymentStatus === 'COMPLETED' ? 'PAID' : invoice.paymentStatus}
+                  {t(`status.payment.${invoice.paymentStatus}`, invoice.paymentStatus)}
                 </span>
               </div>
             </div>
@@ -157,14 +161,14 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
             {/* Customer & Worker Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-2xl border border-slate-100 p-4 space-y-1 bg-white">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Billed To (Customer)</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">{t('modals.invoice.billedTo')}</span>
                 <p className="text-sm font-extrabold text-slate-900">{invoice.customerName}</p>
                 {invoice.customerEmail && <p className="text-xs text-slate-500">{invoice.customerEmail}</p>}
                 {invoice.customerPhone && <p className="text-xs text-slate-500">{invoice.customerPhone}</p>}
               </div>
 
               <div className="rounded-2xl border border-slate-100 p-4 space-y-1 bg-white">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Service Provider (Worker)</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">{t('modals.invoice.serviceProvider')}</span>
                 <p className="text-sm font-extrabold text-slate-900">{invoice.workerName}</p>
                 {invoice.workerEmail && <p className="text-xs text-slate-500">{invoice.workerEmail}</p>}
                 {invoice.workerPhone && <p className="text-xs text-slate-500">{invoice.workerPhone}</p>}
@@ -174,12 +178,12 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
             {/* Service & Itemized Charges Breakdown */}
             <div className="rounded-2xl border border-slate-100 overflow-hidden">
               <div className="bg-slate-50 px-4 py-3 border-b border-slate-100">
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-700">Itemized Charges</h4>
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-700">{t('modals.invoice.itemDescription')}</h4>
               </div>
               <div className="p-4 space-y-3">
                 <div className="flex justify-between items-start text-xs pb-3 border-b border-slate-100">
                   <div>
-                    <span className="font-extrabold text-slate-900 block">{invoice.serviceName}</span>
+                    <span className="font-extrabold text-slate-900 block">{t(`categories.${invoice.serviceName}.label`, invoice.serviceName)}</span>
                     {invoice.serviceDescription && (
                       <span className="text-slate-500 line-clamp-2 mt-0.5">{invoice.serviceDescription}</span>
                     )}
@@ -188,22 +192,12 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
                 </div>
 
                 <div className="flex justify-between items-center text-xs text-slate-600">
-                  <span>Platform Service Fee (10%)</span>
+                  <span>{t('modals.invoice.platformFee')}</span>
                   <span className="font-mono font-medium">₹{invoice.platformFee.toFixed(2)}</span>
                 </div>
 
-                <div className="flex justify-between items-center text-xs text-slate-600">
-                  <span>Taxes (GST 0%)</span>
-                  <span className="font-mono font-medium">₹{invoice.taxAmount.toFixed(2)}</span>
-                </div>
-
-                <div className="flex justify-between items-center text-xs text-slate-600">
-                  <span>Discount</span>
-                  <span className="font-mono font-medium">₹{invoice.discountAmount.toFixed(2)}</span>
-                </div>
-
                 <div className="flex justify-between items-center pt-3 border-t border-slate-200 text-sm font-extrabold text-slate-900">
-                  <span>Total Amount</span>
+                  <span>{t('modals.invoice.totalAmount')}</span>
                   <span className="font-mono text-base font-black text-emerald-700">₹{invoice.totalAmount.toFixed(2)}</span>
                 </div>
               </div>
@@ -214,17 +208,11 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
               <div className="rounded-2xl bg-emerald-50/60 border border-emerald-100 p-3.5 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                  <span className="font-bold text-slate-700">Transaction Reference</span>
+                  <span className="font-bold text-slate-700">{t('customer.payments.table.action')} Reference</span>
                 </div>
                 <span className="font-mono font-bold text-slate-900">{invoice.paymentReference}</span>
               </div>
             )}
-
-            <div className="text-center pt-2">
-              <span className="text-[10px] text-slate-400 italic">
-                This is a computer-generated tax invoice and requires no physical signature.
-              </span>
-            </div>
           </div>
         ) : null}
 
@@ -237,7 +225,7 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
               className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors shadow-2xs"
             >
               <Printer className="h-3.5 w-3.5 text-emerald-600" />
-              Print / Save Invoice
+              {t('modals.invoice.printBtn')}
             </button>
           )}
           <button
@@ -245,7 +233,7 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
             onClick={onClose}
             className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs ml-auto"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
       </div>

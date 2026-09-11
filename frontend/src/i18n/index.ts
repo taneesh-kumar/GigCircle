@@ -110,4 +110,40 @@ export async function changeAppLanguage(lang: SupportedLanguage): Promise<void> 
   await i18n.changeLanguage(lang);
 }
 
+export function getCategoryLabel(tOrCategory?: any, category?: string | null): string {
+  const actualCategory = typeof tOrCategory === 'function' ? category : tOrCategory;
+  const tFunc = typeof tOrCategory === 'function' ? tOrCategory : ((key: string, def?: string) => i18n.t(key, { defaultValue: def || '' }));
+  if (!actualCategory) return '';
+  return tFunc(`categories.${actualCategory}.label`, actualCategory);
+}
+
+export function getJobStatusLabel(tOrStatus?: any, status?: string | null): string {
+  const actualStatus = typeof tOrStatus === 'function' ? status : tOrStatus;
+  const tFunc = typeof tOrStatus === 'function' ? tOrStatus : ((key: string, def?: string) => i18n.t(key, { defaultValue: def || '' }));
+  if (!actualStatus) return '';
+  return tFunc(`status.job.${actualStatus}`, actualStatus);
+}
+
+export function getRequestStatusLabel(tOrStatus?: any, status?: string | null): string {
+  const actualStatus = typeof tOrStatus === 'function' ? status : tOrStatus;
+  const tFunc = typeof tOrStatus === 'function' ? tOrStatus : ((key: string, def?: string) => i18n.t(key, { defaultValue: def || '' }));
+  if (!actualStatus) return '';
+  return tFunc(`status.request.${actualStatus}`, actualStatus);
+}
+
+export function getPaymentStatusLabel(tOrStatus?: any, status?: string | null): string {
+  const actualStatus = typeof tOrStatus === 'function' ? status : tOrStatus;
+  const tFunc = typeof tOrStatus === 'function' ? tOrStatus : ((key: string, def?: string) => i18n.t(key, { defaultValue: def || '' }));
+  if (!actualStatus) return '';
+  return tFunc(`status.payment.${actualStatus}`, actualStatus);
+}
+
+export function getVerificationStatusLabel(tOrStatus?: any, status?: string | null): string {
+  const actualStatus = typeof tOrStatus === 'function' ? status : tOrStatus;
+  const tFunc = typeof tOrStatus === 'function' ? tOrStatus : ((key: string, def?: string) => i18n.t(key, { defaultValue: def || '' }));
+  if (!actualStatus) return '';
+  return tFunc(`status.verification.${actualStatus}`, actualStatus);
+}
+
 export default i18n;
+

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertCircle, AlertTriangle, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 interface DisputeCreateFormProps {
   jobId: number;
@@ -15,6 +16,7 @@ interface DisputeCreateFormProps {
 }
 
 export const DisputeCreateForm: React.FC<DisputeCreateFormProps> = ({ jobId, onSuccess, onCancel }) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isWorker = user?.role?.toLowerCase() === 'worker';
 
@@ -26,7 +28,7 @@ export const DisputeCreateForm: React.FC<DisputeCreateFormProps> = ({ jobId, onS
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!description.trim()) {
-      setError('Description cannot be blank');
+      setError(t('validation.required'));
       return;
     }
 
@@ -42,13 +44,13 @@ export const DisputeCreateForm: React.FC<DisputeCreateFormProps> = ({ jobId, onS
       onSuccess(result);
     } catch (err: any) {
       if (err.response?.status === 409) {
-        setError('An active dispute already exists for this job.');
+        setError(t('errors.disputeConflict', 'An active dispute already exists for this job.'));
       } else if (err.response?.status === 400) {
-        setError(err.response?.data?.message || 'Invalid dispute request.');
+        setError(err.response?.data?.message || t('errors.invalidRequest', 'Invalid dispute request.'));
       } else if (err.response?.status === 403) {
-        setError('Access denied: Only the customer or assigned worker can raise a dispute.');
+        setError(t('errors.unauthorized'));
       } else {
-        setError(err.response?.data?.message || 'Failed to submit dispute');
+        setError(err.response?.data?.message || t('errors.serverError'));
       }
     } finally {
       setLoading(false);
@@ -63,12 +65,12 @@ export const DisputeCreateForm: React.FC<DisputeCreateFormProps> = ({ jobId, onS
         </div>
         <div>
           <h3 className="font-extrabold text-sm text-slate-900">
-            {isWorker ? 'Report Issue with Customer' : 'Report Issue with Worker'}
+            {isWorker ? t('worker.assigned.reportIssueBtn') : t('customer.requests.dispute')}
           </h3>
           <p className="text-xs text-slate-500">
             {isWorker
-              ? 'File a dispute regarding non-payment, unagreed scope, or customer conduct.'
-              : 'File a dispute regarding service quality, non-attendance, or conduct.'}
+              ? t('modals.dispute.subtitle')
+              : t('modals.dispute.subtitle')}
           </p>
         </div>
       </div>
@@ -76,37 +78,37 @@ export const DisputeCreateForm: React.FC<DisputeCreateFormProps> = ({ jobId, onS
       {error && (
         <Alert variant="destructive" className="rounded-xl bg-rose-50 border-rose-200 text-rose-800">
           <AlertCircle className="h-4 w-4 text-rose-600" />
-          <AlertTitle className="text-xs font-bold">Dispute Submission Failed</AlertTitle>
+          <AlertTitle className="text-xs font-bold">{t('common.error')}</AlertTitle>
           <AlertDescription className="text-xs">{error}</AlertDescription>
         </Alert>
       )}
 
       <div className="space-y-1.5">
         <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
-          {isWorker ? 'Worker Dispute Reason' : 'Customer Dispute Reason'}
+          {t('modals.dispute.reasonLabel')}
         </label>
         <Select value={reason} onValueChange={(val) => setReason(val as DisputeReason)}>
           <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs font-semibold text-slate-800">
-            <SelectValue placeholder="Select issue reason" />
+            <SelectValue placeholder={t('modals.dispute.reasonLabel')} />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
             {isWorker ? (
               <>
-                <SelectItem value="PAYMENT_ISSUE">Customer Refusing Payment or Delaying Payout</SelectItem>
-                <SelectItem value="QUALITY_ISSUE">Demanded Extra Work Beyond Agreed Scope</SelectItem>
-                <SelectItem value="COMMUNICATION_ISSUE">Customer Unreachable / Incorrect Address & Directions</SelectItem>
-                <SelectItem value="SAFETY_VIOLATION">Unsafe Work Environment or Customer Misbehavior</SelectItem>
-                <SelectItem value="NON_DELIVERY">Customer Not Present / Entry Denied Upon Arrival</SelectItem>
-                <SelectItem value="OTHER">Other Worker Concern</SelectItem>
+                <SelectItem value="PAYMENT_ISSUE">{t('status.dispute.PAYMENT_ISSUE', 'Customer Refusing Payment or Delaying Payout')}</SelectItem>
+                <SelectItem value="QUALITY_ISSUE">{t('status.dispute.QUALITY_ISSUE', 'Demanded Extra Work Beyond Agreed Scope')}</SelectItem>
+                <SelectItem value="COMMUNICATION_ISSUE">{t('status.dispute.COMMUNICATION_ISSUE', 'Customer Unreachable / Incorrect Address & Directions')}</SelectItem>
+                <SelectItem value="SAFETY_VIOLATION">{t('status.dispute.SAFETY_VIOLATION', 'Unsafe Work Environment or Customer Misbehavior')}</SelectItem>
+                <SelectItem value="NON_DELIVERY">{t('status.dispute.NON_DELIVERY', 'Customer Not Present / Entry Denied Upon Arrival')}</SelectItem>
+                <SelectItem value="OTHER">{t('status.dispute.OTHER', 'Other Worker Concern')}</SelectItem>
               </>
             ) : (
               <>
-                <SelectItem value="QUALITY_ISSUE">Poor Service Quality or Incomplete Work</SelectItem>
-                <SelectItem value="NON_DELIVERY">Worker Did Not Show Up / Non-Delivery</SelectItem>
-                <SelectItem value="PAYMENT_ISSUE">Payment Dispute or Extra Unagreed Fees</SelectItem>
-                <SelectItem value="COMMUNICATION_ISSUE">Worker Unresponsive or Unprofessional</SelectItem>
-                <SelectItem value="SAFETY_VIOLATION">Safety, Property Damage or Misbehavior</SelectItem>
-                <SelectItem value="OTHER">Other Customer Issue</SelectItem>
+                <SelectItem value="QUALITY_ISSUE">{t('status.dispute.QUALITY_ISSUE', 'Poor Service Quality or Incomplete Work')}</SelectItem>
+                <SelectItem value="NON_DELIVERY">{t('status.dispute.NON_DELIVERY', 'Worker Did Not Show Up / Non-Delivery')}</SelectItem>
+                <SelectItem value="PAYMENT_ISSUE">{t('status.dispute.PAYMENT_ISSUE', 'Payment Dispute or Extra Unagreed Fees')}</SelectItem>
+                <SelectItem value="COMMUNICATION_ISSUE">{t('status.dispute.COMMUNICATION_ISSUE', 'Worker Unresponsive or Unprofessional')}</SelectItem>
+                <SelectItem value="SAFETY_VIOLATION">{t('status.dispute.SAFETY_VIOLATION', 'Safety, Property Damage or Misbehavior')}</SelectItem>
+                <SelectItem value="OTHER">{t('status.dispute.OTHER', 'Other Customer Issue')}</SelectItem>
               </>
             )}
           </SelectContent>
@@ -114,13 +116,11 @@ export const DisputeCreateForm: React.FC<DisputeCreateFormProps> = ({ jobId, onS
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">Issue Description</label>
+        <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
+          {t('modals.dispute.descriptionLabel')}
+        </label>
         <Textarea
-          placeholder={
-            isWorker
-              ? 'Describe the issue experienced with the customer (e.g. non-payment, extra scope requested, unsafe work area)...'
-              : 'Describe the issue experienced with the worker (e.g. incomplete work, absence, damage)...'
-          }
+          placeholder={t('modals.dispute.descriptionPlaceholder')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={2000}
@@ -137,9 +137,9 @@ export const DisputeCreateForm: React.FC<DisputeCreateFormProps> = ({ jobId, onS
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         )}
         <button
@@ -148,7 +148,7 @@ export const DisputeCreateForm: React.FC<DisputeCreateFormProps> = ({ jobId, onS
           className="rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-4 py-2 text-xs font-extrabold shadow-sm transition-all inline-flex items-center gap-1.5 cursor-pointer"
         >
           {loading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-          Submit Dispute
+          {loading ? t('modals.dispute.submittingBtn') : t('modals.dispute.submitBtn')}
         </button>
       </div>
     </form>

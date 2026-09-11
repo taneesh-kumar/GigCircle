@@ -85,7 +85,20 @@ export function HorizontalNav() {
           {items.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
-            const displayLabel = item.id === 'overview' ? t('navigation.dashboard', item.label) : item.label;
+            
+            let displayLabel = item.label;
+            if (item.id === 'overview') displayLabel = t('navigation.dashboard', item.label);
+            else if (item.id === 'requests') displayLabel = t('navigation.requests', item.label);
+            else if (item.id === 'payments') displayLabel = t('navigation.payments', item.label);
+            else if (item.id === 'notifications') displayLabel = t('navigation.notifications', item.label);
+            else if (item.id === 'profile') displayLabel = role === 'WORKER' ? t('navigation.workerProfile', item.label) : t('navigation.profile', item.label);
+            else if (item.id === 'available') displayLabel = t('navigation.availableJobs', item.label);
+            else if (item.id === 'assigned') displayLabel = t('navigation.assignedJobs', item.label);
+            else if (item.id === 'governance') displayLabel = t('navigation.governance', item.label);
+            else if (item.id === 'earnings') displayLabel = t('navigation.earnings', item.label);
+            else if (item.id === 'ratings') displayLabel = t('navigation.ratings', item.label);
+            else if (item.id === 'verification') displayLabel = t('navigation.verification', item.label);
+
             return (
               <button
                 key={item.id}

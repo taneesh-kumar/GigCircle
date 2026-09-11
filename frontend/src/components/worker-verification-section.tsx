@@ -34,10 +34,12 @@ import type {
   VerificationStatus,
 } from '@/types/worker-verification';
 import { DOCUMENT_TYPE_LABELS } from '@/types/worker-verification';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { DocumentViewerModal, storeDataUrl } from '@/components/document-viewer-modal';
 
 export function WorkerVerificationSection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [verification, setVerification] = useState<WorkerVerificationResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -555,6 +557,7 @@ function StatusBanner({
   verification: WorkerVerificationResponse | null;
   onRefresh: () => void;
 }) {
+  const { t } = useTranslation();
   const status: VerificationStatus = verification?.status || 'NOT_SUBMITTED';
 
   switch (status) {
@@ -567,18 +570,17 @@ function StatusBanner({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-emerald-950">Profile Verified</h2>
+                <h2 className="text-base font-bold text-emerald-950">{t('worker.verification.statusCard.verifiedBadge')}</h2>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-200/80 px-2 py-0.5 rounded-md">
-                  VERIFIED
+                  {t('status.verification.VERIFIED')}
                 </span>
               </div>
               <p className="text-xs text-emerald-800 mt-0.5">
-                Congratulations! Your worker verification has been approved. You are eligible to accept
-                matching gig requests.
+                {t('worker.dashboard.verificationBanner.pendingDesc')}
               </p>
               {verification?.verifiedAt && (
                 <p className="text-[11px] text-emerald-700 font-medium mt-1">
-                  Verified date: {new Date(verification.verifiedAt).toLocaleDateString()}
+                  {t('worker.verification.statusCard.verifiedOn')}: {new Date(verification.verifiedAt).toLocaleDateString()}
                 </p>
               )}
             </div>
@@ -588,7 +590,7 @@ function StatusBanner({
             onClick={onRefresh}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 hover:text-emerald-950 bg-white border border-emerald-200 px-3 py-1.5 rounded-lg shadow-2xs transition"
           >
-            <RefreshCw className="h-3.5 w-3.5" /> Refresh Status
+            <RefreshCw className="h-3.5 w-3.5" /> {t('common.refresh')}
           </button>
         </div>
       );
@@ -602,17 +604,17 @@ function StatusBanner({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-amber-950">Verification Under Review</h2>
+                <h2 className="text-base font-bold text-amber-950">{t('worker.dashboard.verificationBanner.pendingTitle')}</h2>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded-md">
-                  PENDING
+                  {t('status.verification.PENDING_REVIEW')}
                 </span>
               </div>
               <p className="text-xs text-amber-800 mt-0.5">
-                Your submitted documents are currently being evaluated by our compliance review team.
+                {t('worker.dashboard.verificationBanner.pendingDesc')}
               </p>
               {verification?.submittedAt && (
                 <p className="text-[11px] text-amber-700 font-medium mt-1">
-                  Submitted: {new Date(verification.submittedAt).toLocaleString()}
+                  {t('worker.verification.statusCard.submittedOn')}: {new Date(verification.submittedAt).toLocaleString()}
                 </p>
               )}
             </div>
@@ -622,7 +624,7 @@ function StatusBanner({
             onClick={onRefresh}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-900 bg-white border border-amber-200 px-3 py-1.5 rounded-lg shadow-2xs hover:bg-amber-100 transition"
           >
-            <RefreshCw className="h-3.5 w-3.5" /> Refresh Status
+            <RefreshCw className="h-3.5 w-3.5" /> {t('common.refresh')}
           </button>
         </div>
       );
@@ -636,19 +638,19 @@ function StatusBanner({
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-orange-950">Document Changes Required</h2>
+                <h2 className="text-base font-bold text-orange-950">{t('status.verification.CHANGES_REQUIRED')}</h2>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-orange-800 bg-orange-200/80 px-2 py-0.5 rounded-md">
-                  ACTION REQUIRED
+                  {t('common.warning')}
                 </span>
               </div>
               <p className="text-xs text-orange-900">
-                An administrator requested changes before your verification can be approved.
+                {t('worker.verification.statusCard.changesRequired')}
               </p>
             </div>
           </div>
           {verification?.rejectionReason && (
             <div className="w-full bg-white/80 border border-orange-200 p-3 rounded-xl text-xs font-medium text-orange-950">
-              <strong>Admin Feedback:</strong> "{verification.rejectionReason}"
+              <strong>{t('common.info')}:</strong> "{verification.rejectionReason}"
             </div>
           )}
         </div>
@@ -663,19 +665,19 @@ function StatusBanner({
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-red-950">Verification Rejected</h2>
+                <h2 className="text-base font-bold text-red-950">{t('status.verification.REJECTED')}</h2>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-800 bg-red-200/80 px-2 py-0.5 rounded-md">
-                  REJECTED
+                  {t('common.error')}
                 </span>
               </div>
               <p className="text-xs text-red-900">
-                Your verification request was rejected. You may correct your document details and resubmit for review.
+                {t('worker.verification.statusCard.rejectionReason')}
               </p>
             </div>
           </div>
           {verification?.rejectionReason && (
             <div className="w-full bg-white/80 border border-red-200 p-3 rounded-xl text-xs font-medium text-red-950">
-              <strong>Rejection Reason:</strong> "{verification.rejectionReason}"
+              <strong>{t('worker.verification.statusCard.rejectionReason')}:</strong> "{verification.rejectionReason}"
             </div>
           )}
         </div>
@@ -690,21 +692,13 @@ function StatusBanner({
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-purple-950">Verification Suspended</h2>
+                <h2 className="text-base font-bold text-purple-950">{t('status.verification.SUSPENDED')}</h2>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-800 bg-purple-200/80 px-2 py-0.5 rounded-md">
-                  SUSPENDED
+                  {t('status.verification.SUSPENDED')}
                 </span>
               </div>
-              <p className="text-xs text-purple-900">
-                Your verification status has been suspended by platform administration. Please contact support.
-              </p>
             </div>
           </div>
-          {verification?.rejectionReason && (
-            <div className="w-full bg-white/80 border border-purple-200 p-3 rounded-xl text-xs font-medium text-purple-950">
-              <strong>Reason:</strong> "{verification.rejectionReason}"
-            </div>
-          )}
         </div>
       );
 
@@ -718,13 +712,13 @@ function StatusBanner({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-900">Verification Required</h2>
+                <h2 className="text-base font-bold text-slate-900">{t('worker.verification.title')}</h2>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-700 bg-slate-200 px-2 py-0.5 rounded-md">
-                  NOT SUBMITTED
+                  {t('status.verification.NOT_SUBMITTED')}
                 </span>
               </div>
               <p className="text-xs text-slate-600 mt-0.5">
-                Attach your verification documents below and submit your profile for admin review.
+                {t('worker.verification.subtitle')}
               </p>
             </div>
           </div>
@@ -734,24 +728,25 @@ function StatusBanner({
 }
 
 function DocumentStatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   switch (status) {
     case 'APPROVED':
       return (
         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
-          <CheckCircle2 className="h-3 w-3" /> APPROVED
+          <CheckCircle2 className="h-3 w-3" /> {t('common.verified')}
         </span>
       );
     case 'REJECTED':
       return (
         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-800 bg-red-100 px-2 py-0.5 rounded-md">
-          <XCircle className="h-3 w-3" /> REJECTED
+          <XCircle className="h-3 w-3" /> {t('status.verification.REJECTED')}
         </span>
       );
     case 'PENDING':
     default:
       return (
         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
-          <Clock3 className="h-3 w-3" /> PENDING
+          <Clock3 className="h-3 w-3" /> {t('status.verification.PENDING_REVIEW')}
         </span>
       );
   }

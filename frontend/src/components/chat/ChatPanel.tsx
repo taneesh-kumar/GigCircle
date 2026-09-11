@@ -4,6 +4,7 @@ import { getMessagesForJobApi, markMessagesAsReadApi, sendMessageApi } from '@/s
 import type { ChatMessageResponse } from '@/types/chat';
 import { AlertCircle, MessageSquare, RefreshCw, Send } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTranslation } from 'react-i18next';
 
 interface ChatPanelProps {
   jobId: number;
@@ -13,6 +14,7 @@ interface ChatPanelProps {
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false, refreshTrigger, onLoadingChange }) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
   const [inputText, setInputText] = useState('');
@@ -32,11 +34,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false,
       setError(null);
       await markMessagesAsReadApi(jobId).catch(() => {});
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Failed to load chat messages';
+      const msg = err.response?.data?.message || err.message || t('chat.loadError');
       if (err.response?.status === 403) {
-        setError('Access denied: You are not authorized to view this job chat.');
+        setError(t('chat.accessDenied'));
       } else if (err.response?.status === 404) {
-        setError('Job not found.');
+        setError(t('chat.jobNotFound'));
       } else {
         setError(msg);
       }
@@ -76,7 +78,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false,
 
     const textToSend = inputText.trim();
     if (textToSend.length > 2000) {
-      setError('Message text cannot exceed 2000 characters');
+      setError(t('chat.maxChars'));
       return;
     }
 
@@ -88,7 +90,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false,
       setMessages((prev) => [...prev, newMsg]);
       setInputText('');
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Failed to send message';
+      const msg = err.response?.data?.message || t('chat.sendError');
       setError(msg);
     } finally {
       setSending(false);
@@ -104,8 +106,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false,
               <MessageSquare className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="font-extrabold text-sm text-slate-900">Direct Chat</h3>
-              <span className="text-[10px] text-slate-400 font-bold block">Job #{jobId}</span>
+              <h3 className="font-extrabold text-sm text-slate-900">{t('chat.title')}</h3>
+              <span className="text-[10px] text-slate-400 font-bold block">{t('chat.jobLabel', { id: jobId })}</span>
             </div>
           </div>
           <button
@@ -113,7 +115,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false,
             onClick={() => fetchMessages(false)}
             disabled={loading}
             className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-            title="Refresh messages"
+            title={t('chat.refresh')}
+            aria-label={t('chat.refresh')}
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -124,7 +127,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false,
         <div className="p-3 shrink-0">
           <Alert variant="destructive" className="rounded-xl border-rose-200 bg-rose-50 text-rose-800">
             <AlertCircle className="h-4 w-4 text-rose-600" />
-            <AlertTitle className="font-bold text-xs">Chat Status</AlertTitle>
+            <AlertTitle className="font-bold text-xs">{t('chat.status')}</AlertTitle>
             <AlertDescription className="text-xs">{error}</AlertDescription>
           </Alert>
         </div>
@@ -135,7 +138,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false,
         {loading && messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 py-16">
             <RefreshCw className="h-6 w-6 animate-spin text-emerald-500" />
-            <span className="text-xs font-semibold">Loading conversation...</span>
+            <span className="text-xs font-semibold">{t('chat.loading')}</span>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-3 py-16 text-center">
@@ -143,8 +146,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false,
               <MessageSquare className="h-7 w-7" />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-700">No messages yet</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Send a message below to start communicating.</p>
+              <p className="text-xs font-bold text-slate-700">{t('chat.noMessages')}</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{t('chat.noMessagesSubtitle')}</p>
             </div>
           </div>
         ) : (
@@ -156,7 +159,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false,
                 className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} space-y-1`}
               >
                 <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold px-1">
-                  <span>{isMe ? 'You' : msg.sender.name}</span>
+                  <span>{isMe ? t('chat.you') : msg.sender.name}</span>
                   <span className="text-slate-300">•</span>
                   <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
@@ -180,11 +183,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false,
       <form onSubmit={handleSend} className="p-3 bg-white border-t border-slate-200/80 flex items-center gap-2 shrink-0">
         <input
           type="text"
-          placeholder="Type your message..."
+          placeholder={t('chat.placeholder')}
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           maxLength={2000}
           disabled={sending || !!error}
+          aria-label={t('chat.placeholder')}
           className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
         />
         <button
@@ -193,7 +197,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, hideHeader = false,
           className="rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white px-4 py-2.5 text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5 shrink-0 cursor-pointer"
         >
           {sending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          <span>Send</span>
+          <span>{t('chat.send')}</span>
         </button>
       </form>
     </div>

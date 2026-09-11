@@ -26,12 +26,12 @@ export function RatingModal({ isOpen, onClose, jobId, workerName, onSuccess }: R
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (score < 1 || score > 5) {
-      setError('Please select a rating from 1 to 5 stars.');
+      setError(t('modals.rating.starsRequired', 'Please select a rating from 1 to 5 stars.'));
       return;
     }
 
     if (review.length > 500) {
-      setError('Review text cannot exceed 500 characters.');
+      setError(t('validation.reviewTooLong', 'Review text cannot exceed 500 characters.'));
       return;
     }
 
@@ -45,8 +45,8 @@ export function RatingModal({ isOpen, onClose, jobId, workerName, onSuccess }: R
       });
 
       toast({
-        title: 'Rating Submitted!',
-        description: `Thank you for rating ${workerName || 'the worker'}.`,
+        title: t('modals.rating.submittedTitle', 'Rating Submitted!'),
+        description: t('modals.rating.submittedDesc', 'Thank you for rating {{name}}.', { name: workerName || t('common.worker', 'Worker') }),
       });
 
       onSuccess();
@@ -56,10 +56,10 @@ export function RatingModal({ isOpen, onClose, jobId, workerName, onSuccess }: R
       setReview('');
     } catch (err: any) {
       const status = err?.response?.status;
-      const msg = err?.response?.data?.message || 'Failed to submit rating.';
+      const msg = err?.response?.data?.message || t('errors.serverError', 'Failed to submit rating.');
 
       if (status === 409) {
-        setError('This job has already been rated.');
+        setError(t('ratings.alreadyRated', 'This job has already been rated.'));
       } else {
         setError(msg);
       }
@@ -84,13 +84,13 @@ export function RatingModal({ isOpen, onClose, jobId, workerName, onSuccess }: R
 
         <div className="text-center">
           <span className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-accent">
-            Rate Service Quality
+            {t('modals.rating.title', 'Rate Service Quality')}
           </span>
           <h2 className="mt-1 font-display text-2xl font-semibold text-primary">
-            Rate {workerName || 'Worker'}
+            {t('modals.rating.rateWorker', 'Rate {{name}}', { name: workerName || t('common.worker', 'Worker') })}
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Share your feedback to support trustworthy local gig work in our cooperative.
+            {t('modals.rating.subtitle', 'Share your feedback to support trustworthy local gig work in our cooperative.')}
           </p>
         </div>
 
@@ -125,11 +125,11 @@ export function RatingModal({ isOpen, onClose, jobId, workerName, onSuccess }: R
               ))}
             </div>
             <span className="font-mono text-xs font-bold text-amber-500">
-              {activeStarRating === 5 && '★★★★★ Excellent'}
-              {activeStarRating === 4 && '★★★★☆ Very Good'}
-              {activeStarRating === 3 && '★★★☆☆ Good'}
-              {activeStarRating === 2 && '★★☆☆☆ Fair'}
-              {activeStarRating === 1 && '★☆☆☆☆ Poor'}
+              {activeStarRating === 5 && `★★★★★ ${t('worker.ratings.summary.fiveStars', '5 Stars')}`}
+              {activeStarRating === 4 && `★★★★☆ ${t('worker.ratings.summary.fourStars', '4 Stars')}`}
+              {activeStarRating === 3 && `★★★☆☆ ${t('worker.ratings.summary.threeStars', '3 Stars')}`}
+              {activeStarRating === 2 && `★★☆☆☆ ${t('worker.ratings.summary.twoStars', '2 Stars')}`}
+              {activeStarRating === 1 && `★☆☆☆☆ ${t('worker.ratings.summary.oneStar', '1 Star')}`}
             </span>
           </div>
 
@@ -137,7 +137,7 @@ export function RatingModal({ isOpen, onClose, jobId, workerName, onSuccess }: R
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label htmlFor="review-text" className="text-xs font-semibold text-primary">
-                Review / Comments (Optional)
+                {t('modals.rating.reviewLabel', 'Review / Comments (Optional)')}
               </label>
               <span
                 className={`font-mono text-[10px] ${
@@ -153,7 +153,7 @@ export function RatingModal({ isOpen, onClose, jobId, workerName, onSuccess }: R
               maxLength={500}
               value={review}
               onChange={(e) => setReview(e.target.value)}
-              placeholder="Tell us about the worker's punctuality, skills, or service quality..."
+              placeholder={t('modals.rating.reviewPlaceholder', "Tell us about the worker's punctuality, skills, or service quality...")}
               className="w-full rounded-2xl border border-border bg-background p-3 text-xs text-primary placeholder:text-muted-foreground/60 focus:border-accent focus:outline-hidden resize-none"
             />
           </div>
@@ -176,10 +176,10 @@ export function RatingModal({ isOpen, onClose, jobId, workerName, onSuccess }: R
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Submitting...
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t('modals.rating.submittingBtn', 'Submitting...')}
                 </>
               ) : (
-                'Submit Rating'
+                t('modals.rating.submitBtn', 'Submit Rating')
               )}
             </button>
           </div>

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { CATEGORY_LABELS, type ServiceCategory } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
 import { LocationPicker, type LocationPickerValue } from '@/components/location-picker';
+import { getCategoryLabel } from '@/i18n';
 
 interface CreateRequestModalProps {
   isOpen: boolean;
@@ -35,7 +36,7 @@ const getCategoryIcon = (category: string) => {
 };
 
 export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequestModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
 
   const [category, setCategory] = useState<ServiceCategory | ''>('');
@@ -60,6 +61,8 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const dateLocale = i18n.language === 'te' ? 'te-IN' : i18n.language === 'hi' ? 'hi-IN' : 'en-IN';
+
   const formatLocalDate = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -71,7 +74,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
   today.setHours(0, 0, 0, 0);
 
   const monthDate = viewMonth;
-  const monthName = monthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const monthName = monthDate.toLocaleDateString(dateLocale, { month: 'long', year: 'numeric' });
   const firstWeekday = (monthDate.getDay() + 6) % 7;
   const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
 
@@ -96,11 +99,11 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
   });
 
   const monthOptions = Array.from({ length: 3 }, (_, index) => {
-    const monthDate = new Date(today.getFullYear(), today.getMonth() + index, 1);
+    const mDate = new Date(today.getFullYear(), today.getMonth() + index, 1);
     return {
-      value: monthDate.getMonth(),
-      year: monthDate.getFullYear(),
-      label: monthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
+      value: mDate.getMonth(),
+      year: mDate.getFullYear(),
+      label: mDate.toLocaleDateString(dateLocale, { month: 'long', year: 'numeric' }),
     };
   });
 
@@ -122,43 +125,34 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
     updatePreferredTime(selectedDate || formatLocalDate(today), time);
   };
 
-  const handleMonthChange = (nextMonth: number, nextYear: number) => {
-    const minMonth = today.getMonth();
-    const maxMonth = today.getMonth() + 2;
-    const clampedMonth = Math.min(maxMonth, Math.max(minMonth, nextMonth));
-    const safeYear = Math.max(today.getFullYear(), nextYear);
-    setViewMonth(new Date(safeYear, clampedMonth, 1));
-  };
-
-
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!category) {
-      newErrors.category = 'Please select a service category.';
+      newErrors.category = t('customer.requests.selectCategoryError', 'Please select a service category.');
     }
 
     if (!description.trim()) {
-      newErrors.description = 'Please describe the service you need.';
+      newErrors.description = t('customer.requests.describeNeedError', 'Please describe the service you need.');
     } else if (description.trim().length > 1000) {
-      newErrors.description = 'Description cannot exceed 1000 characters.';
+      newErrors.description = t('customer.requests.descLimitError', 'Description cannot exceed 1000 characters.');
     }
 
     if (!location.trim()) {
-      newErrors.location = 'Please enter the service location.';
+      newErrors.location = t('customer.requests.locationError', 'Please enter the service location.');
     }
 
     const numericBudget = parseFloat(budget);
     if (!budget || isNaN(numericBudget) || numericBudget <= 0) {
-      newErrors.budget = 'Budget must be greater than ₹0.';
+      newErrors.budget = t('customer.requests.budgetError', 'Budget must be greater than ₹0.');
     }
 
     if (!preferredTime) {
-      newErrors.preferredTime = 'Please select a preferred date and time.';
+      newErrors.preferredTime = t('customer.requests.preferredTimeError', 'Please select a preferred date and time.');
     } else {
       const selectedDateTime = new Date(preferredTime);
       if (isNaN(selectedDateTime.getTime()) || selectedDateTime <= new Date()) {
-        newErrors.preferredTime = 'Preferred time must be in the future.';
+        newErrors.preferredTime = t('customer.requests.futureTimeError', 'Preferred time must be in the future.');
       }
     }
 
@@ -189,8 +183,8 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
       });
 
       toast({
-        title: 'Request Created',
-        description: 'Your service request has been posted successfully.',
+        title: t('customer.requests.requestCreatedTitle', 'Request Created'),
+        description: t('customer.requests.requestCreatedDesc', 'Your service request has been posted successfully.'),
       });
 
       setCategory('');
@@ -209,10 +203,10 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
       onSuccess();
       onClose();
     } catch (err: any) {
-      const apiMessage = err?.response?.data?.message || 'Failed to create service request. Please check your inputs.';
+      const apiMessage = err?.response?.data?.message || t('customer.requests.createFailed', 'Failed to create service request. Please check your inputs.');
       setSubmitError(apiMessage);
       toast({
-        title: 'Error Creating Request',
+        title: t('common.error'),
         description: apiMessage,
         variant: 'destructive',
       });
@@ -236,20 +230,20 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
             <div className="flex items-center gap-2">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                New Customer Request
+                {t('customer.requests.eyebrow', 'New Customer Request')}
               </span>
             </div>
             <h2 id="modal-title" className="font-display text-2xl font-black text-slate-900">
-              Request a Service
+              {t('customer.requests.createTitle', 'Request a Service')}
             </h2>
             <p className="text-xs text-slate-500">
-              Describe what your household needs and specify your location and preferred schedule.
+              {t('customer.requests.createSubtitle', 'Describe what your household needs and specify your location and preferred schedule.')}
             </p>
           </div>
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:opacity-50"
+            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:opacity-50 cursor-pointer"
             aria-label={t('common.close', 'Close')}
           >
             <X className="h-5 w-5" />
@@ -266,7 +260,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
         <form onSubmit={handleSubmit} className="mt-6 space-y-6">
           <div>
             <label className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
-              Service Category <span className="text-red-500">*</span>
+              {t('customer.requests.categoryLabel', 'Service Category')} <span className="text-red-500">*</span>
             </label>
             <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               {(Object.keys(CATEGORY_LABELS) as ServiceCategory[]).map((catKey) => {
@@ -279,7 +273,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                       setCategory(catKey);
                       if (errors.category) setErrors((prev) => ({ ...prev, category: '' }));
                     }}
-                    className={`relative flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5 shadow-2xs ${
+                    className={`relative flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5 shadow-2xs cursor-pointer ${
                       isSelected
                         ? 'border-emerald-500 bg-emerald-50/60 font-semibold shadow-xs ring-1 ring-emerald-500/20 text-emerald-950'
                         : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:shadow-xs'
@@ -295,7 +289,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                     }`}>
                       {getCategoryIcon(catKey)}
                     </div>
-                    <span className="text-xs font-black tracking-tight mt-1">{CATEGORY_LABELS[catKey].label}</span>
+                    <span className="text-xs font-black tracking-tight mt-1">{getCategoryLabel(t, catKey)}</span>
                     <span className="line-clamp-1 text-[9px] text-slate-400 font-medium">
                       {CATEGORY_LABELS[catKey].description}
                     </span>
@@ -308,7 +302,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
 
           <div>
             <label htmlFor="description" className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
-              Describe what you need <span className="text-red-500">*</span>
+              {t('customer.requests.describeLabel', 'Describe what you need')} <span className="text-red-500">*</span>
             </label>
             <div className="mt-2">
               <textarea
@@ -319,7 +313,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                   setDescription(e.target.value);
                   if (errors.description) setErrors((prev) => ({ ...prev, description: '' }));
                 }}
-                placeholder="e.g. Kitchen sink drain is completely blocked and water is leaking onto the floor..."
+                placeholder={t('customer.requests.descPlaceholder', 'e.g. Kitchen sink drain is completely blocked and water is leaking onto the floor...')}
                 className={`w-full rounded-2xl border bg-white p-3.5 text-sm text-slate-900 placeholder:text-slate-400/80 hover:border-slate-300 hover:shadow-2xs transition-all ${
                   errors.description ? 'border-red-500' : 'border-slate-200'
                 }`}
@@ -329,7 +323,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
               {errors.description ? (
                 <span className="text-xs text-red-600">{errors.description}</span>
               ) : (
-                <span className="font-medium">Provide specific details so workers understand the job scope</span>
+                <span className="font-medium">{t('customer.requests.detailsHint', 'Provide specific details so workers understand the job scope')}</span>
               )}
               <span className="font-medium">{description.length}/1000</span>
             </div>
@@ -338,7 +332,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
           {/* Map Location Selector */}
           <div className="rounded-2xl border border-slate-200/90 bg-slate-50/50 p-4 space-y-4">
             <LocationPicker
-              label="Select Service Location on Map"
+              label={t('customer.requests.mapPickerLabel', 'Select Service Location on Map')}
               initialLatitude={latitude}
               initialLongitude={longitude}
               initialAddress={address}
@@ -358,7 +352,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
             <div className="grid gap-5 sm:grid-cols-2 pt-2">
               <div>
                 <label htmlFor="location" className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
-                  Address / City Details <span className="text-red-500">*</span>
+                  {t('customer.requests.addressLabel', 'Address / City Details')} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative mt-2">
                   <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
@@ -370,7 +364,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                       setLocation(e.target.value);
                       if (errors.location) setErrors((prev) => ({ ...prev, location: '' }));
                     }}
-                    placeholder="e.g. MG Road, Vijayawada"
+                    placeholder={t('customer.requests.addressPlaceholder', 'e.g. MG Road, Vijayawada')}
                     className={`w-full rounded-2xl border bg-white pl-10 pr-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400/80 hover:border-slate-300 hover:shadow-2xs transition-all ${
                       errors.location ? 'border-red-500' : 'border-slate-200'
                     }`}
@@ -381,7 +375,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
 
               <div>
                 <label htmlFor="budget" className="block text-xs font-extrabold uppercase tracking-widest text-slate-400">
-                  Estimated Budget (₹) <span className="text-red-500">*</span>
+                  {t('customer.requests.budgetLabel', 'Estimated Budget (₹)')} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative mt-2">
                   <span className="absolute left-3.5 top-3.5 h-4 w-4 font-mono font-bold text-slate-400">₹</span>
@@ -395,31 +389,31 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                       setBudget(e.target.value);
                       if (errors.budget) setErrors((prev) => ({ ...prev, budget: '' }));
                     }}
-                  placeholder="700"
-                  className={`w-full rounded-2xl border bg-white pl-9 pr-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400/80 hover:border-slate-300 hover:shadow-2xs transition-all ${
-                    errors.budget ? 'border-red-500' : 'border-slate-200'
-                  }`}
-                />
+                    placeholder="700"
+                    className={`w-full rounded-2xl border bg-white pl-9 pr-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400/80 hover:border-slate-300 hover:shadow-2xs transition-all ${
+                      errors.budget ? 'border-red-500' : 'border-slate-200'
+                    }`}
+                  />
+                </div>
+                {errors.budget && <p className="mt-1.5 text-xs text-red-600">{errors.budget}</p>}
               </div>
-              {errors.budget && <p className="mt-1.5 text-xs text-red-600">{errors.budget}</p>}
             </div>
           </div>
-        </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-primary">
-              Preferred Date & Time <span className="text-destructive">*</span>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-900">
+              {t('customer.requests.preferredDateTimeLabel', 'Preferred Date & Time')} <span className="text-red-500">*</span>
             </label>
 
             <div className="mt-3 space-y-4">
               <div>
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Choose date</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('customer.requests.chooseDate', 'Choose date')}</p>
                   <div className="relative">
                     <button
                       type="button"
                       onClick={() => setIsMonthMenuOpen((prev) => !prev)}
-                      className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:bg-white"
+                      className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:bg-white cursor-pointer"
                       aria-label="Select month"
                     >
                       <Calendar className="h-3.5 w-3.5 text-slate-500" />
@@ -439,7 +433,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                                 setViewMonth(new Date(option.year, option.value, 1));
                                 setIsMonthMenuOpen(false);
                               }}
-                              className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-medium transition ${
+                              className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-medium transition cursor-pointer ${
                                 isActive
                                   ? 'bg-emerald-500 text-white shadow-sm'
                                   : 'text-slate-700 hover:bg-slate-100'
@@ -476,7 +470,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                           type="button"
                           disabled={day.disabled}
                           onClick={() => handleDateSelect(day.value)}
-                          className={`h-10 rounded-xl border text-sm font-semibold transition-all ${
+                          className={`h-10 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
                             isSelected
                               ? 'border-emerald-500 bg-emerald-500 text-white shadow-sm'
                               : day.disabled
@@ -493,7 +487,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
               </div>
 
               <div>
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Choose time slot</p>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('customer.requests.chooseTimeSlot', 'Choose time slot')}</p>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {timeSlots.map((slot) => {
@@ -503,7 +497,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                           key={slot}
                           type="button"
                           onClick={() => handleTimeSelect(slot)}
-                          className={`rounded-xl border px-3 py-2 text-sm font-semibold transition-all ${
+                          className={`rounded-xl border px-3 py-2 text-sm font-semibold transition-all cursor-pointer ${
                             isSelected
                               ? 'border-emerald-500 bg-emerald-500 text-white shadow-sm'
                               : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50'
@@ -522,7 +516,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
                   <div className="flex items-center gap-2 text-emerald-700">
                     <Clock className="h-4 w-4" />
                     <span className="font-semibold">
-                      {new Date(`${selectedDate}T${selectedTime}:00`).toLocaleString('en-IN', {
+                      {new Date(`${selectedDate}T${selectedTime}:00`).toLocaleString(dateLocale, {
                         weekday: 'short',
                         day: 'numeric',
                         month: 'short',
@@ -537,7 +531,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
               )}
             </div>
 
-            {errors.preferredTime && <p className="mt-1.5 text-xs text-destructive">{errors.preferredTime}</p>}
+            {errors.preferredTime && <p className="mt-1.5 text-xs text-red-600">{errors.preferredTime}</p>}
           </div>
 
           <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
@@ -545,21 +539,21 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 shadow-xs"
+              className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 shadow-xs cursor-pointer"
             >
               {t('common.cancel', 'Cancel')}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-700 transition-colors disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Submitting...
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t('customer.requests.submitting', 'Submitting...')}
                 </>
               ) : (
-                'Submit Request'
+                t('customer.requests.submitBtn', 'Submit Request')
               )}
             </button>
           </div>

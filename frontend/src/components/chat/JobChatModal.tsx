@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, RefreshCw, MessageSquare } from 'lucide-react';
 import { ChatPanel } from './ChatPanel';
+import { useTranslation } from 'react-i18next';
 
 interface JobChatModalProps {
   isOpen: boolean;
@@ -18,12 +19,13 @@ export function JobChatModal({
   workerName,
   participantName,
 }: JobChatModalProps) {
+  const { t } = useTranslation();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   if (!isOpen || !jobId) return null;
 
-  const displayName = participantName || workerName || 'Participant';
+  const displayName = participantName || workerName || t('chat.participant');
   const initials = displayName
     .split(' ')
     .map((n) => n[0])
@@ -59,7 +61,8 @@ export function JobChatModal({
               onClick={handleRefreshClick}
               disabled={isRefreshing}
               className="rounded-xl p-2 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-70"
-              title="Refresh messages"
+              title={t('chat.refresh')}
+              aria-label={t('chat.refresh')}
             >
               <RefreshCw className={`h-4.5 w-4.5 transition-transform ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
             </button>
@@ -67,7 +70,8 @@ export function JobChatModal({
               type="button"
               onClick={onClose}
               className="rounded-xl p-2 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Close chat"
+              title={t('common.close')}
+              aria-label={t('common.close')}
             >
               <X className="h-5 w-5" />
             </button>
