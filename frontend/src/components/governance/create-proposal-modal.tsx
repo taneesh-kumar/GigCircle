@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Plus, AlertCircle, Loader2 } from 'lucide-react';
 import type { CreateProposalRequest, ProposalCategory } from '@/types/governance';
 import { createProposalApi } from '@/services/api/governance';
@@ -10,21 +11,22 @@ interface CreateProposalModalProps {
   onSuccess: () => void;
 }
 
-const CATEGORIES: { value: ProposalCategory; label: string; description: string }[] = [
-  { value: 'GENERAL', label: 'General Governance', description: 'Cooperative operation, meetings, or general motions.' },
-  { value: 'POLICY', label: 'Cooperative Policy', description: 'Rules, codes of conduct, or membership standards.' },
-  { value: 'PLATFORM_FEE', label: 'Commission & Platform Fees', description: 'Proposals affecting take rates, platform fees, and pricing.' },
-  { value: 'BENEFITS', label: 'Worker Benefits & Welfare', description: 'Healthcare, safety equipment, tool subsidies, or insurance.' },
-  { value: 'DISPUTE_RULE', label: 'Dispute Rules & Resolution', description: 'Arbitration timelines, review panels, and fairness standards.' },
-];
-
 export function CreateProposalModal({ isOpen, onClose, onSuccess }: CreateProposalModalProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<ProposalCategory>('GENERAL');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const CATEGORIES: { value: ProposalCategory; label: string; description: string }[] = [
+    { value: 'GENERAL', label: t('governance.categoryGeneral'), description: 'Cooperative operation, meetings, or general motions.' },
+    { value: 'POLICY', label: t('governance.categoryPolicy'), description: 'Rules, codes of conduct, or membership standards.' },
+    { value: 'PLATFORM_FEE', label: t('governance.categoryFees'), description: 'Proposals affecting take rates, platform fees, and pricing.' },
+    { value: 'BENEFITS', label: t('governance.categoryBenefits'), description: 'Healthcare, safety equipment, tool subsidies, or insurance.' },
+    { value: 'DISPUTE_RULE', label: t('governance.categoryDisputes'), description: 'Arbitration timelines, review panels, and fairness standards.' },
+  ];
 
   if (!isOpen) return null;
 
@@ -79,9 +81,9 @@ export function CreateProposalModal({ isOpen, onClose, onSuccess }: CreatePropos
         <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600 block">
-              COOPERATIVE DEMOCRACY
+              {t('governance.modalEyebrow')}
             </span>
-            <h2 className="text-xl font-black text-slate-900 mt-0.5">Submit Governance Proposal</h2>
+            <h2 className="text-xl font-black text-slate-900 mt-0.5">{t('governance.modalTitle')}</h2>
           </div>
           <button
             type="button"
@@ -102,23 +104,23 @@ export function CreateProposalModal({ isOpen, onClose, onSuccess }: CreatePropos
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Proposal Title <span className="text-rose-500">*</span>
+              {t('governance.titleLabel')} <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Subsidize Electrical Safety Helmets & Testing Kits"
+              placeholder={t('governance.titlePlaceholder')}
               maxLength={255}
               required
               className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20"
             />
-            <span className="text-[11px] text-slate-400 mt-1 block">5 - 255 characters</span>
+            <span className="text-[11px] text-slate-400 mt-1 block">{t('governance.titleChars')}</span>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Category
+              {t('governance.categoryLabel')}
             </label>
             <select
               value={category}
@@ -138,25 +140,25 @@ export function CreateProposalModal({ isOpen, onClose, onSuccess }: CreatePropos
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Proposal Description & Context <span className="text-rose-500">*</span>
+              {t('governance.descLabel')} <span className="text-rose-500">*</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Explain why this proposal is beneficial for cooperative workers, what changes it implements, and estimated impact..."
+              placeholder={t('governance.descPlaceholder')}
               rows={5}
               maxLength={4000}
               required
               className="w-full rounded-2xl border border-slate-200 p-4 text-sm font-medium text-slate-900 focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20"
             />
             <div className="flex justify-between text-[11px] text-slate-400 mt-1">
-              <span>Minimum 20 characters</span>
+              <span>{t('governance.descMin')}</span>
               <span>{description.length} / 4000</span>
             </div>
           </div>
 
           <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/50 p-3 text-xs text-emerald-900">
-            <strong>Cooperative Policy:</strong> Once created, you or an administrator can open the proposal for voting by verified workers. Voting is one-member-one-vote.
+            <strong>Cooperative Policy:</strong> {t('governance.coopPolicyNotice')}
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
@@ -166,7 +168,7 @@ export function CreateProposalModal({ isOpen, onClose, onSuccess }: CreatePropos
               disabled={isSubmitting}
               className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -175,11 +177,11 @@ export function CreateProposalModal({ isOpen, onClose, onSuccess }: CreatePropos
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Submitting...
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t('governance.submitting')}
                 </>
               ) : (
                 <>
-                  <Plus className="h-4 w-4" /> Create Draft Proposal
+                  <Plus className="h-4 w-4" /> {t('governance.createDraftProposal')}
                 </>
               )}
             </button>

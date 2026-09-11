@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ShieldCheck,
   Search,
@@ -45,18 +46,40 @@ import { DocumentViewerModal } from '@/components/document-viewer-modal';
 
 type ActionType = 'APPROVE' | 'REQUEST_CHANGES' | 'REJECT' | 'SUSPEND' | null;
 
-const STATUS_FILTERS: { key: VerificationStatus | 'ALL'; label: string }[] = [
-  { key: 'ALL', label: 'All Records' },
-  { key: 'PENDING_REVIEW', label: 'Pending Review' },
-  { key: 'CHANGES_REQUIRED', label: 'Changes Required' },
-  { key: 'VERIFIED', label: 'Verified' },
-  { key: 'REJECTED', label: 'Rejected' },
-  { key: 'SUSPENDED', label: 'Suspended' },
-  { key: 'NOT_SUBMITTED', label: 'Not Submitted' },
-];
-
 export function AdminVerificationSection() {
+  const { t } = useTranslation();
   const { toast } = useToast();
+
+  const STATUS_FILTERS: { key: VerificationStatus | 'ALL'; label: string }[] = [
+    { key: 'ALL', label: t('admin.verification.allRecords') },
+    { key: 'PENDING_REVIEW', label: t('admin.verification.pendingReview') },
+    { key: 'CHANGES_REQUIRED', label: t('admin.verification.changesRequired') },
+    { key: 'VERIFIED', label: t('admin.verification.verified') },
+    { key: 'REJECTED', label: t('admin.verification.rejected') },
+    { key: 'SUSPENDED', label: t('admin.verification.suspended') },
+    { key: 'NOT_SUBMITTED', label: t('admin.verification.notSubmitted') },
+  ];
+
+  const getDocTypeLabel = (docType: string) => {
+    switch (docType) {
+      case 'AADHAAR_CARD':
+        return t('admin.verification.docTypeAadhaar');
+      case 'PAN_CARD':
+        return t('admin.verification.docTypePan');
+      case 'DRIVING_LICENSE':
+        return t('admin.verification.docTypeDriving');
+      case 'VOTER_ID':
+        return t('admin.verification.docTypeVoter');
+      case 'TRADE_CERTIFICATE':
+        return t('admin.verification.docTypeTradeCert');
+      case 'POLICE_CLEARANCE':
+        return t('admin.verification.docTypePoliceClearance');
+      case 'OTHER':
+        return t('admin.verification.docTypeOther');
+      default:
+        return (DOCUMENT_TYPE_LABELS as Record<string, string>)[docType] || docType;
+    }
+  };
   const [verifications, setVerifications] = useState<WorkerVerificationResponse[]>([]);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<VerificationStatus | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -312,14 +335,14 @@ export function AdminVerificationSection() {
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-6 w-6 text-emerald-400" />
               <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-400">
-                ADMINISTRATION & GOVERNANCE
+                {t('navigation.governance')}
               </span>
             </div>
             <h2 className="text-2xl font-black tracking-tight text-white">
-              Worker Verification Audit Dashboard
+              {t('admin.verification.title')}
             </h2>
             <p className="text-xs text-slate-300">
-              Audit worker credentials, preview submitted documents, and perform compliance reviews.
+              {t('admin.verification.subtitle')}
             </p>
           </div>
           <button
@@ -329,7 +352,7 @@ export function AdminVerificationSection() {
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-xs font-bold text-white shadow-md transition-all disabled:opacity-50 self-start md:self-auto"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh List
+            {t('admin.verification.refreshList')}
           </button>
         </div>
       </div>
@@ -376,7 +399,7 @@ export function AdminVerificationSection() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search worker, email or ID..."
+            placeholder={t('admin.verification.searchPlaceholder')}
             className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-9 pr-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-hidden"
           />
           {searchQuery && (
@@ -401,7 +424,7 @@ export function AdminVerificationSection() {
             onClick={fetchVerifications}
             className="rounded-lg bg-rose-600 px-3 py-1.5 font-bold text-white hover:bg-rose-700 transition-colors"
           >
-            Retry
+            {t('common.retry')}
           </button>
         </div>
       )}
@@ -418,7 +441,7 @@ export function AdminVerificationSection() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <FileText className="h-4 w-4 text-emerald-600" />
-                Verification Records ({filteredVerifications.length})
+                {t('admin.verification.recordsTitle')} ({filteredVerifications.length})
               </h3>
               {selectedVerification && (
                 <button
@@ -428,7 +451,7 @@ export function AdminVerificationSection() {
                   }}
                   className="text-xs text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-1"
                 >
-                  <ArrowLeft className="h-3.5 w-3.5" /> Back to Full View
+                  <ArrowLeft className="h-3.5 w-3.5" /> {t('admin.verification.backToFullView')}
                 </button>
               )}
             </div>
@@ -448,11 +471,11 @@ export function AdminVerificationSection() {
                   <ShieldCheck className="h-6 w-6" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-slate-800">No verification records found</p>
+                  <p className="text-xs font-bold text-slate-800">{t('admin.verification.noRecords')}</p>
                   <p className="text-[11px] text-slate-500">
                     {selectedStatusFilter !== 'ALL'
-                      ? `No records match status: ${selectedStatusFilter}`
-                      : 'No verification submissions available yet.'}
+                      ? `${t('admin.verification.noRecords')}: ${selectedStatusFilter}`
+                      : t('admin.verification.noRecordsDesc')}
                   </p>
                 </div>
                 {selectedStatusFilter !== 'ALL' && (
@@ -460,7 +483,7 @@ export function AdminVerificationSection() {
                     onClick={() => setSelectedStatusFilter('ALL')}
                     className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700"
                   >
-                    Clear Filter
+                    {t('admin.verification.clearFilter')}
                   </button>
                 )}
               </div>
@@ -494,7 +517,7 @@ export function AdminVerificationSection() {
                             </span>
                             <span className="flex items-center gap-1 text-slate-500">
                               <FileText className="h-3.5 w-3.5 text-slate-400" />
-                              {v.documents?.length || 0} Docs Submitted
+                              {v.documents?.length || 0} {t('admin.verification.docsSubmitted')}
                             </span>
                           </div>
                         </div>
@@ -502,11 +525,11 @@ export function AdminVerificationSection() {
                         <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 text-xs">
                           <div className="text-right space-y-0.5">
                             <span className="text-[10px] text-slate-400 block font-medium">
-                              Submitted: {formatTimestamp(v.submittedAt)}
+                              {t('admin.verification.submittedAt')}: {formatTimestamp(v.submittedAt)}
                             </span>
                             {v.reviewedAt && (
                               <span className="text-[10px] text-emerald-700 block font-semibold">
-                                Reviewed: {formatTimestamp(v.reviewedAt)}
+                                {t('admin.verification.lastReviewed')}: {formatTimestamp(v.reviewedAt)}
                               </span>
                             )}
                           </div>
@@ -527,7 +550,7 @@ export function AdminVerificationSection() {
             {isLoadingDetail ? (
               <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center space-y-3">
                 <Loader2 className="h-8 w-8 animate-spin mx-auto text-emerald-600" />
-                <p className="text-xs text-slate-500 font-semibold">Loading verification details...</p>
+                <p className="text-xs text-slate-500 font-semibold">{t('admin.verification.processing')}</p>
               </div>
             ) : (
               <>
@@ -549,7 +572,7 @@ export function AdminVerificationSection() {
 
                     <div className="text-right space-y-1">
                       <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">
-                        CURRENT STATUS
+                        {t('admin.verification.statusReviewed')}
                       </span>
                       {getStatusBadge(selectedVerification.status)}
                     </div>
@@ -559,7 +582,7 @@ export function AdminVerificationSection() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 rounded-2xl bg-slate-50 border border-slate-100 p-4 text-xs">
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Submitted At
+                        {t('admin.verification.submittedAt')}
                       </span>
                       <span className="font-semibold text-slate-800 block mt-0.5">
                         {formatTimestamp(selectedVerification.submittedAt)}
@@ -567,7 +590,7 @@ export function AdminVerificationSection() {
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Last Reviewed
+                        {t('admin.verification.lastReviewed')}
                       </span>
                       <span className="font-semibold text-slate-800 block mt-0.5">
                         {formatTimestamp(selectedVerification.reviewedAt)}
@@ -575,7 +598,7 @@ export function AdminVerificationSection() {
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Reviewer Admin
+                        {t('admin.verification.reviewerAdmin')}
                       </span>
                       <span className="font-semibold text-slate-800 block mt-0.5">
                         {selectedVerification.reviewedByName ||
@@ -589,7 +612,7 @@ export function AdminVerificationSection() {
                     <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-xs space-y-1">
                       <div className="flex items-center gap-1.5 text-amber-900 font-bold">
                         <MessageSquare className="h-4 w-4 text-amber-600" />
-                        Review Note / Reason:
+                        {t('admin.verification.reviewNote')}
                       </div>
                       <p className="text-slate-800 font-medium leading-relaxed pl-5">
                         "{selectedVerification.rejectionReason}"
@@ -601,11 +624,11 @@ export function AdminVerificationSection() {
                   <div className="space-y-3 pt-2 border-t border-slate-100">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                       <FileText className="h-4 w-4 text-emerald-600" />
-                      Submitted Verification Documents ({selectedVerification.documents?.length || 0})
+                      {t('admin.verification.submittedDocsTitle')} ({selectedVerification.documents?.length || 0})
                     </h4>
 
                     {selectedVerification.documents?.length === 0 ? (
-                      <p className="text-xs text-slate-400 italic py-2">No documents attached to this record.</p>
+                      <p className="text-xs text-slate-400 italic py-2">{t('admin.verification.noDocsAttached')}</p>
                     ) : (
                       <div className="space-y-2">
                         {selectedVerification.documents.map((doc) => (
@@ -616,7 +639,7 @@ export function AdminVerificationSection() {
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-slate-800">
-                                  {DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType}
+                                  {getDocTypeLabel(doc.documentType)}
                                 </span>
                                 <span
                                   className={`rounded-full px-2 py-0.2 text-[10px] font-extrabold uppercase ${
@@ -640,7 +663,7 @@ export function AdminVerificationSection() {
                               onClick={() => handleDocumentPreview(doc.id)}
                               className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-colors shadow-2xs shrink-0"
                             >
-                              <Eye className="h-3.5 w-3.5 text-slate-500" /> Secure Preview
+                              <Eye className="h-3.5 w-3.5 text-slate-500" /> {t('admin.verification.securePreview')}
                             </button>
                           </div>
                         ))}
@@ -651,7 +674,7 @@ export function AdminVerificationSection() {
                   {/* ADMIN REVIEW ACTIONS TOOLBAR */}
                   <div className="space-y-3 pt-4 border-t border-slate-100">
                     <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
-                      Compliance Review Actions
+                      {t('admin.verification.complianceActions')}
                     </h4>
 
                     {/* ACTION BUTTONS BASED ON VALID STATUS TRANSITIONS */}
@@ -664,21 +687,21 @@ export function AdminVerificationSection() {
                             onClick={() => handleOpenAction('APPROVE')}
                             className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 px-4 text-xs font-bold text-white shadow-sm transition-all"
                           >
-                            <CheckCircle2 className="h-4 w-4" /> Approve Verification
+                            <CheckCircle2 className="h-4 w-4" /> {t('admin.verification.approveBtn')}
                           </button>
                           <button
                             type="button"
                             onClick={() => handleOpenAction('REQUEST_CHANGES')}
                             className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 py-2.5 px-4 text-xs font-bold text-white shadow-sm transition-all"
                           >
-                            <AlertCircle className="h-4 w-4" /> Request Changes
+                            <AlertCircle className="h-4 w-4" /> {t('admin.verification.requestChangesBtn')}
                           </button>
                           <button
                             type="button"
                             onClick={() => handleOpenAction('REJECT')}
                             className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 py-2.5 px-4 text-xs font-bold text-white shadow-sm transition-all"
                           >
-                            <XCircle className="h-4 w-4" /> Reject Verification
+                            <XCircle className="h-4 w-4" /> {t('admin.verification.rejectBtn')}
                           </button>
                         </>
                       )}
@@ -690,7 +713,7 @@ export function AdminVerificationSection() {
                           onClick={() => handleOpenAction('SUSPEND')}
                           className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 py-2.5 px-4 text-xs font-bold text-white shadow-sm transition-all"
                         >
-                          <Ban className="h-4 w-4" /> Suspend Verified Profile
+                          <Ban className="h-4 w-4" /> {t('admin.verification.suspendBtn')}
                         </button>
                       )}
 
@@ -701,7 +724,7 @@ export function AdminVerificationSection() {
                           onClick={() => handleOpenAction('APPROVE')}
                           className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 px-4 text-xs font-bold text-white shadow-sm transition-all"
                         >
-                          <CheckCircle2 className="h-4 w-4" /> Re-Approve & Reinstate Worker
+                          <CheckCircle2 className="h-4 w-4" /> {t('admin.verification.reApproveBtn')}
                         </button>
                       )}
 
@@ -711,8 +734,7 @@ export function AdminVerificationSection() {
                       ) && (
                         <div className="w-full rounded-2xl bg-slate-50 border border-slate-200 p-3 text-xs text-slate-500 text-center font-medium flex items-center justify-center gap-2">
                           <Lock className="h-4 w-4 text-slate-400" />
-                          No admin review actions available for status:{' '}
-                          <strong className="text-slate-700 font-bold">{selectedVerification.status}</strong>. Worker must resubmit first.
+                          {t('admin.verification.noActionsForStatus', { status: selectedVerification.status })}
                         </div>
                       )}
                     </div>
@@ -723,13 +745,13 @@ export function AdminVerificationSection() {
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                      <History className="h-4 w-4 text-slate-600" /> Audit & Review History Stream
+                      <History className="h-4 w-4 text-slate-600" /> {t('admin.verification.auditHistory')}
                     </h4>
                   </div>
 
                   {matchingActivities.length === 0 && !selectedVerification.reviewedAt ? (
                     <p className="text-xs text-slate-400 text-center py-4 italic">
-                      No review audit events recorded yet for this record.
+                      {t('admin.verification.noAuditEvents')}
                     </p>
                   ) : (
                     <div className="space-y-3 text-xs">
@@ -737,20 +759,20 @@ export function AdminVerificationSection() {
                       {selectedVerification.reviewedAt && (
                         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 space-y-1">
                           <div className="flex items-center justify-between text-slate-800 font-bold">
-                            <span>Status Reviewed: {selectedVerification.status}</span>
+                            <span>{t('admin.verification.statusReviewed')}: {selectedVerification.status}</span>
                             <span className="text-[10px] font-mono text-slate-500">
                               {formatTimestamp(selectedVerification.reviewedAt)}
                             </span>
                           </div>
                           <p className="text-slate-600 text-[11px]">
-                            Reviewed by:{' '}
+                            {t('admin.verification.reviewedBy')}{' '}
                             <strong className="text-slate-800">
                               {selectedVerification.reviewedByName || `Admin #${selectedVerification.reviewedById}`}
                             </strong>
                           </p>
                           {selectedVerification.rejectionReason && (
                             <p className="text-amber-800 text-[11px] font-medium italic mt-1">
-                              Reason/Note: "{selectedVerification.rejectionReason}"
+                              {t('admin.verification.reviewNote')} "{selectedVerification.rejectionReason}"
                             </p>
                           )}
                         </div>
@@ -763,7 +785,7 @@ export function AdminVerificationSection() {
                           className="rounded-2xl border border-slate-100 bg-white p-3 space-y-1 text-slate-700 shadow-2xs"
                         >
                           <div className="flex items-center justify-between font-bold text-slate-900">
-                            <span>Action: {act.actionType}</span>
+                            <span>{t('admin.activity.action')}: {act.actionType}</span>
                             <span className="text-[10px] font-mono text-slate-400">
                               {formatTimestamp(act.createdAt)}
                             </span>
@@ -801,7 +823,7 @@ export function AdminVerificationSection() {
                 {pendingAction === 'REQUEST_CHANGES' && <AlertCircle className="h-5 w-5 text-sky-600" />}
                 {pendingAction === 'REJECT' && <XCircle className="h-5 w-5 text-rose-600" />}
                 {pendingAction === 'SUSPEND' && <Ban className="h-5 w-5 text-purple-600" />}
-                Confirm Review Action
+                {t('admin.verification.confirmTitle')}
               </h3>
               <button
                 onClick={handleCloseAction}
@@ -814,16 +836,17 @@ export function AdminVerificationSection() {
 
             <div className="space-y-3 text-xs">
               <p className="text-slate-700 font-medium leading-relaxed">
-                You are about to execute action:{' '}
-                <strong className="text-slate-900 font-extrabold uppercase">{pendingAction}</strong> for worker{' '}
-                <strong className="text-emerald-800">{selectedVerification?.workerName || selectedVerification?.workerEmail}</strong>.
+                {t('admin.verification.confirmText', {
+                  action: pendingAction,
+                  name: selectedVerification?.workerName || selectedVerification?.workerEmail || '',
+                })}
               </p>
 
               {/* MANDATORY REASON FIELD FOR REQUEST_CHANGES, REJECT, SUSPEND */}
               {['REQUEST_CHANGES', 'REJECT', 'SUSPEND'].includes(pendingAction) && (
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-800">
-                    Reason / Review Note <span className="text-rose-600">* (Required)</span>
+                    {t('admin.verification.reasonLabel')} <span className="text-rose-600">* {t('admin.verification.reasonRequired')}</span>
                   </label>
                   <textarea
                     rows={3}
@@ -855,7 +878,7 @@ export function AdminVerificationSection() {
                 disabled={isSubmittingAction}
                 className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -878,10 +901,10 @@ export function AdminVerificationSection() {
               >
                 {isSubmittingAction ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Processing...
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('admin.verification.processing')}
                   </>
                 ) : (
-                  'Confirm & Submit'
+                  t('admin.verification.confirmAndSubmit')
                 )}
               </button>
             </div>

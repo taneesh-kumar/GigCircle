@@ -237,7 +237,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
       statLabel: t('worker.statLabel', roleContent.worker.statLabel),
       icon: HandHeart,
     },
-    admin: roleContent.admin,
+    admin: {
+      eyebrow: t('admin.eyebrow', roleContent.admin.eyebrow),
+      title: t('admin.title', roleContent.admin.title),
+      intro: t('admin.subtitle', roleContent.admin.intro),
+      stat: '03',
+      statLabel: t('admin.statLabel', roleContent.admin.statLabel),
+      icon: ShieldCheck,
+    },
   }[role];
 
   const { user, logout } = useAuth();
@@ -3150,13 +3157,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               {activeTab === 'overview' && (
                 <>
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-slate-900">Cooperative Operations Dashboard</h2>
+                    <h2 className="text-xl font-bold text-slate-900">{t('admin.overview.title')}</h2>
                     <button
                       type="button"
                       onClick={fetchAdminData}
                       disabled={isLoadingAdminData}
                       className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 shadow-2xs transition cursor-pointer disabled:opacity-70"
-                      title="Refresh Admin Data"
+                      title={t('admin.overview.refresh')}
                     >
                       <RefreshCw className={`h-4 w-4 ${isLoadingAdminData ? 'animate-spin text-blue-600' : ''}`} />
                     </button>
@@ -3166,7 +3173,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-blue-300 transition-all">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Users Overview</span>
+                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">{t('admin.overview.usersOverview')}</span>
                         <div className="h-9 w-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
                           <UsersRound className="h-4.5 w-4.5" />
                         </div>
@@ -3176,14 +3183,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           {adminOverview?.totalUsers ?? adminUsers.length}
                         </div>
                         <p className="text-[10px] font-semibold text-slate-500">
-                          Active: <strong className="text-emerald-700">{adminOverview?.activeUsers ?? 0}</strong> | Susp: <strong className="text-amber-700">{adminOverview?.suspendedUsers ?? 0}</strong> | Deact: <strong className="text-rose-700">{adminOverview?.deactivatedUsers ?? 0}</strong>
+                          {t('admin.overview.usersSummary', {
+                            active: adminOverview?.activeUsers ?? 0,
+                            suspended: adminOverview?.suspendedUsers ?? 0,
+                            deactivated: adminOverview?.deactivatedUsers ?? 0,
+                          })}
                         </p>
                       </div>
                     </div>
 
                     <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-emerald-300 transition-all">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Active Jobs & Rate</span>
+                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">{t('admin.overview.activeJobsRate')}</span>
                         <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
                           <Activity className="h-4.5 w-4.5" />
                         </div>
@@ -3193,14 +3204,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           {adminOverview?.activeJobs ?? 0}
                         </div>
                         <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100/70 rounded-full px-2.5 py-0.5">
-                          Completion Rate: {adminOverview?.completionRate ?? '0.00'}%
+                          {t('admin.overview.completionRate', { rate: adminOverview?.completionRate ?? '0.00' })}
                         </span>
                       </div>
                     </div>
 
                     <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-amber-300 transition-all">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Cancellation Rate</span>
+                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">{t('admin.overview.cancellationRate')}</span>
                         <div className="h-9 w-9 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
                           <AlertCircle className="h-4.5 w-4.5" />
                         </div>
@@ -3210,14 +3221,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           {adminOverview?.cancellationRate ?? '0.00'}%
                         </div>
                         <span className="inline-block text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-100/70 rounded-full px-2.5 py-0.5">
-                          Cancelled: {adminOverview?.cancelledRequests ?? 0} requests
+                          {t('admin.overview.cancelledRequests', { count: adminOverview?.cancelledRequests ?? 0 })}
                         </span>
                       </div>
                     </div>
 
                     <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-indigo-300 transition-all">
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Gross Volume</span>
+                        <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">{t('admin.overview.grossVolume')}</span>
                         <div className="h-9 w-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
                           <IndianRupee className="h-4.5 w-4.5" />
                         </div>
@@ -3227,7 +3238,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           ₹{adminOverview?.totalGrossVolume?.toFixed(2) ?? '0.00'}
                         </div>
                         <span className="inline-block text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100/70 rounded-full px-2.5 py-0.5">
-                          Fees: ₹{adminOverview?.totalPlatformFees?.toFixed(2) ?? '0.00'}
+                          {t('admin.overview.fees', { amount: adminOverview?.totalPlatformFees?.toFixed(2) ?? '0.00' })}
                         </span>
                       </div>
                     </div>
@@ -3237,7 +3248,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-4 flex items-center justify-between shadow-2xs">
                       <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-700 block">Pending Worker Verifications</span>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-700 block">{t('admin.overview.pendingVerifications')}</span>
                         <strong className="text-2xl font-black text-amber-900 mt-0.5 block">{adminOverview?.pendingVerifications ?? 0}</strong>
                       </div>
                       <button
@@ -3245,13 +3256,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'verifications' })}
                         className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs"
                       >
-                        Review →
+                        {t('admin.overview.reviewBtn')}
                       </button>
                     </div>
 
                     <div className="rounded-2xl border border-rose-200/80 bg-rose-50/50 p-4 flex items-center justify-between shadow-2xs">
                       <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-rose-700 block">Active Unresolved Disputes</span>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-rose-700 block">{t('admin.overview.activeDisputes')}</span>
                         <strong className="text-2xl font-black text-rose-900 mt-0.5 block">{adminOverview?.unresolvedDisputes ?? 0}</strong>
                       </div>
                       <button
@@ -3259,17 +3270,17 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'jobs' })}
                         className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs"
                       >
-                        Investigate →
+                        {t('admin.overview.investigateBtn')}
                       </button>
                     </div>
 
                     <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-4 flex items-center justify-between shadow-2xs">
                       <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-700 block">Resolved Disputes</span>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-700 block">{t('admin.overview.resolvedDisputes')}</span>
                         <strong className="text-2xl font-black text-emerald-900 mt-0.5 block">{adminOverview?.recentlyResolvedDisputes ?? 0}</strong>
                       </div>
                       <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 rounded-lg px-2.5 py-1">
-                        Audited
+                        {t('admin.overview.audited')}
                       </span>
                     </div>
                   </div>
@@ -3279,17 +3290,17 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <ShieldAlert className="h-5 w-5 text-amber-600" />
-                        <h3 className="text-lg font-bold text-slate-900">Operational System Alerts</h3>
+                        <h3 className="text-lg font-bold text-slate-900">{t('admin.overview.alertsTitle')}</h3>
                       </div>
                       <span className="text-xs font-bold text-slate-500 bg-slate-100 rounded-full px-3 py-1">
-                        {operationalAlerts.length} Active
+                        {t('admin.overview.activeCount', { count: operationalAlerts.length })}
                       </span>
                     </div>
 
                     {operationalAlerts.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center text-xs text-slate-500">
                         <CheckCircle2 className="mx-auto h-6 w-6 text-emerald-500 mb-1" />
-                        No operational alerts detected. All systems are functioning normally.
+                        {t('admin.overview.noAlerts')}
                       </div>
                     ) : (
                       <div className="grid gap-3 md:grid-cols-2">
@@ -3324,27 +3335,27 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   {/* SERVICE DEMAND ANALYTICS SECTION */}
                   <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-bold text-slate-900">Service Demand by Category</h3>
-                      <span className="text-xs text-slate-500 font-semibold">Backend aggregated metrics</span>
+                      <h3 className="text-lg font-bold text-slate-900">{t('admin.overview.demandTitle')}</h3>
+                      <span className="text-xs text-slate-500 font-semibold">{t('admin.overview.demandSubtitle')}</span>
                     </div>
 
                     {serviceDemand.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center text-xs text-slate-500">
-                        No service demand data available.
+                        {t('admin.overview.noDemand')}
                       </div>
                     ) : (
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {serviceDemand.map((item) => (
                           <div key={item.category} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 space-y-2 hover:bg-white hover:border-emerald-200 transition-all">
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-slate-900 text-sm">{CATEGORY_LABELS[item.category]?.label || item.category}</span>
+                              <span className="font-bold text-slate-900 text-sm">{getCategoryLabel(t, item.category)}</span>
                               <span className="font-mono text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-0.5">
                                 {item.demandPercentage}%
                               </span>
                             </div>
                             <div className="flex items-center justify-between text-xs text-slate-500">
-                              <span>Requests: <strong className="text-slate-800">{item.requestCount}</strong></span>
-                              <span>Completed: <strong className="text-slate-800">{item.completedJobCount}</strong></span>
+                              <span>{t('admin.overview.requestsCount', { count: item.requestCount })}</span>
+                              <span>{t('admin.overview.completedCount', { count: item.completedJobCount })}</span>
                             </div>
                             <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
                               <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${item.demandPercentage}%` }} />
@@ -3354,7 +3365,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       </div>
                     )}
                   </div>
-
                 </>
               )}
 
@@ -3365,10 +3375,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                       <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                        <Wallet className="h-5 w-5 text-emerald-600" /> Financial Audit & Ledger Oversight
+                        <Wallet className="h-5 w-5 text-emerald-600" /> {t('admin.financial.title')}
                       </h2>
                       <p className="text-xs text-slate-500 mt-1">
-                        Read-only administrative financial view with fee tracking and transaction breakdown
+                        {t('admin.financial.subtitle')}
                       </p>
                     </div>
 
@@ -3378,7 +3388,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       disabled={isLoadingFinancial}
                       className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors disabled:opacity-50 flex items-center gap-2 text-xs font-bold shadow-2xs"
                     >
-                      <RefreshCw className={`h-4 w-4 ${isLoadingFinancial ? 'animate-spin' : ''}`} /> Refresh Financials
+                      <RefreshCw className={`h-4 w-4 ${isLoadingFinancial ? 'animate-spin' : ''}`} /> {t('admin.financial.refreshBtn')}
                     </button>
                   </div>
 
@@ -3387,7 +3397,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-emerald-300 transition-all">
                         <div className="flex items-start justify-between gap-2">
-                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Gross Transaction Volume</span>
+                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">{t('admin.financial.grossVolume')}</span>
                           <div className="h-9 w-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
                             <IndianRupee className="h-4.5 w-4.5" />
                           </div>
@@ -3397,14 +3407,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             ₹{financialSummary.totalGrossVolume.toFixed(2)}
                           </div>
                           <span className="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100/70 rounded-full px-2.5 py-0.5">
-                            Total Volume Processed
+                            {t('admin.financial.grossVolumeDesc')}
                           </span>
                         </div>
                       </div>
 
                       <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-blue-300 transition-all">
                         <div className="flex items-start justify-between gap-2">
-                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Cooperative Fees (10%)</span>
+                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">{t('admin.financial.platformFees')}</span>
                           <div className="h-9 w-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
                             <Wallet className="h-4.5 w-4.5" />
                           </div>
@@ -3414,14 +3424,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             ₹{financialSummary.totalPlatformFees.toFixed(2)}
                           </div>
                           <span className="inline-block text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-100/70 rounded-full px-2.5 py-0.5">
-                            Cooperative Platform Revenue
+                            {t('admin.financial.platformFeesDesc')}
                           </span>
                         </div>
                       </div>
 
                       <div className="rounded-2xl border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-indigo-300 transition-all">
                         <div className="flex items-start justify-between gap-2">
-                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Worker Payouts (90%)</span>
+                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">{t('admin.financial.workerPayouts')}</span>
                           <div className="h-9 w-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
                             <HandHeart className="h-4.5 w-4.5" />
                           </div>
@@ -3431,24 +3441,24 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             ₹{financialSummary.totalWorkerEarnings.toFixed(2)}
                           </div>
                           <span className="inline-block text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100/70 rounded-full px-2.5 py-0.5">
-                            Distributed to Workers
+                            {t('admin.financial.workerPayoutsDesc')}
                           </span>
                         </div>
                       </div>
 
                       <div className="rounded-2xl border border-purple-200/90 bg-gradient-to-br from-purple-50/70 via-white to-violet-50/40 p-5 shadow-xs flex flex-col justify-between h-36 hover:shadow-md hover:border-purple-300 transition-all">
                         <div className="flex items-start justify-between gap-2">
-                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">Transaction Stats</span>
+                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 leading-tight">{t('admin.financial.txStats')}</span>
                           <div className="h-9 w-9 rounded-lg bg-purple-600 text-white flex items-center justify-center shadow-xs shrink-0">
                             <Receipt className="h-4.5 w-4.5" />
                           </div>
                         </div>
                         <div className="space-y-1">
                           <div className="text-xl font-black text-slate-900 font-mono">
-                            {financialSummary.completedTransactions} Succ / {financialSummary.refundedTransactions} Ref
+                            {t('admin.financial.txStatsCounts', { succ: financialSummary.completedTransactions, ref: financialSummary.refundedTransactions })}
                           </div>
                           <span className="inline-block text-[10px] font-semibold text-purple-700 bg-purple-50 border border-purple-100/70 rounded-full px-2.5 py-0.5">
-                            Failed: {financialSummary.failedTransactions} | Total: {financialSummary.totalTransactions}
+                            {t('admin.financial.txStatsDetails', { failed: financialSummary.failedTransactions, total: financialSummary.totalTransactions })}
                           </span>
                         </div>
                       </div>
@@ -3459,8 +3469,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div>
-                        <h3 className="text-lg font-bold text-slate-900">Financial Audit Transactions</h3>
-                        <p className="text-xs text-slate-500">Filterable transaction audit ledger</p>
+                        <h3 className="text-lg font-bold text-slate-900">{t('admin.financial.transactionsTitle')}</h3>
+                        <p className="text-xs text-slate-500">{t('admin.financial.transactionsSubtitle')}</p>
                       </div>
                     </div>
 
@@ -3471,7 +3481,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                           <input
                             type="text"
-                            placeholder="Search by ref, customer, worker..."
+                            placeholder={t('admin.financial.searchPlaceholder')}
                             value={financialSearch}
                             onChange={(e) => setFinancialSearch(e.target.value)}
                             onKeyDown={(e) => {
@@ -3485,7 +3495,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           onClick={() => fetchFinancialData(0)}
                           className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors"
                         >
-                          Search
+                          {t('common.search')}
                         </button>
                       </div>
 
@@ -3498,10 +3508,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           }}
                           className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         >
-                          <option value="ALL">All Statuses</option>
-                          <option value="SUCCESS">SUCCESS</option>
+                          <option value="ALL">{t('admin.financial.allStatuses')}</option>
+                          <option value="SUCCESS">{getPaymentStatusLabel(t, 'SUCCESS')}</option>
                           <option value="REFUNDED">REFUNDED</option>
-                          <option value="FAILED">FAILED</option>
+                          <option value="FAILED">{getPaymentStatusLabel(t, 'FAILED')}</option>
                         </select>
 
                         <input
@@ -3510,7 +3520,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           onChange={(e) => setFinancialFromDate(e.target.value)}
                           className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700"
                         />
-                        <span className="text-xs text-slate-400 font-bold">to</span>
+                        <span className="text-xs text-slate-400 font-bold">{t('admin.financial.to')}</span>
                         <input
                           type="date"
                           value={financialToDate}
@@ -3530,7 +3540,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             }}
                             className="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-800 font-bold"
                           >
-                            Clear Filters
+                            {t('admin.financial.clearFilters')}
                           </button>
                         )}
                       </div>
@@ -3540,7 +3550,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     <div className="divide-y divide-slate-100 overflow-x-auto">
                       {financialTransactions.length === 0 ? (
                         <div className="py-8 text-center text-xs text-slate-500">
-                          No financial transactions found matching the filter criteria.
+                          {t('admin.financial.noTransactions')}
                         </div>
                       ) : (
                         financialTransactions.map((tx) => (
@@ -3556,23 +3566,23 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             </div>
 
                             <div className="w-[140px] shrink-0">
-                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer ➔ Worker</span>
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.financial.customerToWorker')}</span>
                               <div className="mt-0.5 leading-snug">
-                                <span className="text-slate-800 font-extrabold block truncate">{tx.customerName || 'Customer'}</span>
-                                <span className="text-slate-500 font-semibold block truncate">to {tx.workerName || 'Worker'}</span>
+                                <span className="text-slate-800 font-extrabold block truncate">{tx.customerName || t('roles.CUSTOMER')}</span>
+                                <span className="text-slate-500 font-semibold block truncate">{t('admin.financial.to')} {tx.workerName || t('roles.WORKER')}</span>
                               </div>
                             </div>
 
                             <div className="w-[130px] shrink-0">
-                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Gross / Fee / Net</span>
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.financial.grossFeeNet')}</span>
                               <div className="mt-0.5 font-mono">
                                 <strong className="text-slate-900 font-extrabold">₹{tx.amount.toFixed(2)}</strong>
-                                <span className="text-[10px] text-slate-400 block">(Fee: ₹{tx.platformFee.toFixed(2)} | Net: ₹{tx.workerEarning.toFixed(2)})</span>
+                                <span className="text-[10px] text-slate-400 block">({t('admin.financial.feeNet', { fee: tx.platformFee.toFixed(2), net: tx.workerEarning.toFixed(2) })})</span>
                               </div>
                             </div>
 
                             <div className="w-[90px] shrink-0">
-                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Method</span>
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.financial.method')}</span>
                               <span className="font-bold text-slate-600 block mt-0.5">{tx.paymentMethod}</span>
                             </div>
 
@@ -3582,7 +3592,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 tx.status === 'REFUNDED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
                                 'bg-red-50 text-red-700 border-red-200'
                               }`}>
-                                {tx.status}
+                                {getPaymentStatusLabel(t, tx.status)}
                               </span>
                             </div>
 
@@ -3592,7 +3602,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 onClick={() => setSelectedFinancialTxnId(tx.id)}
                                 className="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-700 transition-colors inline-flex items-center gap-1"
                               >
-                                <Eye className="h-3 w-3 text-slate-400" /> View Audit
+                                <Eye className="h-3 w-3 text-slate-400" /> {t('admin.financial.viewAudit')}
                               </button>
                               {tx.jobId && (
                                 <button
@@ -3604,7 +3614,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   className="rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800 transition-colors inline-flex items-center gap-1"
                                   title="View Tax Invoice"
                                 >
-                                  <Receipt className="h-3 w-3 text-emerald-600" /> Invoice
+                                  <Receipt className="h-3 w-3 text-emerald-600" /> {t('admin.financial.viewInvoice')}
                                 </button>
                               )}
                             </div>
@@ -3617,7 +3627,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     {financialTotalPages > 1 && (
                       <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
                         <span>
-                          Showing Page <strong className="text-slate-800">{financialPage + 1}</strong> of <strong className="text-slate-800">{financialTotalPages}</strong> ({financialTotalElements} total transactions)
+                          {t('admin.financial.showingPage', { page: financialPage + 1, totalPages: financialTotalPages, total: financialTotalElements })}
                         </span>
                         <div className="flex items-center gap-2">
                           <button
@@ -3626,7 +3636,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             onClick={() => fetchFinancialData(financialPage - 1)}
                             className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 font-bold"
                           >
-                            Previous
+                            {t('admin.financial.previous')}
                           </button>
                           <button
                             type="button"
@@ -3634,7 +3644,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             onClick={() => fetchFinancialData(financialPage + 1)}
                             className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 font-bold"
                           >
-                            Next
+                            {t('admin.financial.next')}
                           </button>
                         </div>
                       </div>
@@ -3648,8 +3658,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">User Directory</h3>
-                      <p className="text-xs text-slate-500">System user registrations, status management, and detail inspection</p>
+                      <h3 className="text-lg font-bold text-slate-900">{t('admin.users.title')}</h3>
+                      <p className="text-xs text-slate-500">{t('admin.users.subtitle')}</p>
                     </div>
                     {activeTab === 'overview' && (
                       <button
@@ -3657,7 +3667,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'users' })}
                         className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                       >
-                        View All Users →
+                        {t('admin.users.viewAll')}
                       </button>
                     )}
                   </div>
@@ -3669,7 +3679,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                         <input
                           type="text"
-                          placeholder="Search users by name or email..."
+                          placeholder={t('admin.users.searchPlaceholder')}
                           value={adminUserSearch}
                           onChange={(e) => setAdminUserSearch(e.target.value)}
                           onKeyDown={(e) => {
@@ -3683,7 +3693,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => fetchAdminUsers(0)}
                         className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors"
                       >
-                        Search
+                        {t('common.search')}
                       </button>
                     </div>
 
@@ -3698,10 +3708,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         }}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       >
-                        <option value="ALL">All Roles</option>
-                        <option value="CUSTOMER">Customer</option>
-                        <option value="WORKER">Worker</option>
-                        <option value="ADMIN">Admin</option>
+                        <option value="ALL">{t('admin.users.allRoles')}</option>
+                        <option value="CUSTOMER">{t('roles.CUSTOMER')}</option>
+                        <option value="WORKER">{t('roles.WORKER')}</option>
+                        <option value="ADMIN">{t('roles.ADMIN')}</option>
                       </select>
 
                       {/* Status Filter */}
@@ -3714,10 +3724,10 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         }}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       >
-                        <option value="ALL">All Statuses</option>
-                        <option value="ACTIVE">Active</option>
-                        <option value="SUSPENDED">Suspended</option>
-                        <option value="DEACTIVATED">Deactivated</option>
+                        <option value="ALL">{t('admin.users.allStatuses')}</option>
+                        <option value="ACTIVE">{t('common.active')}</option>
+                        <option value="SUSPENDED">{t('status.verification.SUSPENDED')}</option>
+                        <option value="DEACTIVATED">{t('admin.workers.inactiveBadge')}</option>
                       </select>
 
                       {(adminUserSearch || adminUserFilter !== 'ALL' || adminUserStatusFilter !== 'ALL') && (
@@ -3731,7 +3741,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           }}
                           className="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-800 font-bold"
                         >
-                          Clear Filters
+                          {t('admin.financial.clearFilters')}
                         </button>
                       )}
                     </div>
@@ -3741,7 +3751,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   <div className="divide-y divide-slate-100 overflow-x-auto">
                     {adminUsers.length === 0 ? (
                       <div className="py-8 text-center text-xs text-slate-500">
-                        No users match the selected search criteria.
+                        {t('admin.users.noUsers')}
                       </div>
                     ) : (
                       adminUsers.map((u) => (
@@ -3764,7 +3774,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                 : 'bg-blue-50 text-blue-700 border-blue-100'
                             }`}>
-                              {u.role}
+                              {t(`roles.${u.role}`, u.role)}
                             </span>
 
                             <span className={`inline-block border rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
@@ -3774,7 +3784,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 ? 'bg-amber-50 text-amber-700 border-amber-200'
                                 : 'bg-rose-50 text-rose-700 border-rose-200'
                             }`}>
-                              {u.status || (u.active ? 'ACTIVE' : 'DEACTIVATED')}
+                              {u.status || (u.active ? t('common.active') : t('admin.workers.inactiveBadge'))}
                             </span>
 
                             <button
@@ -3782,7 +3792,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               onClick={() => setSelectedDetailUserId(u.id)}
                               className="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-700 transition-colors inline-flex items-center gap-1"
                             >
-                              <Eye className="h-3 w-3 text-slate-400" /> View Details
+                              <Eye className="h-3 w-3 text-slate-400" /> {t('admin.users.viewDetails')}
                             </button>
 
                             {user?.id !== u.id && (
@@ -3793,15 +3803,15 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     onClick={async () => {
                                       try {
                                         await reactivateUserApi(u.id);
-                                        toast({ title: 'User Reactivated', description: `${u.name} is now active.` });
+                                        toast({ title: t('common.success'), description: t('admin.users.reactivateSuccess', { name: u.name }) });
                                         fetchAdminUsers();
                                       } catch (err: any) {
-                                        toast({ title: 'Action Failed', description: err?.response?.data?.message || 'Error', variant: 'destructive' });
+                                        toast({ title: t('common.error'), description: err?.response?.data?.message || 'Error', variant: 'destructive' });
                                       }
                                     }}
                                     className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
                                   >
-                                    Reactivate
+                                    {t('admin.users.reactivate')}
                                   </button>
                                 ) : (
                                   <>
@@ -3814,7 +3824,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                       }}
                                       className="rounded-lg bg-amber-500 hover:bg-amber-600 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
                                     >
-                                      Suspend
+                                      {t('admin.users.suspend')}
                                     </button>
                                     <button
                                       type="button"
@@ -3825,7 +3835,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                       }}
                                       className="rounded-lg bg-rose-600 hover:bg-rose-700 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
                                     >
-                                      Deactivate
+                                      {t('admin.users.deactivate')}
                                     </button>
                                   </>
                                 )}
@@ -3841,7 +3851,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   {activeTab === 'users' && adminUserTotalPages > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
                       <span>
-                        Showing Page <strong className="text-slate-800">{adminUserPage + 1}</strong> of <strong className="text-slate-800">{adminUserTotalPages}</strong> ({adminUserTotalElements} total users)
+                        {t('admin.activity.showingPage', { page: adminUserPage + 1, totalPages: adminUserTotalPages, total: adminUserTotalElements })}
                       </span>
                       <div className="flex items-center gap-2">
                         <button
@@ -3850,7 +3860,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           onClick={() => fetchAdminUsers(adminUserPage - 1)}
                           className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 font-bold"
                         >
-                          Previous
+                          {t('admin.financial.previous')}
                         </button>
                         <button
                           type="button"
@@ -3858,7 +3868,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           onClick={() => fetchAdminUsers(adminUserPage + 1)}
                           className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 font-bold"
                         >
-                          Next
+                          {t('admin.financial.next')}
                         </button>
                       </div>
                     </div>
@@ -3875,8 +3885,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Worker Governance & Activation</h3>
-                      <p className="text-xs text-slate-500">Worker professional status and activation control</p>
+                      <h3 className="text-lg font-bold text-slate-900">{t('admin.workers.title')}</h3>
+                      <p className="text-xs text-slate-500">{t('admin.workers.subtitle')}</p>
                     </div>
                     {activeTab === 'overview' && (
                       <button
@@ -3884,7 +3894,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'workers' })}
                         className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                       >
-                        View All Workers →
+                        {t('admin.workers.viewAll')}
                       </button>
                     )}
                   </div>
@@ -3902,7 +3912,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               <span className="text-[10px] text-slate-400 font-mono">({w.email})</span>
                               {!w.active && (
                                 <span className="inline-block bg-rose-50 text-rose-600 border border-rose-100 rounded-full px-2 py-0.5 text-[9px] font-bold">
-                                  Inactive
+                                  {t('admin.workers.inactiveBadge')}
                                 </span>
                               )}
                             </div>
@@ -3910,7 +3920,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             <div className="flex flex-wrap gap-1 mt-1">
                               {w.serviceCategories?.map((cat) => (
                                 <span key={cat} className="inline-block bg-slate-50 border border-slate-200/60 text-slate-500 text-[10px] rounded-full px-2 py-0.5 font-bold">
-                                  {cat}
+                                  {getCategoryLabel(t, cat)}
                                 </span>
                               ))}
                             </div>
@@ -3930,7 +3940,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 : 'bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:text-white'
                             }`}
                           >
-                            {w.active ? 'Deactivate' : 'Activate'}
+                            {w.active ? t('admin.workers.deactivate') : t('admin.workers.activate')}
                           </button>
                         </div>
                       </div>
@@ -3944,8 +3954,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Service Requests</h3>
-                      <p className="text-xs text-slate-500">Service request postings and assignment status</p>
+                      <h3 className="text-lg font-bold text-slate-900">{t('admin.requests.title')}</h3>
+                      <p className="text-xs text-slate-500">{t('admin.requests.subtitle')}</p>
                     </div>
                     {activeTab === 'overview' && (
                       <button
@@ -3953,13 +3963,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'requests' })}
                         className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                       >
-                        View All Requests →
+                        {t('admin.requests.viewAll')}
                       </button>
                     )}
                   </div>
                   <div className="divide-y divide-slate-100 overflow-x-auto">
                     {displayRequests.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-4 text-center">No service requests found.</p>
+                      <p className="text-xs text-slate-400 py-4 text-center">{t('admin.requests.noRequests')}</p>
                     ) : (
                       displayRequests.map((r) => (
                         <div key={r.id} className="py-3 px-2 flex flex-wrap items-center justify-between text-xs gap-4 min-w-[600px] hover:bg-slate-50/60 rounded-2xl transition-all">
@@ -3968,12 +3978,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               <FileText className="h-4.5 w-4.5" />
                             </div>
                             <div>
-                              <strong className="text-slate-800 font-extrabold text-sm block">{r.category}</strong>
+                              <strong className="text-slate-800 font-extrabold text-sm block">{getCategoryLabel(t, r.category)}</strong>
                               <p className="text-slate-500 mt-0.5 max-w-md truncate font-medium">{r.description}</p>
                             </div>
                           </div>
                           <div className="w-[120px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Budget & Location</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.requests.budgetLocation')}</span>
                             <div className="mt-0.5">
                               <strong className="text-slate-800 font-extrabold font-mono">₹{r.budget}</strong>
                               <span className="text-slate-400 mx-1">•</span>
@@ -3981,23 +3991,23 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             </div>
                           </div>
                           <div className="w-[130px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.requests.customer')}</span>
                             <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-0.5">
                               <User className="h-3 w-3 text-slate-400 shrink-0" />
                               {r.customerName}
                             </span>
                           </div>
                           <div className="w-[140px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Worker Match</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.requests.workerMatch')}</span>
                             {r.assignmentStatus === 'ASSIGNED' ? (
                               <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-2.5 py-0.5">
                                 <Wrench className="h-3 w-3 text-emerald-500 shrink-0" />
-                                {r.assignedWorkerName || 'Assigned'}
+                                {r.assignedWorkerName || t('status.assignment.ASSIGNED')}
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-2.5 py-0.5">
                                 <Clock3 className="h-3 w-3 text-amber-500 shrink-0" />
-                                Unassigned
+                                {t('admin.requests.unassigned')}
                               </span>
                             )}
                           </div>
@@ -4007,7 +4017,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                 : 'bg-slate-100 text-slate-700 border-slate-200'
                             }`}>
-                              {r.status}
+                              {getRequestStatusLabel(t, r.status)}
                             </span>
                           </div>
                         </div>
@@ -4022,8 +4032,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Job Executions & Operational Status</h3>
-                      <p className="text-xs text-slate-500">Live worker performance, contract tracking, and operational status filters</p>
+                      <h3 className="text-lg font-bold text-slate-900">{t('admin.jobs.title')}</h3>
+                      <p className="text-xs text-slate-500">{t('admin.jobs.subtitle')}</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                       {activeTab === 'jobs' && (
@@ -4049,7 +4059,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   : 'text-slate-600 hover:text-slate-900'
                               }`}
                             >
-                              {st === 'UNASSIGNED' ? 'UNASSIGNED REQS' : st === 'UNRESOLVED_DISPUTE' ? 'DISPUTED' : st}
+                              {st === 'UNASSIGNED' ? t('admin.jobs.unassignedReqs') : st === 'UNRESOLVED_DISPUTE' ? t('admin.jobs.disputed') : st === 'ALL' ? t('admin.jobs.all') : st === 'ACTIVE' ? t('admin.jobs.active') : st === 'OVERDUE' ? t('admin.jobs.overdue') : getJobStatusLabel(t, st)}
                             </button>
                           ))}
                         </div>
@@ -4060,7 +4070,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           onClick={() => setSearchParams({ tab: 'jobs' })}
                           className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                         >
-                          View All Jobs →
+                          {t('admin.jobs.viewAll')}
                         </button>
                       )}
                     </div>
@@ -4068,7 +4078,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                   <div className="divide-y divide-slate-100 overflow-x-auto">
                     {displayJobs.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-4 text-center">No job records found.</p>
+                      <p className="text-xs text-slate-400 py-4 text-center">{t('admin.jobs.noJobs')}</p>
                     ) : (
                       displayJobs.map((j) => (
                         <div key={j.id} className="py-3 px-2 flex flex-wrap items-center justify-between text-xs gap-4 min-w-[600px] hover:bg-slate-50/60 rounded-2xl transition-all">
@@ -4082,28 +4092,28 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             </div>
                           </div>
                           <div className="w-[150px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.jobs.customer')}</span>
                             <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-0.5">
                               <User className="h-3 w-3 text-slate-400 shrink-0" />
                               {j.customerName}
                             </span>
                           </div>
                           <div className="w-[150px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Assigned Worker</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.jobs.assignedWorker')}</span>
                             <span className="inline-flex items-center gap-1.5 mt-1 font-extrabold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-0.5">
                               <Wrench className="h-3 w-3 text-slate-400 shrink-0" />
-                              {j.workerName || 'Unassigned'}
+                              {j.workerName || t('admin.requests.unassigned')}
                             </span>
                           </div>
                           <div className="w-[100px] shrink-0 flex flex-col items-start">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">Status</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">{t('admin.jobs.status')}</span>
                             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase border tracking-wider ${
                               j.status === 'COMPLETED' ? 'bg-green-50 text-green-700 border-green-200' :
                               j.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                               j.status === 'DECLINED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                               'bg-amber-50 text-amber-700 border-amber-200'
                             }`}>
-                              {j.status}
+                              {getJobStatusLabel(t, j.status)}
                             </span>
                           </div>
                           <div className="shrink-0">
@@ -4118,7 +4128,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 title="View Tax Invoice"
                               >
                                 <Receipt className="h-3.5 w-3.5 text-emerald-600" />
-                                <span>Invoice</span>
+                                <span>{t('admin.jobs.invoice')}</span>
                               </button>
                             )}
                           </div>
@@ -4129,15 +4139,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
               )}
 
-
-
               {/* RATINGS & REVIEWS DIRECTORY */}
               {(activeTab === 'ratings' || activeTab === 'overview') && (
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Ratings & Customer Reviews</h3>
-                      <p className="text-xs text-slate-500">Star ratings and qualitative feedback submitted by customers</p>
+                      <h3 className="text-lg font-bold text-slate-900">{t('admin.ratings.title')}</h3>
+                      <p className="text-xs text-slate-500">{t('admin.ratings.subtitle')}</p>
                     </div>
                     {activeTab === 'overview' && (
                       <button
@@ -4145,13 +4153,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'ratings' })}
                         className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                       >
-                        View All Ratings →
+                        {t('admin.ratings.viewAll')}
                       </button>
                     )}
                   </div>
                   <div className="divide-y divide-slate-100 overflow-x-auto">
                     {displayRatings.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-4 text-center">No customer reviews found.</p>
+                      <p className="text-xs text-slate-400 py-4 text-center">{t('admin.ratings.noRatings')}</p>
                     ) : (
                       displayRatings.map((r) => (
                         <div key={r.id} className="py-3.5 px-2 flex flex-wrap items-start justify-between text-xs gap-4 min-w-[600px] hover:bg-slate-50/60 rounded-2xl transition-all">
@@ -4160,25 +4168,25 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               <Star className="h-4.5 w-4.5 fill-amber-400 text-amber-400" />
                             </div>
                             <div>
-                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Customer ➔ Worker</span>
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.ratings.customerToWorker')}</span>
                               <div className="mt-0.5 leading-snug">
                                 <span className="text-slate-800 font-extrabold">{r.customerName}</span>
-                                <span className="text-slate-400 mx-1">to</span>
+                                <span className="text-slate-400 mx-1">→</span>
                                 <span className="text-slate-700 font-bold">{r.workerName}</span>
                               </div>
                             </div>
                           </div>
                           <div className="w-[100px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Score</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.ratings.score')}</span>
                             <div className="flex items-center gap-1.5 mt-1 text-amber-500 bg-amber-50 border border-amber-100/70 rounded-xl px-2.5 py-0.5 w-max">
                               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                               <strong className="text-slate-800 text-xs font-black">{r.score}.0</strong>
                             </div>
                           </div>
                           <div className="flex-1 min-w-[200px]">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Review Comment</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.ratings.reviewComment')}</span>
                             <p className="text-slate-600 font-medium italic mt-1 bg-slate-50 border border-slate-100/70 rounded-2xl px-3 py-2 leading-relaxed">
-                              "{r.review || "No qualitative feedback left."}"
+                              "{r.review || t('admin.ratings.noFeedback')}"
                             </p>
                           </div>
                         </div>
@@ -4193,8 +4201,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">System Activity Audit Log</h3>
-                      <p className="text-xs text-slate-500">Audit trail trace logs generated from cooperative activities</p>
+                      <h3 className="text-lg font-bold text-slate-900">{t('admin.activity.title')}</h3>
+                      <p className="text-xs text-slate-500">{t('admin.activity.subtitle')}</p>
                     </div>
                     {activeTab === 'overview' && (
                       <button
@@ -4202,7 +4210,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         onClick={() => setSearchParams({ tab: 'activity' })}
                         className="text-xs font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                       >
-                        View All Logs →
+                        {t('admin.activity.viewAll')}
                       </button>
                     )}
                   </div>
@@ -4215,7 +4223,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                           <input
                             type="text"
-                            placeholder="Search activity description or entity ID..."
+                            placeholder={t('admin.activity.searchPlaceholder')}
                             value={activitySearch}
                             onChange={(e) => setActivitySearch(e.target.value)}
                             onKeyDown={(e) => {
@@ -4229,7 +4237,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           onClick={() => fetchAdminActivity(0)}
                           className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors"
                         >
-                          Search
+                          {t('common.search')}
                         </button>
                       </div>
 
@@ -4242,7 +4250,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           }}
                           className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         >
-                          <option value="ALL">All Actions</option>
+                          <option value="ALL">{t('admin.activity.allActions')}</option>
                           <option value="USER_SUSPENDED">USER_SUSPENDED</option>
                           <option value="USER_DEACTIVATED">USER_DEACTIVATED</option>
                           <option value="USER_REACTIVATED">USER_REACTIVATED</option>
@@ -4280,7 +4288,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                             }}
                             className="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-800 font-bold"
                           >
-                            Clear Filters
+                            {t('admin.financial.clearFilters')}
                           </button>
                         )}
                       </div>
@@ -4289,7 +4297,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
                   <div className="divide-y divide-slate-100 overflow-x-auto">
                     {displayActivity.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-4 text-center">No trace activities recorded.</p>
+                      <p className="text-xs text-slate-400 py-4 text-center">{t('admin.activity.noActivity')}</p>
                     ) : (
                       displayActivity.map((act) => (
                         <div key={act.id} className="py-3 px-2 flex items-start justify-between text-xs gap-4 min-w-[600px] hover:bg-slate-50/60 rounded-2xl transition-all">
@@ -4298,12 +4306,12 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               <ShieldCheck className="h-4.5 w-4.5" />
                             </div>
                             <div>
-                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Timestamp</span>
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.activity.timestamp')}</span>
                               <span className="text-[10px] text-slate-500 font-mono block mt-0.5">{formatNotificationTime(act.createdAt)}</span>
                             </div>
                           </div>
                           <div className="w-[120px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Actor</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.activity.actor')}</span>
                             <span className={`inline-block border rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase mt-1 ${
                               act.actorRole === 'ADMIN'
                                 ? 'bg-purple-50 text-purple-700 border-purple-100'
@@ -4311,17 +4319,17 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                 : 'bg-blue-50 text-blue-700 border-blue-100'
                             }`}>
-                              {act.actorRole}
+                              {t(`roles.${act.actorRole}` as any, act.actorRole)}
                             </span>
                             <p className="text-[10px] text-slate-400 font-mono mt-0.5">ID: #{act.actorUserId}</p>
                           </div>
                           <div className="w-[150px] shrink-0">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Action</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.activity.action')}</span>
                             <span className="text-slate-800 font-extrabold block mt-0.5">{act.actionType}</span>
                             <span className="text-[10px] text-slate-400 font-mono">{act.entityType} #{act.entityId}</span>
                           </div>
                           <div className="flex-1 min-w-[200px]">
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Description</span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">{t('admin.activity.description')}</span>
                             <p className="text-slate-600 font-semibold mt-1 leading-relaxed bg-slate-50 border border-slate-100/70 rounded-2xl px-3 py-2">
                               {act.description}
                             </p>
@@ -4335,7 +4343,11 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   {activeTab === 'activity' && activityTotalPages > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
                       <span>
-                        Showing Page <strong className="text-slate-800">{activityPage + 1}</strong> of <strong className="text-slate-800">{activityTotalPages}</strong> ({activityTotalElements} total log entries)
+                        {t('admin.activity.showingPage', {
+                          current: activityPage + 1,
+                          total: activityTotalPages,
+                          count: activityTotalElements
+                        })}
                       </span>
                       <div className="flex items-center gap-2">
                         <button
@@ -4344,7 +4356,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           onClick={() => fetchAdminActivity(activityPage - 1)}
                           className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 font-bold"
                         >
-                          Previous
+                          {t('common.previous')}
                         </button>
                         <button
                           type="button"
@@ -4352,7 +4364,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                           onClick={() => fetchAdminActivity(activityPage + 1)}
                           className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 font-bold"
                         >
-                          Next
+                          {t('common.next')}
                         </button>
                       </div>
                     </div>
@@ -4450,14 +4462,13 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             onClose={() => setSelectedDetailUserId(null)}
           />
 
-
           {/* Status Action Confirmation Modal */}
           {statusModalUser && statusModalAction && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
               <div className="bg-gray-900 border border-gray-800 text-gray-100 rounded-xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-4">
                 <div className="flex items-center justify-between border-b border-gray-800 pb-3">
                   <h3 className="text-lg font-bold text-white capitalize">
-                    {statusModalAction} User Account
+                    {t('admin.users.modalTitle', { action: statusModalAction })}
                   </h3>
                   <button
                     onClick={() => {
@@ -4471,18 +4482,23 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                 </div>
 
                 <p className="text-xs text-gray-300">
-                  Are you sure you want to <strong>{statusModalAction}</strong> user <strong>{statusModalUser.name}</strong> ({statusModalUser.email})?
-                  Current status: <span className="font-semibold">{statusModalUser.status || (statusModalUser.active ? 'ACTIVE' : 'DEACTIVATED')}</span>.
+                  {t('admin.users.modalConfirmText', {
+                    action: statusModalAction,
+                    name: statusModalUser.name,
+                    email: statusModalUser.email,
+                  })}
+                  {' '}
+                  <span className="font-semibold">{statusModalUser.status || (statusModalUser.active ? 'ACTIVE' : 'DEACTIVATED')}</span>.
                 </p>
 
                 <div>
                   <label className="text-xs text-gray-400 font-semibold block mb-1">
-                    Reason for {statusModalAction} <span className="text-rose-400">*</span>
+                    {t('admin.users.reasonLabel', { action: statusModalAction })} <span className="text-rose-400">*</span>
                   </label>
                   <textarea
                     value={statusModalReason}
                     onChange={(e) => setStatusModalReason(e.target.value)}
-                    placeholder={`Enter explicit administrative reason to ${statusModalAction} user...`}
+                    placeholder={t('admin.users.reasonPlaceholder', { action: statusModalAction })}
                     rows={3}
                     className="w-full bg-gray-950 border border-gray-800 rounded-lg p-2.5 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   />
@@ -4497,7 +4513,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                     }}
                     className="px-3.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-semibold"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="button"
@@ -4508,17 +4524,17 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                       try {
                         if (statusModalAction === 'suspend') {
                           await suspendUserApi(statusModalUser.id, statusModalReason.trim());
-                          toast({ title: 'User Suspended', description: `${statusModalUser.name} suspended.` });
+                          toast({ title: t('common.success'), description: `${statusModalUser.name} suspended.` });
                         } else {
                           await deactivateUserApi(statusModalUser.id, statusModalReason.trim());
-                          toast({ title: 'User Deactivated', description: `${statusModalUser.name} deactivated.` });
+                          toast({ title: t('common.success'), description: `${statusModalUser.name} deactivated.` });
                         }
                         setStatusModalUser(null);
                         setStatusModalAction(null);
                         fetchAdminUsers();
                       } catch (err: any) {
                         toast({
-                          title: 'Action Failed',
+                          title: t('common.error'),
                           description: err?.response?.data?.message || 'Status change failed.',
                           variant: 'destructive',
                         });
@@ -4532,7 +4548,7 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                         : 'bg-rose-600 hover:bg-rose-700'
                     }`}
                   >
-                    {isSubmittingStatus ? 'Processing...' : `Confirm ${statusModalAction}`}
+                    {isSubmittingStatus ? t('admin.users.processing') : t('admin.users.confirmAction', { action: statusModalAction })}
                   </button>
                 </div>
               </div>

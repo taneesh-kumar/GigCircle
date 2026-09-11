@@ -98,6 +98,12 @@ export function HorizontalNav() {
             else if (item.id === 'earnings') displayLabel = t('navigation.earnings', item.label);
             else if (item.id === 'ratings') displayLabel = t('navigation.ratings', item.label);
             else if (item.id === 'verification') displayLabel = t('navigation.verification', item.label);
+            else if (item.id === 'financial') displayLabel = t('navigation.financial', item.label);
+            else if (item.id === 'verifications') displayLabel = t('navigation.verifications', item.label);
+            else if (item.id === 'users') displayLabel = t('navigation.users', item.label);
+            else if (item.id === 'workers') displayLabel = t('navigation.workers', item.label);
+            else if (item.id === 'jobs') displayLabel = t('navigation.jobs', item.label);
+            else if (item.id === 'activity') displayLabel = t('navigation.activity', item.label);
 
             return (
               <button

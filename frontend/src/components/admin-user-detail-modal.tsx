@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getAdminUserDetailApi } from '@/services/api/admin';
 import type { AdminUserDetail } from '@/types/admin';
 import { format } from 'date-fns';
@@ -9,6 +10,7 @@ interface AdminUserDetailModalProps {
 }
 
 export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({ userId, onClose }) => {
+  const { t } = useTranslation();
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,14 +40,14 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({ user
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-950/50">
           <div>
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              User Details
+              {t('admin.userDetail.title')}
               {detail && (
                 <span className="text-xs font-mono px-2 py-0.5 rounded bg-gray-800 text-gray-400">
                   ID: #{detail.id}
                 </span>
               )}
             </h2>
-            <p className="text-xs text-gray-400 mt-0.5">Comprehensive administrative view</p>
+            <p className="text-xs text-gray-400 mt-0.5">{t('admin.userDetail.subtitle')}</p>
           </div>
           <button
             onClick={onClose}
@@ -61,7 +63,7 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({ user
           {loading && (
             <div className="flex flex-col items-center justify-center py-12 space-y-3">
               <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-sm text-gray-400">Loading user profile & statistics...</p>
+              <p className="text-sm text-gray-400">{t('admin.userDetail.loading')}</p>
             </div>
           )}
 
@@ -76,37 +78,37 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({ user
               {/* Profile Card */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-950/40 p-4 rounded-xl border border-gray-800/80">
                 <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Name</label>
+                  <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{t('admin.userDetail.name')}</label>
                   <p className="text-base font-semibold text-white mt-0.5">{detail.name}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Email</label>
+                  <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{t('admin.userDetail.email')}</label>
                   <p className="text-base text-gray-200 mt-0.5 font-mono">{detail.email}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Phone</label>
+                  <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{t('admin.userDetail.phone')}</label>
                   <p className="text-sm text-gray-300 mt-0.5 font-mono">{detail.phone || 'N/A'}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Created Date</label>
+                  <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{t('admin.userDetail.createdDate')}</label>
                   <p className="text-sm text-gray-300 mt-0.5">
                     {detail.createdAt ? format(new Date(detail.createdAt), 'PPP p') : 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Role</label>
+                  <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{t('admin.userDetail.role')}</label>
                   <div className="mt-1">
                     <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${
                       detail.role === 'ADMIN' ? 'bg-purple-950 text-purple-300 border border-purple-800/50' :
                       detail.role === 'WORKER' ? 'bg-blue-950 text-blue-300 border border-blue-800/50' :
                       'bg-emerald-950 text-emerald-300 border border-emerald-800/50'
                     }`}>
-                      {detail.role}
+                      {t(`roles.${detail.role}` as any, detail.role)}
                     </span>
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Account Status</label>
+                  <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{t('admin.userDetail.accountStatus')}</label>
                   <div className="mt-1">
                     <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${
                       detail.status === 'ACTIVE' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/50' :
@@ -121,22 +123,22 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({ user
 
               {/* Statistics Grid */}
               <div>
-                <h3 className="text-sm font-bold text-gray-300 mb-3 uppercase tracking-wider">Account Statistics</h3>
+                <h3 className="text-sm font-bold text-gray-300 mb-3 uppercase tracking-wider">{t('admin.userDetail.accountStats')}</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="bg-gray-950/60 p-3 rounded-lg border border-gray-800 text-center">
-                    <span className="text-xs text-gray-400 block">Service Requests</span>
+                    <span className="text-xs text-gray-400 block">{t('admin.userDetail.serviceRequests')}</span>
                     <span className="text-lg font-bold text-emerald-400 mt-1 block">{detail.serviceRequestsCreatedCount ?? 0}</span>
                   </div>
                   <div className="bg-gray-950/60 p-3 rounded-lg border border-gray-800 text-center">
-                    <span className="text-xs text-gray-400 block">Jobs Assigned</span>
+                    <span className="text-xs text-gray-400 block">{t('admin.userDetail.jobsAssigned')}</span>
                     <span className="text-lg font-bold text-blue-400 mt-1 block">{detail.jobsAssignedCount ?? 0}</span>
                   </div>
                   <div className="bg-gray-950/60 p-3 rounded-lg border border-gray-800 text-center">
-                    <span className="text-xs text-gray-400 block">Jobs Completed</span>
+                    <span className="text-xs text-gray-400 block">{t('admin.userDetail.jobsCompleted')}</span>
                     <span className="text-lg font-bold text-indigo-400 mt-1 block">{detail.jobsCompletedCount ?? 0}</span>
                   </div>
                   <div className="bg-gray-950/60 p-3 rounded-lg border border-gray-800 text-center">
-                    <span className="text-xs text-gray-400 block">Ratings Received</span>
+                    <span className="text-xs text-gray-400 block">{t('admin.userDetail.ratingsReceived')}</span>
                     <span className="text-lg font-bold text-amber-400 mt-1 block">
                       {detail.ratingsReceivedCount ?? 0} {detail.averageRatingReceived ? `(★ ${detail.averageRatingReceived.toFixed(1)})` : ''}
                     </span>
@@ -146,18 +148,18 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({ user
 
               {/* Financial Summary */}
               <div>
-                <h3 className="text-sm font-bold text-gray-300 mb-3 uppercase tracking-wider">Financial Summary</h3>
+                <h3 className="text-sm font-bold text-gray-300 mb-3 uppercase tracking-wider">{t('admin.userDetail.financialSummary')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gray-950/30 p-4 rounded-xl border border-gray-800">
                   <div>
-                    <span className="text-xs text-gray-400 block">Total Gross Volume</span>
+                    <span className="text-xs text-gray-400 block">{t('admin.userDetail.totalGross')}</span>
                     <span className="text-base font-semibold text-white mt-0.5 block">₹{(detail.totalGrossVolume ?? 0).toLocaleString()}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-gray-400 block">Worker Net Earnings</span>
+                    <span className="text-xs text-gray-400 block">{t('admin.userDetail.workerNet')}</span>
                     <span className="text-base font-semibold text-emerald-400 mt-0.5 block">₹{(detail.totalWorkerEarnings ?? 0).toLocaleString()}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-gray-400 block">Platform Fees Collected</span>
+                    <span className="text-xs text-gray-400 block">{t('admin.userDetail.platformFees')}</span>
                     <span className="text-base font-semibold text-purple-400 mt-0.5 block">₹{(detail.totalPlatformFees ?? 0).toLocaleString()}</span>
                   </div>
                 </div>
@@ -166,25 +168,25 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({ user
               {/* Worker Specific Information */}
               {detail.role === 'WORKER' && (
                 <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider">Worker Profile & Verification</h3>
+                  <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider">{t('admin.userDetail.workerProfile')}</h3>
                   <div className="bg-gray-950/40 p-4 rounded-xl border border-gray-800 space-y-3">
                     <div className="flex flex-wrap items-center gap-4 text-xs">
                       <div>
-                        <span className="text-gray-500">Experience: </span>
+                        <span className="text-gray-500">{t('admin.userDetail.experience')}: </span>
                         <span className="text-gray-200 font-semibold">{detail.experienceYears ?? 0} yrs</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Hourly Rate: </span>
+                        <span className="text-gray-500">{t('admin.userDetail.hourlyRate')}: </span>
                         <span className="text-emerald-400 font-semibold">₹{detail.hourlyRate ?? 0}/hr</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Availability: </span>
+                        <span className="text-gray-500">{t('admin.userDetail.availability')}: </span>
                         <span className={`font-semibold ${detail.available ? 'text-emerald-400' : 'text-gray-400'}`}>
-                          {detail.available ? 'Available' : 'Unavailable'}
+                          {detail.available ? t('common.active') : t('common.inactive')}
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Verification Status: </span>
+                        <span className="text-gray-500">{t('admin.userDetail.verificationStatus')}: </span>
                         <span className={`font-bold px-2 py-0.5 rounded text-xs ${
                           detail.verificationStatus === 'VERIFIED' ? 'bg-emerald-950 text-emerald-300' :
                           detail.verificationStatus === 'REJECTED' ? 'bg-red-950 text-red-300' :
@@ -197,14 +199,14 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({ user
 
                     {detail.bio && (
                       <div>
-                        <span className="text-xs text-gray-500 block">Bio</span>
+                        <span className="text-xs text-gray-500 block">{t('admin.userDetail.bio')}</span>
                         <p className="text-xs text-gray-300 mt-1 italic bg-gray-900/60 p-2.5 rounded border border-gray-800/60">{detail.bio}</p>
                       </div>
                     )}
 
                     {detail.skills && detail.skills.length > 0 && (
                       <div>
-                        <span className="text-xs text-gray-500 block mb-1">Skills</span>
+                        <span className="text-xs text-gray-500 block mb-1">{t('admin.userDetail.skills')}</span>
                         <div className="flex flex-wrap gap-1.5">
                           {detail.skills.map((skill, idx) => (
                             <span key={idx} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded">
@@ -220,7 +222,7 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({ user
 
               {/* Recent Admin Audit Activity */}
               <div>
-                <h3 className="text-sm font-bold text-gray-300 mb-3 uppercase tracking-wider">Recent Admin Audit Log</h3>
+                <h3 className="text-sm font-bold text-gray-300 mb-3 uppercase tracking-wider">{t('admin.userDetail.recentAudit')}</h3>
                 {detail.recentActivity && detail.recentActivity.length > 0 ? (
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {detail.recentActivity.map((act) => (
@@ -240,7 +242,7 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({ user
                   </div>
                 ) : (
                   <p className="text-xs text-gray-500 bg-gray-950/30 p-3 rounded-lg border border-gray-800 text-center">
-                    No admin audit log recorded for this user.
+                    {t('admin.userDetail.noAudit')}
                   </p>
                 )}
               </div>
@@ -254,7 +256,7 @@ export const AdminUserDetailModal: React.FC<AdminUserDetailModalProps> = ({ user
             onClick={onClose}
             className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-medium rounded-lg transition-colors"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
       </div>

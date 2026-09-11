@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Vote,
   Plus,
@@ -33,50 +34,62 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { CreateProposalModal } from './create-proposal-modal';
 
-const CATEGORY_STYLES: Record<ProposalCategory, { bg: string; text: string; label: string }> = {
-  GENERAL: { bg: 'bg-slate-100 border-slate-200', text: 'text-slate-700', label: 'General' },
-  POLICY: { bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700', label: 'Policy' },
-  PLATFORM_FEE: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', label: 'Fees & Payout' },
-  BENEFITS: { bg: 'bg-purple-50 border-purple-200', text: 'text-purple-700', label: 'Benefits & Welfare' },
-  DISPUTE_RULE: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', label: 'Dispute Rules' },
-};
-
-const STATUS_BADGES: Record<ProposalStatus, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
-  DRAFT: {
-    bg: 'bg-slate-100 text-slate-700 border-slate-200',
-    text: 'text-slate-700',
-    icon: <Clock3 className="h-3 w-3 text-slate-500" />,
-    label: 'DRAFT',
-  },
-  OPEN: {
-    bg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    text: 'text-emerald-700',
-    icon: <Clock3 className="h-3 w-3 text-emerald-600 animate-pulse" />,
-    label: 'VOTING OPEN',
-  },
-  PASSED: {
-    bg: 'bg-teal-50 text-teal-800 border-teal-200',
-    text: 'text-teal-800',
-    icon: <CheckCircle2 className="h-3 w-3 text-teal-600" />,
-    label: 'PASSED',
-  },
-  REJECTED: {
-    bg: 'bg-rose-50 text-rose-700 border-rose-200',
-    text: 'text-rose-700',
-    icon: <XCircle className="h-3 w-3 text-rose-600" />,
-    label: 'REJECTED',
-  },
-  CLOSED: {
-    bg: 'bg-gray-100 text-gray-700 border-gray-200',
-    text: 'text-gray-700',
-    icon: <Lock className="h-3 w-3 text-gray-500" />,
-    label: 'CLOSED',
-  },
-};
-
 export function CooperativeGovernanceSection() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
+
+  const getCategoryInfo = (category: ProposalCategory) => {
+    switch (category) {
+      case 'POLICY':
+        return { bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700', label: t('governance.categoryPolicy') };
+      case 'PLATFORM_FEE':
+        return { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', label: t('governance.categoryFees') };
+      case 'BENEFITS':
+        return { bg: 'bg-purple-50 border-purple-200', text: 'text-purple-700', label: t('governance.categoryBenefits') };
+      case 'DISPUTE_RULE':
+        return { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', label: t('governance.categoryDisputes') };
+      case 'GENERAL':
+      default:
+        return { bg: 'bg-slate-100 border-slate-200', text: 'text-slate-700', label: t('governance.categoryGeneral') };
+    }
+  };
+
+  const getStatusInfo = (status: ProposalStatus) => {
+    switch (status) {
+      case 'DRAFT':
+        return {
+          bg: 'bg-slate-100 text-slate-700 border-slate-200',
+          icon: <Clock3 className="h-3 w-3 text-slate-500" />,
+          label: 'DRAFT',
+        };
+      case 'OPEN':
+        return {
+          bg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          icon: <Clock3 className="h-3 w-3 text-emerald-600 animate-pulse" />,
+          label: t('governance.liveBallot'),
+        };
+      case 'PASSED':
+        return {
+          bg: 'bg-teal-50 text-teal-800 border-teal-200',
+          icon: <CheckCircle2 className="h-3 w-3 text-teal-600" />,
+          label: 'PASSED',
+        };
+      case 'REJECTED':
+        return {
+          bg: 'bg-rose-50 text-rose-700 border-rose-200',
+          icon: <XCircle className="h-3 w-3 text-rose-600" />,
+          label: 'REJECTED',
+        };
+      case 'CLOSED':
+      default:
+        return {
+          bg: 'bg-gray-100 text-gray-700 border-gray-200',
+          icon: <Lock className="h-3 w-3 text-gray-500" />,
+          label: 'CLOSED',
+        };
+    }
+  };
 
   const [proposals, setProposals] = useState<ProposalResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -217,13 +230,13 @@ export function CooperativeGovernanceSection() {
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 rounded-xl bg-emerald-500/20 border border-emerald-400/30 px-3 py-1 text-xs font-extrabold text-emerald-300">
               <Vote className="h-4 w-4 text-emerald-400" />
-              <span>COOPERATIVE WORKER GOVERNANCE</span>
+              <span>{t('governance.heroEyebrow')}</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
-              Worker Voice. One Member, One Vote.
+              {t('governance.heroTitle')}
             </h1>
             <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-medium">
-              Participate directly in platform policy decisions, commission adjustments, equipment subsidies, and cooperative standards. Results are mathematically derived and tamper-proof.
+              {t('governance.heroSubtitle')}
             </p>
           </div>
 
@@ -234,7 +247,7 @@ export function CooperativeGovernanceSection() {
                 onClick={() => setIsCreateModalOpen(true)}
                 className="flex-1 md:flex-initial inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 px-5 py-3 text-xs font-extrabold text-slate-950 shadow-lg hover:shadow-emerald-500/25 transition-all"
               >
-                <Plus className="h-4 w-4" /> New Proposal
+                <Plus className="h-4 w-4" /> {t('governance.newProposal')}
               </button>
             )}
 
@@ -243,7 +256,7 @@ export function CooperativeGovernanceSection() {
               onClick={fetchProposals}
               disabled={isLoading}
               className="p-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-white transition-colors disabled:opacity-50"
-              title="Refresh Proposals"
+              title={t('governance.refreshProposals')}
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
@@ -253,19 +266,19 @@ export function CooperativeGovernanceSection() {
         {/* 3 STAT METRICS */}
         <div className="grid grid-cols-3 gap-3 md:gap-6 mt-8 pt-6 border-t border-white/10">
           <div>
-            <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">Active Voting</span>
+            <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">{t('governance.activeVoting')}</span>
             <div className="text-2xl md:text-3xl font-black text-white mt-0.5">{openCount}</div>
-            <span className="text-[10px] text-slate-400">Open for worker ballots</span>
+            <span className="text-[10px] text-slate-400">{t('governance.activeVotingDesc')}</span>
           </div>
           <div>
-            <span className="text-[11px] font-bold text-teal-400 uppercase tracking-wider block">Passed Motions</span>
+            <span className="text-[11px] font-bold text-teal-400 uppercase tracking-wider block">{t('governance.passedMotions')}</span>
             <div className="text-2xl md:text-3xl font-black text-white mt-0.5">{passedCount}</div>
-            <span className="text-[10px] text-slate-400">Enacted platform policies</span>
+            <span className="text-[10px] text-slate-400">{t('governance.passedMotionsDesc')}</span>
           </div>
           <div>
-            <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">Formulating</span>
+            <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">{t('governance.formulating')}</span>
             <div className="text-2xl md:text-3xl font-black text-white mt-0.5">{draftCount}</div>
-            <span className="text-[10px] text-slate-400">Drafts pending open</span>
+            <span className="text-[10px] text-slate-400">{t('governance.formulatingDesc')}</span>
           </div>
         </div>
       </div>
@@ -285,7 +298,7 @@ export function CooperativeGovernanceSection() {
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              {st === 'ALL' ? 'All Motions' : st}
+              {st === 'ALL' ? t('governance.allMotions') : st}
             </button>
           ))}
         </div>
@@ -298,12 +311,12 @@ export function CooperativeGovernanceSection() {
             onChange={(e) => setCategoryFilter(e.target.value as any)}
             className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20"
           >
-            <option value="ALL">All Categories</option>
-            <option value="GENERAL">General</option>
-            <option value="POLICY">Policy</option>
-            <option value="PLATFORM_FEE">Fees & Payout</option>
-            <option value="BENEFITS">Benefits & Welfare</option>
-            <option value="DISPUTE_RULE">Dispute Rules</option>
+            <option value="ALL">{t('governance.allCategories')}</option>
+            <option value="GENERAL">{t('governance.categoryGeneral')}</option>
+            <option value="POLICY">{t('governance.categoryPolicy')}</option>
+            <option value="PLATFORM_FEE">{t('governance.categoryFees')}</option>
+            <option value="BENEFITS">{t('governance.categoryBenefits')}</option>
+            <option value="DISPUTE_RULE">{t('governance.categoryDisputes')}</option>
           </select>
         </div>
       </div>
@@ -312,14 +325,14 @@ export function CooperativeGovernanceSection() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 space-y-3">
           <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-          <p className="text-xs font-bold text-slate-500">Loading cooperative governance motions...</p>
+          <p className="text-xs font-bold text-slate-500">{t('governance.loadingMotions')}</p>
         </div>
       ) : proposals.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-12 text-center space-y-3 shadow-xs">
           <Vote className="mx-auto h-10 w-10 text-slate-300" />
-          <h3 className="text-base font-bold text-slate-900">No proposals match your filter</h3>
+          <h3 className="text-base font-bold text-slate-900">{t('governance.noProposalsMatch')}</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            Create a new governance proposal or switch filters to view past and draft cooperative decisions.
+            {t('governance.noProposalsDesc')}
           </p>
           {(isWorker || isAdmin) && (
             <button
@@ -327,15 +340,15 @@ export function CooperativeGovernanceSection() {
               onClick={() => setIsCreateModalOpen(true)}
               className="mt-2 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition-colors"
             >
-              <Plus className="h-4 w-4" /> Create First Proposal
+              <Plus className="h-4 w-4" /> {t('governance.createFirstProposal')}
             </button>
           )}
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
           {proposals.map((proposal) => {
-            const cat = CATEGORY_STYLES[proposal.category] || CATEGORY_STYLES.GENERAL;
-            const badge = STATUS_BADGES[proposal.status] || STATUS_BADGES.CLOSED;
+            const cat = getCategoryInfo(proposal.category);
+            const badge = getStatusInfo(proposal.status);
             const total = proposal.totalVotes || 0;
             const yesPct = total > 0 ? Math.round((proposal.yesVotes / total) * 100) : 0;
             const noPct = total > 0 ? Math.round((proposal.noVotes / total) * 100) : 0;
@@ -377,12 +390,12 @@ export function CooperativeGovernanceSection() {
                   {/* PROPOSAL METADATA */}
                   <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 gap-2 pt-1 border-t border-slate-50 font-medium">
                     <span>
-                      Proposed by: <strong className="text-slate-800 font-bold">{proposal.createdByName}</strong> ({proposal.createdByRole})
+                      {t('governance.proposedBy')} <strong className="text-slate-800 font-bold">{proposal.createdByName}</strong> ({t(`roles.${proposal.createdByRole}` as any, proposal.createdByRole)})
                     </span>
                     {proposal.votingEndsAt && (
                       <span className="flex items-center gap-1 text-slate-600">
                         <Calendar className="h-3 w-3 text-slate-400" />
-                        Ends: {new Date(proposal.votingEndsAt).toLocaleDateString()}
+                        {t('governance.endsOn')} {new Date(proposal.votingEndsAt).toLocaleDateString()}
                       </span>
                     )}
                   </div>
@@ -408,14 +421,14 @@ export function CooperativeGovernanceSection() {
                             ? 'bg-rose-600 text-white'
                             : 'bg-slate-600 text-white'
                         }`}>
-                          {proposal.status === 'OPEN' ? 'LIVE BALLOT' : 'CERTIFIED FINAL'}
+                          {proposal.status === 'OPEN' ? t('governance.liveBallot') : t('governance.certifiedFinal')}
                         </span>
                         <span className="font-extrabold text-slate-700 flex items-center gap-1.5">
                           <Users className="h-3.5 w-3.5 text-slate-400" />
-                          {proposal.status === 'OPEN' ? 'Live Progress' : 'Certified Outcome'}
+                          {proposal.status === 'OPEN' ? t('governance.liveProgress') : t('governance.certifiedOutcome')}
                         </span>
                       </div>
-                      <span className="font-mono font-bold text-slate-800">{total} Votes Cast</span>
+                      <span className="font-mono font-bold text-slate-800">{total} {t('governance.votesCast')}</span>
                     </div>
 
                     {/* MULTI-SEGMENT PROGRESS BAR */}
@@ -428,17 +441,17 @@ export function CooperativeGovernanceSection() {
                     {/* VOTE METRICS ROW */}
                     <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
                       <div className="rounded-xl bg-white border border-slate-200/60 p-2">
-                        <span className="text-[10px] font-bold text-emerald-700 block">YES</span>
+                        <span className="text-[10px] font-bold text-emerald-700 block">{t('governance.yes')}</span>
                         <span className="font-black text-slate-900">{proposal.yesVotes}</span>
                         <span className="text-[10px] text-slate-400 block">({yesPct}%)</span>
                       </div>
                       <div className="rounded-xl bg-white border border-slate-200/60 p-2">
-                        <span className="text-[10px] font-bold text-rose-700 block">NO</span>
+                        <span className="text-[10px] font-bold text-rose-700 block">{t('governance.no')}</span>
                         <span className="font-black text-slate-900">{proposal.noVotes}</span>
                         <span className="text-[10px] text-slate-400 block">({noPct}%)</span>
                       </div>
                       <div className="rounded-xl bg-white border border-slate-200/60 p-2">
-                        <span className="text-[10px] font-bold text-amber-700 block">ABSTAIN</span>
+                        <span className="text-[10px] font-bold text-amber-700 block">{t('governance.abstain')}</span>
                         <span className="font-black text-slate-900">{proposal.abstainVotes}</span>
                         <span className="text-[10px] text-slate-400 block">({abstainPct}%)</span>
                       </div>
@@ -454,7 +467,7 @@ export function CooperativeGovernanceSection() {
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                         <span className="text-xs font-bold text-emerald-900">
-                          Your Vote Recorded:
+                          {t('governance.yourVoteRecorded')}
                         </span>
                       </div>
                       <span className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-black text-white shadow-xs">
@@ -465,7 +478,7 @@ export function CooperativeGovernanceSection() {
                     /* WORKER CAN VOTE NOW */
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-xs text-slate-600 font-semibold px-1">
-                        <span>Cast your ballot (one-time & final):</span>
+                        <span>{t('governance.castBallotPrompt')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {(['YES', 'NO', 'ABSTAIN'] as const).map((choice) => (
@@ -482,7 +495,7 @@ export function CooperativeGovernanceSection() {
                                 : 'bg-slate-200 hover:bg-slate-300 text-slate-800'
                             }`}
                           >
-                            Vote {choice}
+                            {choice === 'YES' ? t('governance.voteYes') : choice === 'NO' ? t('governance.voteNo') : t('governance.voteAbstain')}
                           </button>
                         ))}
                       </div>
@@ -502,11 +515,11 @@ export function CooperativeGovernanceSection() {
                           >
                             {actionLoadingId === proposal.id ? (
                               <>
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Opening...
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('governance.opening')}
                               </>
                             ) : (
                               <>
-                                <Clock3 className="h-3.5 w-3.5" /> Open (7 Days)
+                                <Clock3 className="h-3.5 w-3.5" /> {t('governance.open7Days')}
                               </>
                             )}
                           </button>
@@ -517,7 +530,7 @@ export function CooperativeGovernanceSection() {
                             title="Open for short demo window (1 day)"
                             className="rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 py-2.5 px-3 text-[11px] font-bold text-blue-700 transition-colors shadow-2xs"
                           >
-                            ⚡ Demo (1d)
+                            {t('governance.demo1d')}
                           </button>
                         </div>
                       )}
@@ -531,11 +544,11 @@ export function CooperativeGovernanceSection() {
                         >
                           {actionLoadingId === proposal.id ? (
                             <>
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Finalizing...
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('governance.finalizing')}
                             </>
                           ) : (
                             <>
-                              <Lock className="h-3.5 w-3.5 text-slate-500" /> Finalize & Close Ballot
+                              <Lock className="h-3.5 w-3.5 text-slate-500" /> {t('governance.finalizeAndClose')}
                             </>
                           )}
                         </button>

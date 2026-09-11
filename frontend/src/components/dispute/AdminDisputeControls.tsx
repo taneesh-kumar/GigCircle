@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { DisputeDetailResponse } from '@/types/dispute';
 import {
   adminDismissDisputeApi,
@@ -18,6 +19,7 @@ interface AdminDisputeControlsProps {
 }
 
 export const AdminDisputeControls: React.FC<AdminDisputeControlsProps> = ({ dispute, onUpdated }) => {
+  const { t } = useTranslation();
   const [activeAction, setActiveAction] = useState<'REQUEST' | 'RESOLVE' | 'DISMISS' | null>(null);
   const [actionNote, setActionNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -72,20 +74,20 @@ export const AdminDisputeControls: React.FC<AdminDisputeControlsProps> = ({ disp
       <div className="border rounded-lg p-4 bg-card space-y-4">
         <h3 className="font-semibold text-lg flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
-          <span>Administrative Controls</span>
+          <span>{t('admin.disputes.title')}</span>
         </h3>
 
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Action Error</AlertTitle>
+            <AlertTitle>{t('common.error')}</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         {isClosed ? (
           <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-            This dispute is closed ({dispute.status}). Administrative actions are disabled.
+            {t('admin.disputes.closedNotice', { status: dispute.status })}
           </p>
         ) : (
           <div className="space-y-4">
@@ -96,7 +98,7 @@ export const AdminDisputeControls: React.FC<AdminDisputeControlsProps> = ({ disp
                 disabled={submitting || dispute.status === 'UNDER_REVIEW'}
               >
                 {submitting && <RefreshCw className="h-4 w-4 animate-spin mr-1" />}
-                Move to Under Review
+                {t('admin.disputes.moveToReview')}
               </Button>
 
               <Button
@@ -108,7 +110,7 @@ export const AdminDisputeControls: React.FC<AdminDisputeControlsProps> = ({ disp
                 disabled={submitting}
               >
                 <HelpCircle className="h-4 w-4 mr-1" />
-                Request Information
+                {t('admin.disputes.requestInfo')}
               </Button>
 
               <Button
@@ -120,7 +122,7 @@ export const AdminDisputeControls: React.FC<AdminDisputeControlsProps> = ({ disp
                 disabled={submitting}
               >
                 <CheckCircle className="h-4 w-4 mr-1" />
-                Resolve Dispute
+                {t('admin.disputes.resolveDispute')}
               </Button>
 
               <Button
@@ -132,19 +134,19 @@ export const AdminDisputeControls: React.FC<AdminDisputeControlsProps> = ({ disp
                 disabled={submitting}
               >
                 <XCircle className="h-4 w-4 mr-1" />
-                Dismiss Dispute
+                {t('admin.disputes.dismissDispute')}
               </Button>
             </div>
 
             {activeAction && (
               <form onSubmit={handleExecuteAction} className="border p-4 rounded-md bg-muted/20 space-y-3">
                 <h4 className="font-medium text-sm">
-                  {activeAction === 'REQUEST' && 'Request Response Message'}
-                  {activeAction === 'RESOLVE' && 'Resolution Note (Required)'}
-                  {activeAction === 'DISMISS' && 'Dismissal Note (Required)'}
+                  {activeAction === 'REQUEST' && t('admin.disputes.requestMessage')}
+                  {activeAction === 'RESOLVE' && t('admin.disputes.resolutionNote')}
+                  {activeAction === 'DISMISS' && t('admin.disputes.dismissalNote')}
                 </h4>
                 <Textarea
-                  placeholder="Enter detailed note/reason..."
+                  placeholder={t('admin.disputes.enterNote')}
                   value={actionNote}
                   onChange={(e) => setActionNote(e.target.value)}
                   maxLength={2000}
@@ -153,11 +155,11 @@ export const AdminDisputeControls: React.FC<AdminDisputeControlsProps> = ({ disp
                 />
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setActiveAction(null)} disabled={submitting}>
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button type="submit" disabled={!actionNote.trim() || submitting}>
                     {submitting && <RefreshCw className="h-4 w-4 animate-spin mr-1" />}
-                    Confirm {activeAction}
+                    {t('admin.disputes.confirmAction', { action: activeAction })}
                   </Button>
                 </div>
               </form>
