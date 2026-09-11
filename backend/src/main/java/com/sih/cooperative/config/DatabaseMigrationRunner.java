@@ -97,6 +97,52 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
                 logger.debug("Invoices sequence sync skipped (non-PostgreSQL or empty): {}", ex.getMessage());
             }
 
+            // Create governance_proposals table if not exists
+            try {
+                jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS governance_proposals (
+                        id BIGSERIAL PRIMARY KEY,
+                        title VARCHAR(255) NOT NULL,
+                        description VARCHAR(4000) NOT NULL,
+                        category VARCHAR(50) NOT NULL DEFAULT 'GENERAL',
+                        status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
+                        created_by_id BIGINT NOT NULL,
+                        voting_starts_at TIMESTAMP,
+                        voting_ends_at TIMESTAMP,
+                        created_at TIMESTAMP NOT NULL,
+                        updated_at TIMESTAMP NOT NULL,
+                        CONSTRAINT fk_gov_proposals_creator FOREIGN KEY (created_by_id) REFERENCES users(id) ON DELETE RESTRICT
+                    )
+                """);
+            } catch (Exception ex) {
+                logger.debug("Governance proposals table creation skipped or handled by Hibernate: {}", ex.getMessage());
+            }
+
+            // Create governance_votes table if not exists with UNIQUE(proposal_id, voter_id)
+            try {
+                jdbcTemplate.execute("""
+                    CREATE TABLE IF NOT EXISTS governance_votes (
+                        id BIGSERIAL PRIMARY KEY,
+                        proposal_id BIGINT NOT NULL,
+                        voter_id BIGINT NOT NULL,
+                        vote_choice VARCHAR(20) NOT NULL,
+                        voted_at TIMESTAMP NOT NULL,
+                        CONSTRAINT uk_governance_vote_proposal_worker UNIQUE (proposal_id, voter_id),
+                        CONSTRAINT fk_gov_votes_proposal FOREIGN KEY (proposal_id) REFERENCES governance_proposals(id) ON DELETE CASCADE,
+                        CONSTRAINT fk_gov_votes_voter FOREIGN KEY (voter_id) REFERENCES users(id) ON DELETE RESTRICT
+                    )
+                """);
+            } catch (Exception ex) {
+                logger.debug("Governance votes table creation skipped or handled by Hibernate: {}", ex.getMessage());
+            }
+
+            // Ensure unique index exists on governance_votes
+            try {
+                jdbcTemplate.execute("CREATE UNIQUE INDEX IF NOT EXISTS uk_governance_vote_proposal_worker ON governance_votes(proposal_id, voter_id)");
+            } catch (Exception ex) {
+                logger.debug("Governance votes unique index creation skipped: {}", ex.getMessage());
+            }
+
             logger.info("Database schema verification and migrations completed successfully.");
         } catch (Exception e) {
             logger.warn("Database migration warning: {}", e.getMessage());

@@ -55,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/disputes/**").authenticated()
                         .requestMatchers("/api/invoices/**").authenticated()
                         .requestMatchers("/api/demo-payments/**").authenticated()
+                        .requestMatchers("/api/governance/**").authenticated()
                         .requestMatchers("/api/auth/me").authenticated()
                         .anyRequest().authenticated()
                 )
