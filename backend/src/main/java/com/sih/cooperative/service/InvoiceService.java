@@ -109,14 +109,14 @@ public class InvoiceService {
         }
 
         // Authoritative financial totals calculation
-        BigDecimal serviceCharge = request.getBudget().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalAmount = request.getBudget().setScale(2, RoundingMode.HALF_UP);
         BigDecimal feePercentage = earningsConfig.getPlatformFeePercentage();
-        BigDecimal platformFee = serviceCharge
+        BigDecimal platformFee = totalAmount
                 .multiply(feePercentage)
                 .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        BigDecimal serviceCharge = totalAmount.subtract(platformFee).setScale(2, RoundingMode.HALF_UP);
         BigDecimal taxAmount = BigDecimal.ZERO.setScale(2);
         BigDecimal discountAmount = BigDecimal.ZERO.setScale(2);
-        BigDecimal totalAmount = serviceCharge.add(platformFee).setScale(2, RoundingMode.HALF_UP);
 
         String paymentStatus = job.getStatus() == JobStatus.COMPLETED ? "COMPLETED" : "PENDING";
         String paymentReference = "INV-REF-" + jobId;

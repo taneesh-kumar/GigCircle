@@ -43,6 +43,10 @@ public class DemoPaymentService {
     }
 
     private void validateCustomerAccess(Job job, User currentUser) {
+        validatePaymentAccess(job, currentUser, false);
+    }
+
+    private void validatePaymentAccess(Job job, User currentUser, boolean allowWorkerRead) {
         if (currentUser.getRole() == Role.ADMIN) {
             return;
         }
@@ -51,9 +55,18 @@ public class DemoPaymentService {
                 job.getServiceRequest().getCustomer() != null &&
                 job.getServiceRequest().getCustomer().getId().equals(currentUser.getId());
 
-        if (!isCustomer) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the customer who requested the job can perform payment operations");
+        if (isCustomer) {
+            return;
         }
+
+        boolean isWorker = job.getWorker() != null &&
+                job.getWorker().getId().equals(currentUser.getId());
+
+        if (allowWorkerRead && isWorker) {
+            return;
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the customer who requested the job can perform payment operations");
     }
 
     /**
@@ -238,7 +251,7 @@ public class DemoPaymentService {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found"));
 
-        validateCustomerAccess(job, currentUser);
+        validatePaymentAccess(job, currentUser, true);
 
         Payment payment = paymentRepository.findByJobId(jobId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No payment found for job #" + jobId));
