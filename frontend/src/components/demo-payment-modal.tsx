@@ -8,8 +8,10 @@ import { getPaymentForJobApi, initiatePaymentApi, simulatePaymentApi } from '@/s
 import type { PaymentResponse } from '@/types/payment';
 import { useToast } from '@/hooks/use-toast';
 
-type PaymentMethod = 'upi' | 'card';
-type ModalStep = 'method-select' | 'upi-form' | 'card-form' | 'processing' | 'success' | 'failed' | 'error-loading';
+import { Wallet } from 'lucide-react';
+
+type PaymentMethod = 'upi' | 'card' | 'wallet';
+type ModalStep = 'method-select' | 'upi-form' | 'card-form' | 'wallet-form' | 'processing' | 'success' | 'failed' | 'error-loading';
 
 interface DemoPaymentModalProps {
   jobId: number;
@@ -46,6 +48,9 @@ export function DemoPaymentModal({
   const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
   const [cardholderName, setCardholderName] = useState('');
+
+  // Failure simulation
+  const [simulatedFailureReason, setSimulatedFailureReason] = useState<string>('Insufficient Funds');
 
   // Dev controls
   const [showDevControls, setShowDevControls] = useState(false);
@@ -119,12 +124,22 @@ export function DemoPaymentModal({
   const canPayUpi = upiId.trim().length > 3 && upiId.includes('@');
   const canPayCard = cardNumber.replace(/\s/g, '').length === 16 && expiry.length === 5 && cvv.length >= 3 && cardholderName.trim().length > 2;
 
-  const doPayment = async (shouldSucceed: boolean, failureReason?: string) => {
+  const getMethodCode = (m: PaymentMethod): string => {
+    if (m === 'upi') return 'UPI';
+    if (m === 'card') return 'CARD';
+    return 'COOPERATIVE_WALLET';
+  };
+
+  const doPayment = async (shouldSucceed: boolean, method: PaymentMethod = selectedMethod, failureReason?: string) => {
     setStep('processing');
     // Simulate network delay for realism
-    await new Promise(r => setTimeout(r, 1800));
+    await new Promise(r => setTimeout(r, 1500));
     try {
-      const updated = await simulatePaymentApi(jobId, { shouldSucceed, failureReason });
+      const updated = await simulatePaymentApi(jobId, {
+        shouldSucceed,
+        paymentMethod: getMethodCode(method),
+        failureReason: shouldSucceed ? undefined : (failureReason || simulatedFailureReason)
+      });
       setPayment(updated);
       if (updated.status === 'SUCCESS') {
         setStep('success');
@@ -233,24 +248,33 @@ export function DemoPaymentModal({
         {!isInitializing && step === 'method-select' && (
           <div className="p-5 space-y-4">
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Choose Payment Method</p>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => { setSelectedMethod('upi'); setStep('upi-form'); }}
-                className="flex flex-col items-center gap-2 rounded-2xl border-2 border-slate-100 bg-white p-4 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all group"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-slate-100 bg-white p-3 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all group"
               >
-                <Smartphone className="h-6 w-6 text-slate-400 group-hover:text-emerald-600 transition-colors" />
-                <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-700">UPI</span>
-                <span className="text-[9px] text-slate-400 leading-tight text-center">BHIM, GPay, PhonePe</span>
+                <Smartphone className="h-5 w-5 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                <span className="text-[11px] font-bold text-slate-700 group-hover:text-emerald-700">UPI</span>
+                <span className="text-[8px] text-slate-400 leading-tight text-center">GPay, PhonePe</span>
               </button>
               <button
                 type="button"
                 onClick={() => { setSelectedMethod('card'); setStep('card-form'); }}
-                className="flex flex-col items-center gap-2 rounded-2xl border-2 border-slate-100 bg-white p-4 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all group"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-slate-100 bg-white p-3 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all group"
               >
-                <CreditCard className="h-6 w-6 text-slate-400 group-hover:text-emerald-600 transition-colors" />
-                <span className="text-xs font-bold text-slate-700 group-hover:text-emerald-700">Card</span>
-                <span className="text-[9px] text-slate-400 leading-tight text-center">Debit / Credit</span>
+                <CreditCard className="h-5 w-5 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                <span className="text-[11px] font-bold text-slate-700 group-hover:text-emerald-700">Card</span>
+                <span className="text-[8px] text-slate-400 leading-tight text-center">Debit / Credit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSelectedMethod('wallet'); setStep('wallet-form'); }}
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-slate-100 bg-white p-3 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all group"
+              >
+                <Wallet className="h-5 w-5 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                <span className="text-[11px] font-bold text-slate-700 group-hover:text-emerald-700">Coop Wallet</span>
+                <span className="text-[8px] text-slate-400 leading-tight text-center">Instant Balance</span>
               </button>
             </div>
 
@@ -262,22 +286,35 @@ export function DemoPaymentModal({
                 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <Beaker className="h-3 w-3" />
-                {showDevControls ? 'Hide' : 'Show'} Demo Controls
+                {showDevControls ? 'Hide' : 'Show'} Demo Simulation Controls
               </button>
               {showDevControls && (
                 <div className="mt-3 rounded-2xl border border-dashed border-amber-300 bg-amber-50/40 p-3 space-y-2">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700">⚙ Demo-only controls</p>
-                  <div className="flex gap-2">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700">⚙ Simulation Settings</p>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-500">Failure Reason Preset:</label>
+                    <select
+                      value={simulatedFailureReason}
+                      onChange={e => setSimulatedFailureReason(e.target.value)}
+                      className="w-full rounded-lg border border-amber-200 bg-white text-[10px] p-1.5 font-medium text-slate-700"
+                    >
+                      <option value="Insufficient Funds">Insufficient Funds</option>
+                      <option value="Bank Server Timeout">Bank Server Timeout</option>
+                      <option value="Card Declined by Issuer">Card Declined by Issuer</option>
+                      <option value="UPI PIN Validation Failed">UPI PIN Validation Failed</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2 pt-1">
                     <button
                       type="button"
-                      onClick={() => doPayment(true)}
+                      onClick={() => doPayment(true, selectedMethod)}
                       className="flex-1 rounded-xl bg-emerald-600 px-3 py-2 text-[10px] font-bold text-white hover:bg-emerald-700 transition-colors"
                     >
                       ✓ Force Success
                     </button>
                     <button
                       type="button"
-                      onClick={() => doPayment(false, 'Demo simulation: payment declined')}
+                      onClick={() => doPayment(false, selectedMethod, simulatedFailureReason)}
                       className="flex-1 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-[10px] font-bold text-red-700 hover:bg-red-100 transition-colors"
                     >
                       ✕ Force Failure
@@ -329,7 +366,7 @@ export function DemoPaymentModal({
             <button
               type="button"
               disabled={!canPayUpi}
-              onClick={() => doPayment(true)}
+              onClick={() => doPayment(true, 'upi')}
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <IndianRupee className="h-4 w-4" />
@@ -398,13 +435,49 @@ export function DemoPaymentModal({
             <button
               type="button"
               disabled={!canPayCard}
-              onClick={() => doPayment(true)}
+              onClick={() => doPayment(true, 'card')}
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Lock className="h-4 w-4" />
               Pay ₹{displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </button>
             <p className="text-center text-[9px] text-slate-400">Your card details are not stored. Demo only.</p>
+          </div>
+        )}
+
+        {/* ─── WALLET FORM ─── */}
+        {!isInitializing && step === 'wallet-form' && (
+          <div className="p-5 space-y-4">
+            <button
+              type="button"
+              onClick={() => setStep('method-select')}
+              className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" /> Back
+            </button>
+
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-emerald-800 text-xs">
+                <Wallet className="h-4 w-4 text-emerald-600" />
+                Cooperative Member Demo Wallet
+              </div>
+              <p className="text-[11px] text-emerald-700">
+                Simulated pre-funded cooperative wallet for seamless 1-click checkout.
+              </p>
+              <div className="pt-2 border-t border-emerald-200/60 flex justify-between text-xs">
+                <span className="text-emerald-700 font-medium">Available Demo Balance:</span>
+                <span className="font-mono font-bold text-emerald-900">₹25,000.00</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => doPayment(true, 'wallet')}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Pay ₹{displayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} via Wallet
+            </button>
           </div>
         )}
 

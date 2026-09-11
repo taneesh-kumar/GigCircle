@@ -115,6 +115,11 @@ public class DemoPaymentService {
      */
     @Transactional
     public PaymentResponse simulatePayment(Long jobId, boolean shouldSucceed, String failureReason, String userEmail) {
+        return simulatePayment(jobId, shouldSucceed, null, failureReason, userEmail);
+    }
+
+    @Transactional
+    public PaymentResponse simulatePayment(Long jobId, boolean shouldSucceed, String paymentMethod, String failureReason, String userEmail) {
         User currentUser = getAuthenticatedUser(userEmail);
 
         Job job = jobRepository.findById(jobId)
@@ -148,6 +153,9 @@ public class DemoPaymentService {
             // Already succeeded — idempotent
             return PaymentResponse.fromEntity(payment);
         }
+
+        String method = (paymentMethod != null && !paymentMethod.isBlank()) ? paymentMethod : "UPI";
+        payment.setPaymentMethod(method);
 
         if (shouldSucceed) {
             payment.setStatus(PaymentStatus.SUCCESS);

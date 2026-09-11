@@ -36,6 +36,9 @@ public class Payment {
     @Column(name = "status", nullable = false, length = 32)
     private PaymentStatus status;
 
+    @Column(name = "payment_method", length = 32)
+    private String paymentMethod;
+
     @Column(name = "transaction_reference", length = 64)
     private String transactionReference;
 
@@ -108,6 +111,14 @@ public class Payment {
 
     public void setStatus(PaymentStatus status) {
         this.status = status;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     public String getTransactionReference() {

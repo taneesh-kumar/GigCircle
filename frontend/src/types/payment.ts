@@ -6,6 +6,7 @@ export interface PaymentResponse {
   customerId: number;
   amount: number;
   status: PaymentStatus;
+  paymentMethod?: string | null;
   transactionReference?: string | null;
   failureReason?: string | null;
   createdAt: string;
@@ -14,5 +15,6 @@ export interface PaymentResponse {
 
 export interface SimulatePaymentRequest {
   shouldSucceed: boolean;
+  paymentMethod?: string;
   failureReason?: string;
 }

@@ -47,8 +47,9 @@ public class DemoPaymentController {
             @AuthenticationPrincipal Object principal) {
         String userEmail = extractEmail(principal);
         boolean shouldSucceed = request == null || request.isShouldSucceed();
+        String paymentMethod = request != null ? request.getPaymentMethod() : null;
         String failureReason = request != null ? request.getFailureReason() : null;
-        PaymentResponse response = demoPaymentService.simulatePayment(jobId, shouldSucceed, failureReason, userEmail);
+        PaymentResponse response = demoPaymentService.simulatePayment(jobId, shouldSucceed, paymentMethod, failureReason, userEmail);
         return ResponseEntity.ok(response);
     }
 

@@ -445,4 +445,28 @@ public class DemoPaymentIntegrationTest {
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.id").value(paymentId));
     }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Test 22: Payment Methods & Receipt Verification (Phase 6)
+    // ────────────────────────────────────────────────────────────────────────
+    @Test
+    void test22_PaymentMethodsAndReceiptVerification() throws Exception {
+        // Start & complete work
+        mockMvc.perform(post("/api/worker/jobs/" + jobId + "/start").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
+        mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
+
+        // Simulate CARD payment success
+        SimulatePaymentRequest cardReq = new SimulatePaymentRequest(true, "CARD", null);
+        mockMvc.perform(post("/api/demo-payments/jobs/" + jobId + "/simulate")
+                        .header("Authorization", "Bearer " + customerToken1)
+                        .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(cardReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.paymentMethod").value("CARD"))
+                .andExpect(jsonPath("$.transactionReference").value(org.hamcrest.Matchers.startsWith("DEMO-TXN-")));
+
+        // Verify Job COMPLETED
+        Job completedJob = jobRepository.findById(jobId).orElseThrow();
+        assertEquals(JobStatus.COMPLETED, completedJob.getStatus());
+    }
 }

@@ -308,11 +308,34 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
               )}
 
               {request.jobId && jobStatusStr === 'COMPLETED' && (
-                <div className="space-y-2 pt-2 border-t border-emerald-200/60">
-                  <div className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 py-2.5 text-xs font-bold text-emerald-800">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    Job Completed &amp; Payment Received
+                <div className="space-y-3 pt-3 border-t border-emerald-200/60">
+                  <div className="w-full inline-flex items-center justify-between rounded-xl bg-emerald-50/80 border border-emerald-200 p-3 text-xs font-bold text-emerald-800">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span>Job Completed &amp; Paid</span>
+                    </div>
+                    <span className="font-mono text-[10px] text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-300">
+                      Paid ₹{request.budget.toLocaleString()}
+                    </span>
                   </div>
+
+                  {user?.role === 'WORKER' && (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-1.5 text-xs">
+                      <p className="font-extrabold uppercase tracking-wider text-[10px] text-slate-500">Earnings Breakdown</p>
+                      <div className="flex justify-between text-slate-600 text-[11px]">
+                        <span>Gross Service Budget:</span>
+                        <span className="font-mono font-medium">₹{request.budget.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-500 text-[11px]">
+                        <span>Cooperative Platform Fee (10%):</span>
+                        <span className="font-mono text-red-600">-₹{(request.budget * 0.1).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between pt-1.5 border-t border-slate-200 text-slate-900 font-bold text-xs">
+                        <span className="text-emerald-700">Net Worker Earning:</span>
+                        <span className="font-mono text-emerald-700">₹{(request.budget * 0.9).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
 
                   <button
                     type="button"
@@ -320,7 +343,7 @@ export function RequestDetailModal({ request, isOpen, onClose, onStatusChange, s
                     className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-800 hover:bg-slate-50 transition-colors shadow-xs"
                   >
                     <FileText className="h-4 w-4 text-slate-600" />
-                    View Job Invoice
+                    View Job Invoice &amp; Receipt
                   </button>
                 </div>
               )}

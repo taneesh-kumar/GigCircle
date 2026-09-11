@@ -13,6 +13,7 @@ public class PaymentResponse {
     private Long customerId;
     private BigDecimal amount;
     private PaymentStatus status;
+    private String paymentMethod;
     private String transactionReference;
     private String failureReason;
     private LocalDateTime createdAt;
@@ -35,6 +36,7 @@ public class PaymentResponse {
         }
         res.setAmount(payment.getAmount());
         res.setStatus(payment.getStatus());
+        res.setPaymentMethod(payment.getPaymentMethod());
         res.setTransactionReference(payment.getTransactionReference());
         res.setFailureReason(payment.getFailureReason());
         res.setCreatedAt(payment.getCreatedAt());
@@ -80,6 +82,14 @@ public class PaymentResponse {
 
     public void setStatus(PaymentStatus status) {
         this.status = status;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     public String getTransactionReference() {
