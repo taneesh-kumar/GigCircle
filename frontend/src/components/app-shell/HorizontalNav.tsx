@@ -13,6 +13,7 @@ import {
   Activity,
   Receipt,
   ShieldCheck,
+  Vote,
   LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -35,6 +36,7 @@ const workerNav: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'available', label: 'Available Jobs', icon: Search },
   { id: 'assigned', label: 'Assigned Jobs', icon: Briefcase },
+  { id: 'governance', label: 'Governance & Voting', icon: Vote },
   { id: 'earnings', label: 'Earnings', icon: Wallet },
   { id: 'ratings', label: 'Ratings & Reviews', icon: Star },
   { id: 'profile', label: 'Worker Profile', icon: User },
@@ -45,6 +47,7 @@ const workerNav: NavItem[] = [
 
 const adminNav: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'governance', label: 'Governance & Voting', icon: Vote },
   { id: 'financial', label: 'Financial Audit', icon: Wallet },
   { id: 'verifications', label: 'Verifications', icon: ShieldCheck },
   { id: 'users', label: 'Users', icon: UsersRound },

@@ -15,3 +15,4 @@ export * from './chat';
 export * from './dispute';
 export * from './invoice';
 export * from './payment';
+export * from './governance';

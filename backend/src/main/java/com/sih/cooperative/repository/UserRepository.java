@@ -23,6 +23,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     java.util.List<User> findByRole(Role role);
 
+    java.util.List<User> findByRoleAndStatus(Role role, com.sih.cooperative.entity.AccountStatus status);
+
     java.util.List<User> findAllByOrderByCreatedAtDesc();
 }
 

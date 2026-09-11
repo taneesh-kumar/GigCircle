@@ -23,4 +23,6 @@ public interface GovernanceProposalRepository extends JpaRepository<GovernancePr
     Page<GovernanceProposal> findByStatusAndCategory(ProposalStatus status, ProposalCategory category, Pageable pageable);
 
     List<GovernanceProposal> findByCreatedById(Long createdById);
+
+    List<GovernanceProposal> findByStatusAndVotingEndsAtBefore(ProposalStatus status, java.time.LocalDateTime dateTime);
 }

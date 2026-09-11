@@ -22,9 +22,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -462,6 +463,81 @@ public class GovernanceIntegrationTest {
         assertThrows(DataIntegrityViolationException.class, () -> {
             voteRepository.saveAndFlush(vote2);
         });
+    }
+
+    @Autowired
+    private com.sih.cooperative.service.GovernanceProposalScheduler governanceProposalScheduler;
+
+    @Test
+    @DisplayName("Proposal opened notification is dispatched to active workers")
+    public void testProposalOpenedDispatchesNotifications() throws Exception {
+        GovernanceProposal proposal = new GovernanceProposal(
+                "Cooperative Fuel Subsidy",
+                "Proposal to introduce fuel allowance subsidy for active travelling technicians.",
+                ProposalCategory.BENEFITS,
+                workerUser1
+        );
+        proposal.setStatus(ProposalStatus.DRAFT);
+        proposal = proposalRepository.save(proposal);
+
+        // Open voting
+        OpenProposalRequest openReq = new OpenProposalRequest(3);
+        mockMvc.perform(post("/api/governance/proposals/" + proposal.getId() + "/open")
+                        .header("Authorization", worker1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(openReq)))
+                .andExpect(status().isOk());
+
+        // Verify active workers (workerUser1, workerUser2) received notification
+        boolean worker1Notified = notificationRepository.existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(
+                workerUser1.getId(), NotificationType.PROPOSAL_OPENED, "GOVERNANCE_PROPOSAL", proposal.getId()
+        );
+        boolean worker2Notified = notificationRepository.existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(
+                workerUser2.getId(), NotificationType.PROPOSAL_OPENED, "GOVERNANCE_PROPOSAL", proposal.getId()
+        );
+        boolean deactivatedNotified = notificationRepository.existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(
+                deactivatedWorker.getId(), NotificationType.PROPOSAL_OPENED, "GOVERNANCE_PROPOSAL", proposal.getId()
+        );
+
+        assertTrue(worker1Notified);
+        assertTrue(worker2Notified);
+        assertFalse(deactivatedNotified);
+    }
+
+    @Test
+    @DisplayName("Scheduler auto-closes expired proposal, resolves REJECTED if votes tie/no votes, and notifies creator")
+    public void testSchedulerAutoClosesExpiredProposal() {
+        GovernanceProposal proposal = new GovernanceProposal(
+                "Standardize Electrician Toolkits",
+                "Mandatory checklist for certified toolkit maintenance.",
+                ProposalCategory.POLICY,
+                workerUser1
+        );
+        proposal.setStatus(ProposalStatus.OPEN);
+        proposal.setVotingStartsAt(LocalDateTime.now().minusDays(3));
+        proposal.setVotingEndsAt(LocalDateTime.now().minusMinutes(2)); // Expired
+        proposal = proposalRepository.save(proposal);
+
+        // 1 YES vote, 1 NO vote -> tie (REJECTED by simple majority rule)
+        GovernanceVote vote1 = new GovernanceVote(proposal, workerUser1, VoteType.YES);
+        GovernanceVote vote2 = new GovernanceVote(proposal, workerUser2, VoteType.NO);
+        voteRepository.saveAllAndFlush(List.of(vote1, vote2));
+
+        // Trigger scheduler
+        governanceProposalScheduler.autoCloseExpiredProposals();
+
+        GovernanceProposal updated = proposalRepository.findById(proposal.getId()).orElseThrow();
+        assertEquals(ProposalStatus.REJECTED, updated.getStatus());
+
+        // Creator should have received PROPOSAL_CLOSED notification
+        boolean creatorNotified = notificationRepository.existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(
+                workerUser1.getId(), NotificationType.PROPOSAL_CLOSED, "GOVERNANCE_PROPOSAL", proposal.getId()
+        );
+        assertTrue(creatorNotified);
+
+        // Idempotency: Running scheduler again should not fail or re-notify duplicates
+        governanceProposalScheduler.autoCloseExpiredProposals();
+        assertEquals(ProposalStatus.REJECTED, updated.getStatus());
     }
 
     @org.junit.jupiter.api.AfterEach

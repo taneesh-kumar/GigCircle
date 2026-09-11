@@ -113,6 +113,7 @@ import { ChatPanel } from '@/components/chat/ChatPanel';
 import { JobChatModal } from '@/components/chat/JobChatModal';
 import { DisputeCreateForm } from '@/components/dispute/DisputeCreateForm';
 import { DisputeDetailPanel } from '@/components/dispute/DisputeDetailPanel';
+import { CooperativeGovernanceSection } from '@/components/governance/governance-hub';
 import { AdminDisputeControls } from '@/components/dispute/AdminDisputeControls';
 import { getDisputeForJobApi } from '@/services/api/dispute';
 import { DemoPaymentModal } from '@/components/demo-payment-modal';
@@ -3082,6 +3083,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               </div>
             )}
 
+            {/* TAB: COOPERATIVE GOVERNANCE */}
+            {activeTab === 'governance' && <CooperativeGovernanceSection />}
+
             {/* TAB: WORKER VERIFICATION */}
             {activeTab === 'verification' && <WorkerVerificationSection />}
 
@@ -4276,6 +4280,9 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                   )}
                 </div>
               )}
+
+              {/* ADMIN GOVERNANCE & VOTING */}
+              {activeTab === 'governance' && <CooperativeGovernanceSection />}
 
               {/* ADMIN NOTIFICATIONS */}
               {activeTab === 'notifications' && renderNotificationsView()}

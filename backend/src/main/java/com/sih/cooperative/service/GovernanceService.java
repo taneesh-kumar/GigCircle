@@ -28,19 +28,22 @@ public class GovernanceService {
     private final UserRepository userRepository;
     private final WorkerVerificationRepository workerVerificationRepository;
     private final AdminActivityRepository adminActivityRepository;
+    private final NotificationService notificationService;
 
     public GovernanceService(
             GovernanceProposalRepository proposalRepository,
             GovernanceVoteRepository voteRepository,
             UserRepository userRepository,
             WorkerVerificationRepository workerVerificationRepository,
-            AdminActivityRepository adminActivityRepository
+            AdminActivityRepository adminActivityRepository,
+            NotificationService notificationService
     ) {
         this.proposalRepository = proposalRepository;
         this.voteRepository = voteRepository;
         this.userRepository = userRepository;
         this.workerVerificationRepository = workerVerificationRepository;
         this.adminActivityRepository = adminActivityRepository;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -155,6 +158,9 @@ public class GovernanceService {
         logAdminActivity(caller, "OPEN_PROPOSAL", "GOVERNANCE_PROPOSAL", proposal.getId(),
                 "Opened voting for proposal: " + proposal.getTitle());
 
+        // Notify active workers that a proposal is open for voting
+        notifyWorkersProposalOpened(proposal);
+
         return mapToProposalResponse(proposal, caller);
     }
 
@@ -204,24 +210,12 @@ public class GovernanceService {
     }
 
     /**
-     * Close/finalize voting on a proposal and calculate final status (PASSED/REJECTED).
-     * Allowed for ADMIN or Proposal Creator.
+     * Internal method to close an OPEN proposal, resolve tally, update status, and notify creator.
      */
     @Transactional
-    public ProposalResultResponse closeVoting(Long proposalId, String authenticatedUsername) {
-        User caller = getAuthenticatedUser(authenticatedUsername);
-        GovernanceProposal proposal = proposalRepository.findById(proposalId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Proposal not found with id: " + proposalId));
-
-        boolean isCreator = proposal.getCreatedBy().getId().equals(caller.getId());
-        boolean isAdmin = caller.getRole() == Role.ADMIN;
-
-        if (!isCreator && !isAdmin) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the creator or an administrator can close voting for this proposal");
-        }
-
+    public ProposalResultResponse closeProposalEntity(GovernanceProposal proposal, User actor) {
         if (proposal.getStatus() != ProposalStatus.OPEN) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only OPEN proposals can be closed. Current status: " + proposal.getStatus());
+            return calculateProposalResults(proposal);
         }
 
         long yesVotes = voteRepository.countByProposalIdAndVoteChoice(proposal.getId(), VoteType.YES);
@@ -242,10 +236,39 @@ public class GovernanceService {
         }
         proposal = proposalRepository.save(proposal);
 
-        logAdminActivity(caller, "CLOSE_PROPOSAL", "GOVERNANCE_PROPOSAL", proposal.getId(),
-                "Closed voting on proposal: " + proposal.getTitle() + ". Final status: " + finalStatus);
+        if (actor != null) {
+            logAdminActivity(actor, "CLOSE_PROPOSAL", "GOVERNANCE_PROPOSAL", proposal.getId(),
+                    "Closed voting on proposal: " + proposal.getTitle() + ". Final status: " + finalStatus);
+        }
+
+        // Notify proposal creator of final outcome
+        notifyCreatorProposalClosed(proposal, finalStatus, yesVotes, noVotes, totalVotes);
 
         return calculateProposalResults(proposal);
+    }
+
+    /**
+     * Close/finalize voting on a proposal and calculate final status (PASSED/REJECTED).
+     * Allowed for ADMIN or Proposal Creator.
+     */
+    @Transactional
+    public ProposalResultResponse closeVoting(Long proposalId, String authenticatedUsername) {
+        User caller = getAuthenticatedUser(authenticatedUsername);
+        GovernanceProposal proposal = proposalRepository.findById(proposalId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Proposal not found with id: " + proposalId));
+
+        boolean isCreator = proposal.getCreatedBy().getId().equals(caller.getId());
+        boolean isAdmin = caller.getRole() == Role.ADMIN;
+
+        if (!isCreator && !isAdmin) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the creator or an administrator can close voting for this proposal");
+        }
+
+        if (proposal.getStatus() != ProposalStatus.OPEN) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only OPEN proposals can be closed. Current status: " + proposal.getStatus());
+        }
+
+        return closeProposalEntity(proposal, caller);
     }
 
     /**
@@ -382,6 +405,46 @@ public class GovernanceService {
             adminActivityRepository.save(activity);
         } catch (Exception e) {
             logger.warn("Could not write audit log for governance action: {}", e.getMessage());
+        }
+    }
+
+    private void notifyWorkersProposalOpened(GovernanceProposal proposal) {
+        try {
+            List<User> activeWorkers = userRepository.findByRoleAndStatus(Role.WORKER, AccountStatus.ACTIVE);
+            for (User worker : activeWorkers) {
+                notificationService.createNotification(
+                        worker,
+                        NotificationType.PROPOSAL_OPENED,
+                        "Cooperative Voting Open: " + proposal.getTitle(),
+                        "A new cooperative proposal is now open for voting. Cast your vote before the voting window closes.",
+                        "GOVERNANCE_PROPOSAL",
+                        proposal.getId()
+                );
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to notify workers of opened proposal {}: {}", proposal.getId(), e.getMessage());
+        }
+    }
+
+    private void notifyCreatorProposalClosed(GovernanceProposal proposal, ProposalStatus finalStatus, long yesVotes, long noVotes, long totalVotes) {
+        try {
+            User creator = proposal.getCreatedBy();
+            if (creator != null) {
+                String outcomeText = finalStatus == ProposalStatus.PASSED ? "PASSED" : "REJECTED";
+                String message = String.format("Proposal '%s' has concluded and %s. Final tally: %d YES, %d NO (%d total votes).",
+                        proposal.getTitle(), outcomeText, yesVotes, noVotes, totalVotes);
+
+                notificationService.createNotification(
+                        creator,
+                        NotificationType.PROPOSAL_CLOSED,
+                        "Voting Concluded: " + proposal.getTitle() + " (" + outcomeText + ")",
+                        message,
+                        "GOVERNANCE_PROPOSAL",
+                        proposal.getId()
+                );
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to notify creator of closed proposal {}: {}", proposal.getId(), e.getMessage());
         }
     }
 }
