@@ -84,6 +84,19 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
                 logger.debug("Invoices table creation migration skipped or handled by Hibernate: {}", ex.getMessage());
             }
 
+            // Sync PostgreSQL sequence for invoices if table already has rows or sequence is out of sync
+            try {
+                jdbcTemplate.execute("""
+                    SELECT setval(
+                        pg_get_serial_sequence('invoices', 'id'),
+                        COALESCE((SELECT MAX(id) FROM invoices), 0) + 1,
+                        false
+                    )
+                """);
+            } catch (Exception ex) {
+                logger.debug("Invoices sequence sync skipped (non-PostgreSQL or empty): {}", ex.getMessage());
+            }
+
             logger.info("Database schema verification and migrations completed successfully.");
         } catch (Exception e) {
             logger.warn("Database migration warning: {}", e.getMessage());

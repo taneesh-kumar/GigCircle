@@ -5,6 +5,7 @@ import com.sih.cooperative.dto.InvoiceResponse;
 import com.sih.cooperative.entity.*;
 import com.sih.cooperative.repository.InvoiceRepository;
 import com.sih.cooperative.repository.JobRepository;
+import com.sih.cooperative.repository.PaymentRepository;
 import com.sih.cooperative.repository.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -28,17 +29,20 @@ public class InvoiceService {
     private final UserRepository userRepository;
     private final EarningsConfig earningsConfig;
     private final NotificationService notificationService;
+    private final PaymentRepository paymentRepository;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           JobRepository jobRepository,
                           UserRepository userRepository,
                           EarningsConfig earningsConfig,
-                          NotificationService notificationService) {
+                          NotificationService notificationService,
+                          PaymentRepository paymentRepository) {
         this.invoiceRepository = invoiceRepository;
         this.jobRepository = jobRepository;
         this.userRepository = userRepository;
         this.earningsConfig = earningsConfig;
         this.notificationService = notificationService;
+        this.paymentRepository = paymentRepository;
     }
 
     private User getAuthenticatedUser(String email) {
@@ -118,9 +122,14 @@ public class InvoiceService {
         BigDecimal taxAmount = BigDecimal.ZERO.setScale(2);
         BigDecimal discountAmount = BigDecimal.ZERO.setScale(2);
 
+        // Determine payment reference and paidAt
+        Optional<Payment> jobPayment = paymentRepository.findByJobId(jobId);
         String paymentStatus = job.getStatus() == JobStatus.COMPLETED ? "COMPLETED" : "PENDING";
-        String paymentReference = "INV-REF-" + jobId;
-        LocalDateTime paidAt = job.getCompletedAt();
+        String paymentReference = jobPayment
+                .map(Payment::getTransactionReference)
+                .filter(ref -> ref != null && !ref.isBlank())
+                .orElse("INV-REF-" + jobId);
+        LocalDateTime paidAt = job.getCompletedAt() != null ? job.getCompletedAt() : (job.getStatus() == JobStatus.COMPLETED ? LocalDateTime.now() : null);
 
         String serviceName = request.getCategory() != null ? request.getCategory().name() : "Service Request";
         String serviceDescription = request.getDescription();
@@ -144,30 +153,33 @@ public class InvoiceService {
                 paidAt
         );
 
+        Invoice savedInvoice;
         try {
-            Invoice savedInvoice = invoiceRepository.save(invoice);
-
-            // Safe notification attempt (notification failure does not fail transaction)
-            try {
-                notificationService.createNotification(
-                        request.getCustomer(),
-                        NotificationType.PAYMENT_REQUIRED, // Or general notification
-                        "Invoice Generated",
-                        "Invoice " + savedInvoice.getInvoiceNumber() + " has been generated for Job #" + job.getId() + ".",
-                        "INVOICE",
-                        savedInvoice.getId()
-                );
-            } catch (Exception ex) {
-                // Ignore notification failures
-            }
-
-            return InvoiceResponse.fromEntity(savedInvoice);
+            savedInvoice = invoiceRepository.saveAndFlush(invoice);
         } catch (DataIntegrityViolationException ex) {
             // Concurrent creation race condition -> fetch existing invoice created concurrently
             return invoiceRepository.findByJobId(jobId)
                     .map(InvoiceResponse::fromEntity)
                     .orElseThrow(() -> ex);
         }
+
+        // Safe notification attempt outside critical entity persistence
+        if (savedInvoice.getId() != null) {
+            try {
+                notificationService.createNotification(
+                        request.getCustomer(),
+                        NotificationType.PAYMENT_REQUIRED,
+                        "Invoice Generated",
+                        "Invoice " + savedInvoice.getInvoiceNumber() + " has been generated for Job #" + job.getId() + ".",
+                        "INVOICE",
+                        savedInvoice.getId()
+                );
+            } catch (Exception ex) {
+                // Ignore notification failures so invoice return is guaranteed
+            }
+        }
+
+        return InvoiceResponse.fromEntity(savedInvoice);
     }
 
     @Transactional(readOnly = true)
