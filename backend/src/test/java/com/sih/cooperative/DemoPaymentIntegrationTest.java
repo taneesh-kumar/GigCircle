@@ -469,4 +469,44 @@ public class DemoPaymentIntegrationTest {
         Job completedJob = jobRepository.findById(jobId).orElseThrow();
         assertEquals(JobStatus.COMPLETED, completedJob.getStatus());
     }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Test 23: Regression Test for Payment Simulation with Invoice and Idempotency
+    // ────────────────────────────────────────────────────────────────────────
+    @Test
+    void test23_PaymentSimulationGeneratesInvoiceAndIsIdempotent() throws Exception {
+        // 1. Progress job to PAYMENT_REQUIRED
+        mockMvc.perform(post("/api/worker/jobs/" + jobId + "/start").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
+        mockMvc.perform(post("/api/worker/jobs/" + jobId + "/complete").header("Authorization", "Bearer " + workerToken)).andExpect(status().isOk());
+
+        // 2. Simulate payment success (UPI)
+        SimulatePaymentRequest simReq = new SimulatePaymentRequest(true, "UPI", null);
+        mockMvc.perform(post("/api/demo-payments/jobs/" + jobId + "/simulate")
+                        .header("Authorization", "Bearer " + customerToken1)
+                        .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(simReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.amount").value(800.00));
+
+        // 3. Verify Job completed, payment success, invoice created with SUCCESS status
+        Job job = jobRepository.findById(jobId).orElseThrow();
+        assertEquals(JobStatus.COMPLETED, job.getStatus());
+        assertEquals(1, paymentRepository.count());
+        assertEquals(1, invoiceRepository.count());
+
+        Invoice invoice = invoiceRepository.findByJobId(jobId).orElseThrow();
+        assertEquals("SUCCESS", invoice.getPaymentStatus());
+        assertEquals(new BigDecimal("800.00"), invoice.getTotalAmount());
+        assertNotNull(invoice.getPaidAt());
+
+        // 4. Repeated simulation should be idempotent, returning HTTP 200 without creating duplicate records
+        mockMvc.perform(post("/api/demo-payments/jobs/" + jobId + "/simulate")
+                        .header("Authorization", "Bearer " + customerToken1)
+                        .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(simReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
+
+        assertEquals(1, paymentRepository.count(), "Payment count must remain 1 on repeated simulation");
+        assertEquals(1, invoiceRepository.count(), "Invoice count must remain 1 on repeated simulation");
+    }
 }

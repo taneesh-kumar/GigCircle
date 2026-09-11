@@ -124,7 +124,8 @@ public class InvoiceService {
 
         // Determine payment reference and paidAt
         Optional<Payment> jobPayment = paymentRepository.findByJobId(jobId);
-        String paymentStatus = job.getStatus() == JobStatus.COMPLETED ? "COMPLETED" : "PENDING";
+        boolean isPaid = jobPayment.map(p -> p.getStatus() == PaymentStatus.SUCCESS).orElse(false) || job.getStatus() == JobStatus.COMPLETED;
+        String paymentStatus = isPaid ? PaymentStatus.SUCCESS.name() : PaymentStatus.PENDING.name();
         String paymentReference = jobPayment
                 .map(Payment::getTransactionReference)
                 .filter(ref -> ref != null && !ref.isBlank())

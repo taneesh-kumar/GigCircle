@@ -26,6 +26,13 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             // Drop outdated PostgreSQL check constraint for NotificationType enum values
             jdbcTemplate.execute("ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check");
 
+            // Drop outdated PostgreSQL check constraint for Invoice payment_status if present
+            try {
+                jdbcTemplate.execute("ALTER TABLE invoices DROP CONSTRAINT IF EXISTS invoices_payment_status_check");
+            } catch (Exception ex) {
+                logger.debug("Invoices check constraint drop skipped: {}", ex.getMessage());
+            }
+
             // Ensure users active column and status column exist for legacy databases
             try {
                 jdbcTemplate.execute("ALTER TABLE jobs DROP COLUMN IF EXISTS payment_status");

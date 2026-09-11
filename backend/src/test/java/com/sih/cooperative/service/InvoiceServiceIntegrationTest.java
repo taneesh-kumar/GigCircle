@@ -104,8 +104,8 @@ public class InvoiceServiceIntegrationTest {
         assertEquals(worker.getId(), response.getWorkerId());
         assertEquals(new BigDecimal("900.00"), response.getServiceCharge());
         assertEquals(new BigDecimal("100.00"), response.getPlatformFee());
-        assertEquals(new BigDecimal("1000.00"), response.getTotalAmount());
-        assertEquals("COMPLETED", response.getPaymentStatus());
+        assertEquals("1000.00", response.getTotalAmount().toPlainString());
+        assertEquals("SUCCESS", response.getPaymentStatus());
         assertEquals("INV-REF-" + job.getId(), response.getPaymentReference());
     }
 
