@@ -115,6 +115,8 @@ import { DisputeCreateForm } from '@/components/dispute/DisputeCreateForm';
 import { DisputeDetailPanel } from '@/components/dispute/DisputeDetailPanel';
 import { AdminDisputeControls } from '@/components/dispute/AdminDisputeControls';
 import { getDisputeForJobApi } from '@/services/api/dispute';
+import { DemoPaymentModal } from '@/components/demo-payment-modal';
+import { InvoiceModal } from '@/components/invoice-modal';
 import type { DisputeDetailResponse } from '@/types/dispute';
 
 
@@ -251,6 +253,15 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
   const [ratingJobId, setRatingJobId] = useState<number | null>(null);
   const [ratingWorkerName, setRatingWorkerName] = useState<string | null>(null);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+
+  // Customer Payment & Invoice Modals State
+  const [paymentModalJobId, setPaymentModalJobId] = useState<number | null>(null);
+  const [paymentModalAmount, setPaymentModalAmount] = useState<number>(0);
+  const [paymentModalWorkerName, setPaymentModalWorkerName] = useState<string>('');
+  const [paymentModalServiceName, setPaymentModalServiceName] = useState<string>('');
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [invoiceModalJobId, setInvoiceModalJobId] = useState<number | null>(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   // Worker State
   const [workerProfile, setWorkerProfile] = useState<WorkerProfile | null>(null);
@@ -1321,6 +1332,8 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                     className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
                                       statusStr === 'COMPLETED'
                                         ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                                        : statusStr === 'PAYMENT_REQUIRED'
+                                        ? 'bg-amber-100 border border-amber-300 text-amber-900 font-black'
                                         : statusStr === 'IN_PROGRESS'
                                         ? 'bg-blue-50 border border-blue-200 text-blue-700'
                                         : statusStr === 'ACCEPTED'
@@ -1332,12 +1345,14 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   >
                                     {statusStr === 'COMPLETED' ? (
                                       <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                    ) : statusStr === 'PAYMENT_REQUIRED' ? (
+                                      <IndianRupee className="h-3 w-3 text-amber-700" />
                                     ) : statusStr === 'IN_PROGRESS' ? (
                                       <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
                                     ) : (
                                       <Clock3 className="h-3 w-3 text-amber-600" />
                                     )}
-                                    {statusStr}
+                                    {statusStr === 'PAYMENT_REQUIRED' ? 'PAYMENT REQUIRED' : statusStr}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
@@ -1637,6 +1652,33 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   </button>
 
 
+                                  {statusStr === 'PAYMENT_REQUIRED' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setPaymentModalJobId(req.jobId || req.id);
+                                        setPaymentModalAmount(req.budget);
+                                        setPaymentModalWorkerName(req.workerName || 'Worker');
+                                        setPaymentModalServiceName(req.description);
+                                        setIsPaymentModalOpen(true);
+                                      }}
+                                      className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <CreditCard className="h-3.5 w-3.5" /> Pay Now
+                                    </button>
+                                  )}
+                                  {statusStr === 'COMPLETED' && req.jobId && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setInvoiceModalJobId(req.jobId!);
+                                        setIsInvoiceModalOpen(true);
+                                      }}
+                                      className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition-colors inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                                    >
+                                      <Receipt className="h-3.5 w-3.5 text-emerald-600" /> Invoice
+                                    </button>
+                                  )}
                                 </div>
                                 {statusStr === 'COMPLETED' && (
                                   req.isRated ? (
@@ -1671,25 +1713,166 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
 
             {activeTab === 'payments' && (
               <div className="space-y-6">
+                {/* Header Banner */}
                 <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 p-6 md:p-8 shadow-md text-white">
-                  <div className="relative z-10 flex items-center justify-between gap-6">
+                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
                       <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-                        PAYMENT SYSTEM
+                        DEMO PAYMENT SYSTEM
                       </span>
                       <h2 className="text-2xl sm:text-3xl font-black text-white mt-0.5">Payments & Receipts</h2>
-                      <p className="text-xs sm:text-sm text-slate-300 mt-1">Payment functionality update in progress.</p>
+                      <p className="text-xs sm:text-sm text-slate-300 mt-1">
+                        View demo payments, complete pending checkouts, and inspect tax invoices.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-bold text-emerald-300 backdrop-blur-md">
+                        ✓ 256-Bit Demo Gateway Active
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200/90 bg-white p-8 text-center space-y-3 shadow-xs">
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-8 text-center space-y-3">
-                    <p className="text-base font-extrabold text-slate-800">Payment will be available soon.</p>
-                    <p className="text-xs text-slate-500 max-w-md mx-auto">
-                      Our new payment integration is currently being configured. In-progress jobs move directly to completed upon worker confirmation.
-                    </p>
+                {/* Stats Summary */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 p-5 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-600 block">Total Investment</span>
+                      <div className="mt-1 text-2xl font-black text-emerald-700 font-mono">
+                        ₹{requests.filter(r => (r.jobStatus || r.status) === 'COMPLETED').reduce((sum, r) => sum + (r.budget || 0), 0).toLocaleString()}
+                      </div>
+                      <span className="text-[10px] font-semibold text-emerald-600 mt-1 block">Completed Services</span>
+                    </div>
+                    <div className="h-11 w-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <IndianRupee className="h-5.5 w-5.5" />
+                    </div>
                   </div>
+
+                  <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 p-5 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-600 block">Awaiting Payment</span>
+                      <div className="mt-1 text-2xl font-black text-amber-700 font-mono">
+                        {requests.filter(r => (r.jobStatus || r.status) === 'PAYMENT_REQUIRED').length}
+                      </div>
+                      <span className="text-[10px] font-semibold text-amber-600 mt-1 block">Pending Customer Action</span>
+                    </div>
+                    <div className="h-11 w-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <Clock3 className="h-5.5 w-5.5" />
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 p-5 shadow-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-600 block">Invoices Generated</span>
+                      <div className="mt-1 text-2xl font-black text-blue-700 font-mono">
+                        {requests.filter(r => (r.jobStatus || r.status) === 'COMPLETED').length}
+                      </div>
+                      <span className="text-[10px] font-semibold text-blue-600 mt-1 block">Receipts Ready</span>
+                    </div>
+                    <div className="h-11 w-11 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <Receipt className="h-5.5 w-5.5" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section: Pending Payment Action */}
+                {requests.some(r => (r.jobStatus || r.status) === 'PAYMENT_REQUIRED') && (
+                  <div className="rounded-3xl border border-amber-200 bg-amber-50/50 p-6 shadow-xs space-y-4">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900">Services Awaiting Payment</h3>
+                        <p className="text-xs text-slate-600">The worker has completed the service. Complete payment to finalize the job.</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {requests.filter(r => (r.jobStatus || r.status) === 'PAYMENT_REQUIRED').map(req => (
+                        <div key={req.id} className="rounded-2xl border border-amber-200 bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900 text-sm">{req.description}</span>
+                              <span className="rounded-md bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2 py-0.5">PAYMENT REQUIRED</span>
+                            </div>
+                            <p className="text-xs text-slate-500">Worker: <strong>{req.workerName || 'Assigned Worker'}</strong> · Job #{req.jobId || req.id}</p>
+                          </div>
+
+                          <div className="flex items-center gap-3 self-end sm:self-center">
+                            <span className="text-base font-black text-emerald-700 font-mono">₹{req.budget.toLocaleString()}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPaymentModalJobId(req.jobId || req.id);
+                                setPaymentModalAmount(req.budget);
+                                setPaymentModalWorkerName(req.workerName || 'Worker');
+                                setPaymentModalServiceName(req.description);
+                                setIsPaymentModalOpen(true);
+                              }}
+                              className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <CreditCard className="h-4 w-4" /> Pay Now
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Section: Completed Payments & Receipts History */}
+                <div className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Payment & Invoice History</h3>
+                      <p className="text-xs text-slate-500">Receipts and invoices for completed service requests.</p>
+                    </div>
+                    <span className="rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-extrabold">
+                      {requests.filter(r => (r.jobStatus || r.status) === 'COMPLETED').length} Transactions
+                    </span>
+                  </div>
+
+                  {requests.filter(r => (r.jobStatus || r.status) === 'COMPLETED').length === 0 ? (
+                    <div className="py-12 text-center space-y-2 text-slate-500">
+                      <Receipt className="h-10 w-10 mx-auto text-slate-300" />
+                      <p className="text-sm font-bold text-slate-700">No completed payments yet</p>
+                      <p className="text-xs text-slate-400">Completed jobs and payment receipts will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {requests.filter(r => (r.jobStatus || r.status) === 'COMPLETED').map(req => (
+                        <div key={req.id} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 hover:bg-white hover:border-slate-200 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-bold text-slate-900 text-sm">{req.description}</span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-700">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Paid & Completed
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                              <span>Worker: <strong>{req.workerName || 'Worker'}</strong></span>
+                              <span>Job #{req.jobId || req.id}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                            <span className="text-base font-black text-slate-900 font-mono">₹{req.budget.toLocaleString()}</span>
+                            {req.jobId && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setInvoiceModalJobId(req.jobId!);
+                                  setIsInvoiceModalOpen(true);
+                                }}
+                                className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition-colors inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                              >
+                                <Receipt className="h-3.5 w-3.5 text-emerald-600" /> Invoice & Receipt
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -4126,6 +4309,34 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
             workerName={ratingWorkerName}
             onSuccess={fetchCustomerRequests}
           />
+          {paymentModalJobId && (
+            <DemoPaymentModal
+              jobId={paymentModalJobId}
+              amount={paymentModalAmount}
+              workerName={paymentModalWorkerName}
+              serviceName={paymentModalServiceName}
+              isOpen={isPaymentModalOpen}
+              onClose={() => {
+                setIsPaymentModalOpen(false);
+                setPaymentModalJobId(null);
+              }}
+              onPaymentComplete={() => {
+                setIsPaymentModalOpen(false);
+                setPaymentModalJobId(null);
+                fetchCustomerRequests();
+              }}
+            />
+          )}
+          {invoiceModalJobId && (
+            <InvoiceModal
+              jobId={invoiceModalJobId}
+              isOpen={isInvoiceModalOpen}
+              onClose={() => {
+                setIsInvoiceModalOpen(false);
+                setInvoiceModalJobId(null);
+              }}
+            />
+          )}
         </>
       )}
 
