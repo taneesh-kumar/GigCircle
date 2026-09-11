@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   ArrowRight,
-  Check,
   House,
   LogIn,
   ShieldCheck,
@@ -20,68 +19,62 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { BrandMark } from '@/components/platform-shell';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { useTranslation } from 'react-i18next';
+import { getCategoryLabel } from '@/i18n';
 
-const POPULAR_SERVICES = [
+const POPULAR_SERVICES_CONFIG = [
   {
     id: 'PLUMBING',
-    name: 'Plumbing',
-    description: 'Pipe repairs, leak fixing, tap installation & drainage',
+    descKey: 'welcome.popularServices.plumbingDesc',
     icon: Wrench,
     color: 'from-blue-500/10 to-blue-600/5 text-blue-600 border-blue-200/60',
     iconBg: 'bg-blue-600 text-white',
   },
   {
     id: 'ELECTRICAL',
-    name: 'Electrical',
-    description: 'Wiring, switchboard repair, light fixtures & appliance safety',
+    descKey: 'welcome.popularServices.electricalDesc',
     icon: Zap,
     color: 'from-amber-500/10 to-amber-600/5 text-amber-600 border-amber-200/60',
     iconBg: 'bg-amber-500 text-white',
   },
   {
     id: 'CLEANING',
-    name: 'Home Cleaning',
-    description: 'Deep house cleaning, kitchen scrubbing & bathroom sanitation',
+    descKey: 'welcome.popularServices.cleaningDesc',
     icon: Sparkles,
     color: 'from-emerald-500/10 to-emerald-600/5 text-emerald-600 border-emerald-200/60',
     iconBg: 'bg-emerald-600 text-white',
   },
   {
     id: 'CARPENTRY',
-    name: 'Carpentry',
-    description: 'Furniture assembly, door lock repair & custom woodwork',
+    descKey: 'welcome.popularServices.carpentryDesc',
     icon: Hammer,
     color: 'from-orange-500/10 to-orange-600/5 text-orange-600 border-orange-200/60',
     iconBg: 'bg-orange-500 text-white',
   },
   {
     id: 'APPLIANCE_REPAIR',
-    name: 'Appliance Repair',
-    description: 'Washing machine, refrigerator, microwave & TV servicing',
+    descKey: 'welcome.popularServices.applianceDesc',
     icon: Tv,
     color: 'from-indigo-500/10 to-indigo-600/5 text-indigo-600 border-indigo-200/60',
     iconBg: 'bg-indigo-600 text-white',
   },
   {
     id: 'PAINTING',
-    name: 'Painting',
-    description: 'Interior wall painting, touch-ups & waterproof coating',
+    descKey: 'welcome.popularServices.paintingDesc',
     icon: Paintbrush,
     color: 'from-rose-500/10 to-rose-600/5 text-rose-600 border-rose-200/60',
     iconBg: 'bg-rose-500 text-white',
   },
   {
     id: 'AC_COOLING',
-    name: 'AC & Cooling',
-    description: 'Air conditioner filter cleaning, gas refilling & installation',
+    descKey: 'welcome.popularServices.acDesc',
     icon: Wind,
     color: 'from-teal-500/10 to-teal-600/5 text-teal-600 border-teal-200/60',
     iconBg: 'bg-teal-600 text-white',
   },
   {
     id: 'HOUSEHOLD',
-    name: 'Household Help',
-    description: 'General assistance, gardening & neighborhood odd jobs',
+    descKey: 'welcome.popularServices.householdDesc',
     icon: House,
     color: 'from-purple-500/10 to-purple-600/5 text-purple-600 border-purple-200/60',
     iconBg: 'bg-purple-600 text-white',
@@ -89,6 +82,7 @@ const POPULAR_SERVICES = [
 ];
 
 export default function Welcome() {
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
 
   const userDashboard =
@@ -110,16 +104,16 @@ export default function Welcome() {
           {/* NAV LINKS — CENTERED */}
           <nav className="hidden md:flex items-center justify-center gap-8 text-xs font-semibold text-slate-600">
             <a href="#" className="text-slate-900 font-bold hover:text-emerald-600 transition-colors">
-              Home
+              {t('welcome.nav.home')}
             </a>
             <a href="#services" className="hover:text-emerald-600 transition-colors">
-              Popular Services
+              {t('welcome.nav.popularServices')}
             </a>
             <a href="#how-it-works" className="hover:text-emerald-600 transition-colors">
-              How It Works
+              {t('welcome.nav.howItWorks')}
             </a>
             <a href="#cooperative" className="hover:text-emerald-600 transition-colors">
-              Cooperative Model
+              {t('welcome.nav.cooperativeModel')}
             </a>
           </nav>
 
@@ -131,7 +125,7 @@ export default function Welcome() {
                 to={userDashboard}
                 className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors"
               >
-                <UserCheck className="h-4 w-4" /> Go to Dashboard
+                <UserCheck className="h-4 w-4" /> {t('welcome.nav.goToDashboard')}
               </Link>
             ) : (
               <>
@@ -139,13 +133,13 @@ export default function Welcome() {
                   to="/login"
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition-colors"
                 >
-                  <LogIn className="h-4 w-4 text-slate-500" /> Log in
+                  <LogIn className="h-4 w-4 text-slate-500" /> {t('welcome.nav.login')}
                 </Link>
                 <Link
                   to="/register"
                   className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors"
                 >
-                  <UserPlus className="h-4 w-4" /> Register
+                  <UserPlus className="h-4 w-4" /> {t('welcome.nav.register')}
                 </Link>
               </>
             )}
@@ -161,33 +155,33 @@ export default function Welcome() {
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-50 px-3.5 py-1.5 text-xs font-extrabold uppercase tracking-widest text-emerald-700">
                 <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
-                Community-First Cooperative
+                {t('welcome.hero.badge')}
               </div>
 
               <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.08]">
-                Good work.<br />
+                {t('welcome.hero.titleLine1')}<br />
                 <span className="bg-gradient-to-r from-blue-900 via-blue-700 to-emerald-600 bg-clip-text text-transparent">
-                  Close to home.
+                  {t('welcome.hero.titleLine2')}
                 </span>
               </h1>
 
               <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl">
-                Connect directly with skilled, verified local workers for household services with transparent pricing, dignity, and neighborhood trust.
+                {t('welcome.hero.subtitle')}
               </p>
 
               {/* TRUST INDICATORS ROW */}
               <div className="flex flex-wrap items-center gap-6 pt-2 text-xs font-semibold text-slate-600">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  <span>Verified local workers</span>
+                  <span>{t('welcome.hero.trust1')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  <span>Transparent 90/10 fee split</span>
+                  <span>{t('welcome.hero.trust2')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  <span>Community trust</span>
+                  <span>{t('welcome.hero.trust3')}</span>
                 </div>
               </div>
 
@@ -197,13 +191,13 @@ export default function Welcome() {
                   href="#services"
                   className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3.5 text-xs font-bold text-white shadow-md hover:bg-slate-800 transition-colors"
                 >
-                  Explore Services <ArrowRight className="h-4 w-4" />
+                  {t('welcome.hero.exploreBtn')} <ArrowRight className="h-4 w-4" />
                 </a>
                 <Link
                   to="/register"
                   className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  Become a Worker
+                  {t('welcome.hero.becomeWorkerBtn')}
                 </Link>
               </div>
             </div>
@@ -214,11 +208,11 @@ export default function Welcome() {
                 <div className="space-y-4 relative z-10">
                   <div className="flex justify-between items-center">
                     <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 text-[10px] font-extrabold uppercase text-emerald-300 tracking-wider">
-                      LOCAL SERVICE NETWORK
+                      {t('welcome.hero.cardBadge')}
                     </span>
                   </div>
 
-                  <h3 className="text-2xl font-bold text-white">Trusted Skilled Professionals</h3>
+                  <h3 className="text-2xl font-bold text-white">{t('welcome.hero.cardTitle')}</h3>
 
                   {/* CARDS COLLAGE */}
                   <div className="grid gap-3 pt-2">
@@ -228,12 +222,12 @@ export default function Welcome() {
                           <Wrench className="h-5 w-5" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-white">Plumbing & Repairs</p>
-                          <p className="text-[11px] text-slate-300">Pipe leaks, fixtures & drainage</p>
+                          <p className="text-xs font-bold text-white">{t('welcome.hero.samplePlumbingTitle')}</p>
+                          <p className="text-[11px] text-slate-300">{t('welcome.hero.samplePlumbingDesc')}</p>
                         </div>
                       </div>
                       <span className="text-[10px] font-extrabold bg-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/40">
-                        Available
+                        {t('welcome.hero.availableBadge')}
                       </span>
                     </div>
 
@@ -243,12 +237,12 @@ export default function Welcome() {
                           <Zap className="h-5 w-5" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-white">Electrical Servicing</p>
-                          <p className="text-[11px] text-slate-300">Wiring, switchboards & safety</p>
+                          <p className="text-xs font-bold text-white">{t('welcome.hero.sampleElectricalTitle')}</p>
+                          <p className="text-[11px] text-slate-300">{t('welcome.hero.sampleElectricalDesc')}</p>
                         </div>
                       </div>
                       <span className="text-[10px] font-extrabold bg-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/40">
-                        Available
+                        {t('welcome.hero.availableBadge')}
                       </span>
                     </div>
 
@@ -258,12 +252,12 @@ export default function Welcome() {
                           <Sparkles className="h-5 w-5" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-white">Deep House Cleaning</p>
-                          <p className="text-[11px] text-slate-300">Full home sanitation & care</p>
+                          <p className="text-xs font-bold text-white">{t('welcome.hero.sampleCleaningTitle')}</p>
+                          <p className="text-[11px] text-slate-300">{t('welcome.hero.sampleCleaningDesc')}</p>
                         </div>
                       </div>
                       <span className="text-[10px] font-extrabold bg-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/40">
-                        Available
+                        {t('welcome.hero.availableBadge')}
                       </span>
                     </div>
                   </div>
@@ -271,9 +265,9 @@ export default function Welcome() {
 
                 <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-300 relative z-10">
                   <span className="flex items-center gap-1.5">
-                    <ShieldCheck className="h-4 w-4 text-emerald-400" /> Transparent 90% Worker Net Payout
+                    <ShieldCheck className="h-4 w-4 text-emerald-400" /> {t('welcome.hero.payoutText')}
                   </span>
-                  <span className="font-mono text-emerald-400 font-bold">100% Cooperative</span>
+                  <span className="font-mono text-emerald-400 font-bold">{t('welcome.hero.coopPercent')}</span>
                 </div>
               </div>
             </div>
@@ -286,16 +280,16 @@ export default function Welcome() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-              MARKETPLACE CATEGORIES
+              {t('welcome.popularServices.badge')}
             </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mt-1">Popular Services</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mt-1">{t('welcome.popularServices.title')}</h2>
             <p className="text-sm text-slate-600 mt-1 max-w-xl">
-              Find trusted professionals for everyday household service needs.
+              {t('welcome.popularServices.subtitle')}
             </p>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {POPULAR_SERVICES.map((service) => {
+            {POPULAR_SERVICES_CONFIG.map((service) => {
               const ServiceIcon = service.icon;
               return (
                 <div
@@ -308,10 +302,10 @@ export default function Welcome() {
 
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                      {service.name}
+                      {getCategoryLabel(t, service.id)}
                     </h3>
                     <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-                      {service.description}
+                      {t(service.descKey)}
                     </p>
                   </div>
                 </div>
@@ -326,36 +320,36 @@ export default function Welcome() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center space-y-2 max-w-2xl mx-auto">
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600">
-              TRANSPARENT PROCESS
+              {t('welcome.howItWorks.badge')}
             </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">How GigCircle Works</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">{t('welcome.howItWorks.title')}</h2>
             <p className="text-sm text-slate-600">
-              A simple, dignified process connecting households with trusted local skills.
+              {t('welcome.howItWorks.subtitle')}
             </p>
           </div>
 
           <div className="grid gap-8 md:grid-cols-3 relative">
             <div className="rounded-3xl border border-slate-200 bg-white p-8 space-y-4 shadow-xs relative">
               <span className="font-mono text-3xl font-bold text-emerald-600">01</span>
-              <h3 className="text-xl font-bold text-slate-900">Find a Service</h3>
+              <h3 className="text-xl font-bold text-slate-900">{t('welcome.howItWorks.step1Title')}</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Describe your household need, specify your budget, and search matching service categories.
+                {t('welcome.howItWorks.step1Desc')}
               </p>
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-white p-8 space-y-4 shadow-xs relative">
               <span className="font-mono text-3xl font-bold text-emerald-600">02</span>
-              <h3 className="text-xl font-bold text-slate-900">Connect with a Worker</h3>
+              <h3 className="text-xl font-bold text-slate-900">{t('welcome.howItWorks.step2Title')}</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Review available local workers, accept matches, and manage job initiation smoothly.
+                {t('welcome.howItWorks.step2Desc')}
               </p>
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-white p-8 space-y-4 shadow-xs relative">
               <span className="font-mono text-3xl font-bold text-emerald-600">03</span>
-              <h3 className="text-xl font-bold text-slate-900">Get the Work Done</h3>
+              <h3 className="text-xl font-bold text-slate-900">{t('welcome.howItWorks.step3Title')}</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Track completion, inspect transparent earnings breakdowns, and build trust through verified ratings.
+                {t('welcome.howItWorks.step3Desc')}
               </p>
             </div>
           </div>
@@ -367,30 +361,30 @@ export default function Welcome() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8 relative z-10">
           <div className="max-w-3xl space-y-4">
             <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 text-[10px] font-extrabold uppercase text-emerald-300 tracking-wider">
-              COOPERATIVE MODEL
+              {t('welcome.cooperative.badge')}
             </span>
-            <h2 className="text-3xl sm:text-5xl font-bold text-white leading-tight">
-              The neighborhood is the network.
+            <h2 className="text-3xl sm:5xl font-bold text-white leading-tight">
+              {t('welcome.cooperative.title')}
             </h2>
             <p className="text-base sm:text-lg text-slate-300 leading-relaxed">
-              GigCircle operates as a cooperative platform ensuring 90% of job earnings go directly to workers, while 10% supports platform maintenance and community trust.
+              {t('welcome.cooperative.subtitle')}
             </p>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-3 pt-4">
             <div className="rounded-2xl border border-white/10 bg-white/10 p-6 backdrop-blur-md space-y-2">
-              <h4 className="text-2xl font-bold text-emerald-400">90% Payout</h4>
-              <p className="text-xs text-slate-300">Direct net earnings to worker accounts for every completed job.</p>
+              <h4 className="text-2xl font-bold text-emerald-400">{t('welcome.cooperative.payoutTitle')}</h4>
+              <p className="text-xs text-slate-300">{t('welcome.cooperative.payoutDesc')}</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/10 p-6 backdrop-blur-md space-y-2">
-              <h4 className="text-2xl font-bold text-blue-400">10% Platform Fee</h4>
-              <p className="text-xs text-slate-300">Transparent fee ensuring system stability, verification & support.</p>
+              <h4 className="text-2xl font-bold text-blue-400">{t('welcome.cooperative.platformFeeTitle')}</h4>
+              <p className="text-xs text-slate-300">{t('welcome.cooperative.platformFeeDesc')}</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/10 p-6 backdrop-blur-md space-y-2">
-              <h4 className="text-2xl font-bold text-amber-400">Verified Ratings</h4>
-              <p className="text-xs text-slate-300">Genuine reviews built strictly through completed service requests.</p>
+              <h4 className="text-2xl font-bold text-amber-400">{t('welcome.cooperative.ratingsTitle')}</h4>
+              <p className="text-xs text-slate-300">{t('welcome.cooperative.ratingsDesc')}</p>
             </div>
           </div>
         </div>
@@ -400,10 +394,10 @@ export default function Welcome() {
       <section className="py-16 md:py-20 bg-gradient-to-r from-blue-50 via-white to-emerald-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center space-y-6">
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">
-            Need help with home repairs or services?
+            {t('welcome.cta.title')}
           </h2>
           <p className="text-sm sm:text-base text-slate-600 max-w-xl mx-auto">
-            Explore our popular service categories or join GigCircle as a skilled local worker.
+            {t('welcome.cta.subtitle')}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
@@ -411,13 +405,13 @@ export default function Welcome() {
               href="#services"
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-xs font-bold text-white shadow-md hover:bg-emerald-700 transition-colors"
             >
-              Explore Services <ArrowRight className="h-4 w-4" />
+              {t('welcome.cta.exploreBtn')} <ArrowRight className="h-4 w-4" />
             </a>
             <Link
               to="/register"
               className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
             >
-              Join as a Worker
+              {t('welcome.cta.joinWorkerBtn')}
             </Link>
           </div>
         </div>
@@ -431,13 +425,13 @@ export default function Welcome() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 font-medium text-slate-600">
-            <a href="#services" className="hover:text-emerald-600">Services</a>
-            <a href="#how-it-works" className="hover:text-emerald-600">How It Works</a>
-            <Link to="/register" className="hover:text-emerald-600">Become a Worker</Link>
-            <Link to="/login" className="hover:text-emerald-600">Log In</Link>
+            <a href="#services" className="hover:text-emerald-600">{t('welcome.footer.services')}</a>
+            <a href="#how-it-works" className="hover:text-emerald-600">{t('welcome.footer.howItWorks')}</a>
+            <Link to="/register" className="hover:text-emerald-600">{t('welcome.footer.becomeWorker')}</Link>
+            <Link to="/login" className="hover:text-emerald-600">{t('welcome.footer.login')}</Link>
           </div>
         </div>
       </footer>
     </div>
   );
-}
+}

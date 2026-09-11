@@ -2,8 +2,10 @@ import { ArrowLeft, LockKeyhole } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { BrandMark } from '@/components/platform-shell';
+import { useTranslation } from 'react-i18next';
 
 export default function AccessBoundary() {
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
 
   const userDashboard =
@@ -25,13 +27,13 @@ export default function AccessBoundary() {
           <LockKeyhole className="h-9 w-9" />
         </div>
         <p className="mt-8 font-mono text-xs font-bold uppercase tracking-[0.25em] text-accent">
-          403 Forbidden · Role Boundary
+          {t('errors.accessBoundary.badge')}
         </p>
         <h1 className="mt-4 font-display text-5xl font-semibold tracking-tight md:text-6xl">
-          Access Restricted
+          {t('errors.accessBoundary.title')}
         </h1>
         <p className="mx-auto mt-5 max-w-md text-base leading-7 text-primary-foreground/70">
-          You do not have permission to view this route. Platform role boundaries are enforced by backend security policy.
+          {t('errors.accessBoundary.subtitle')}
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
           {isAuthenticated ? (
@@ -39,18 +41,18 @@ export default function AccessBoundary() {
               to={userDashboard}
               className="focus-ring inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-primary transition-transform hover:-translate-y-0.5"
             >
-              <ArrowLeft className="h-4 w-4" /> Return to My Dashboard
+              <ArrowLeft className="h-4 w-4" /> {t('errors.accessBoundary.returnDashboardBtn')}
             </Link>
           ) : (
             <Link
               to="/login"
               className="focus-ring inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-primary transition-transform hover:-translate-y-0.5"
             >
-              Log In
+              {t('errors.accessBoundary.loginBtn')}
             </Link>
           )}
         </div>
       </div>
     </main>
   );
-}
+}

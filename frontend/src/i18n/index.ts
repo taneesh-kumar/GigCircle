@@ -94,12 +94,19 @@ i18n
     returnEmptyString: false,
   });
 
-// Keep localStorage in sync with language switches
+// Keep localStorage and document.documentElement.lang in sync with language switches
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = initialLanguage;
+}
+
 i18n.on('languageChanged', (lng) => {
   const normalized = normalizeLanguageCode(lng) || 'en';
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized);
+    }
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = normalized;
     }
   } catch {
     // Ignore storage errors

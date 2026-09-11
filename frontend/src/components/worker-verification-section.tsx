@@ -101,12 +101,12 @@ export function WorkerVerificationSection() {
     const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'svg'];
     const ext = file.name.split('.').pop()?.toLowerCase() || '';
     if (!allowedExtensions.includes(ext)) {
-      setFormError('Unsupported file format. Please upload a PDF, PNG, or JPG file.');
+      setFormError(t('worker.verification.unsupportedFormat'));
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setFormError('File size exceeds maximum limit of 5MB.');
+      setFormError(t('worker.verification.fileSizeExceeded'));
       return;
     }
 
@@ -149,7 +149,7 @@ export function WorkerVerificationSection() {
     setFormError(null);
 
     if (!fileReference || !fileReference.trim()) {
-      setFormError('Please select a valid document file to attach.');
+      setFormError(t('worker.verification.selectValidFile'));
       return;
     }
 
@@ -164,8 +164,8 @@ export function WorkerVerificationSection() {
           storeDataUrl([res.id, res.fileReference, res.documentType], activeDataUrl);
         }
         toast({
-          title: 'Document Updated',
-          description: 'Verification document updated successfully.',
+          title: t('worker.verification.docUpdatedTitle'),
+          description: t('worker.verification.docUpdatedDesc'),
         });
       } else {
         const res = await submitVerificationDocumentApi({
@@ -176,8 +176,8 @@ export function WorkerVerificationSection() {
           storeDataUrl([res.id, res.fileReference, res.documentType], activeDataUrl);
         }
         toast({
-          title: 'Document Attached',
-          description: 'Verification document added successfully.',
+          title: t('worker.verification.docAttachedTitle'),
+          description: t('worker.verification.docAttachedDesc'),
         });
       }
 
@@ -189,10 +189,10 @@ export function WorkerVerificationSection() {
       }
       await fetchVerification();
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Failed to save verification document.';
+      const msg = err.response?.data?.message || t('common.somethingWentWrong');
       setFormError(msg);
       toast({
-        title: 'Document Error',
+        title: t('worker.verification.docErrorTitle'),
         description: msg,
         variant: 'destructive',
       });
@@ -226,13 +226,13 @@ export function WorkerVerificationSection() {
       const updated = await resubmitWorkerVerificationApi();
       setVerification(updated);
       toast({
-        title: 'Verification Submitted',
-        description: 'Your verification request is now under review by platform administrators.',
+        title: t('worker.verification.resubmitSuccessTitle'),
+        description: t('worker.verification.resubmitSuccessDesc'),
       });
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Failed to resubmit verification request.';
+      const msg = err.response?.data?.message || t('common.somethingWentWrong');
       toast({
-        title: 'Resubmission Error',
+        title: t('worker.verification.resubmitErrorTitle'),
         description: msg,
         variant: 'destructive',
       });
@@ -248,8 +248,8 @@ export function WorkerVerificationSection() {
       setPreviewDoc(data);
     } catch (err: any) {
       toast({
-        title: 'Preview Error',
-        description: err.response?.data?.message || 'Unable to preview document.',
+        title: t('worker.verification.previewErrorTitle'),
+        description: err.response?.data?.message || t('worker.verification.previewErrorDesc'),
         variant: 'destructive',
       });
     } finally {
@@ -261,7 +261,7 @@ export function WorkerVerificationSection() {
     return (
       <div className="flex flex-col items-center justify-center p-12 space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-        <p className="text-sm font-medium text-slate-600">Loading worker verification details...</p>
+        <p className="text-sm font-medium text-slate-600">{t('common.loading')}</p>
       </div>
     );
   }
@@ -270,14 +270,14 @@ export function WorkerVerificationSection() {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50/50 p-6 text-center space-y-4">
         <AlertCircle className="h-10 w-10 text-red-500 mx-auto" />
-        <h3 className="text-base font-semibold text-red-900">Verification Load Failure</h3>
+        <h3 className="text-base font-semibold text-red-900">{t('common.error')}</h3>
         <p className="text-xs text-red-700 max-w-md mx-auto">{error}</p>
         <button
           type="button"
           onClick={fetchVerification}
           className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 transition"
         >
-          <RefreshCw className="h-3.5 w-3.5" /> Retry Loading
+          <RefreshCw className="h-3.5 w-3.5" /> {t('common.retry')}
         </button>
       </div>
     );
@@ -300,10 +300,10 @@ export function WorkerVerificationSection() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
           <div className="border-b border-slate-100 pb-3">
             <h3 className="text-sm font-bold text-slate-900">
-              {editingDocId ? 'Edit Attached Document' : 'Attach Verification Document'}
+              {editingDocId ? t('worker.verification.editAttachedDoc') : t('worker.verification.attachDoc')}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Provide required identity or skill documents for compliance verification.
+              {t('worker.verification.attachSubtitle')}
             </p>
           </div>
 
@@ -316,22 +316,26 @@ export function WorkerVerificationSection() {
 
           <form onSubmit={handleDocumentSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Document Type</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                {t('worker.verification.selectDocType')}
+              </label>
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value as VerificationDocumentType)}
                 disabled={isSubmittingDoc}
                 className="w-full text-xs rounded-xl border border-slate-200 bg-white p-2.5 text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400"
               >
-                <option value="GOVERNMENT_ID">Government Issued ID (Aadhaar/PAN/Passport)</option>
-                <option value="PROFILE_PHOTO">Worker Profile Photo</option>
-                <option value="SKILL_CERTIFICATE">Skill Certificate / Trade License</option>
-                <option value="OTHER">Other Verification Document</option>
+                <option value="GOVERNMENT_ID">{t('admin.verification.docType.GOVERNMENT_ID', { defaultValue: 'Government ID' })}</option>
+                <option value="PROFILE_PHOTO">{t('worker.profile.title', { defaultValue: 'Profile Photo' })}</option>
+                <option value="SKILL_CERTIFICATE">{t('admin.verification.docType.TRADE_CERTIFICATE', { defaultValue: 'Skill Certificate' })}</option>
+                <option value="OTHER">{t('categories.OTHER.label', { defaultValue: 'Other' })}</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Select File</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                {t('worker.verification.selectFile')}
+              </label>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -350,13 +354,13 @@ export function WorkerVerificationSection() {
                   <div className="flex items-center gap-2 text-emerald-800 font-medium text-xs bg-emerald-100/70 border border-emerald-200 px-3 py-1.5 rounded-lg">
                     <FileCheck className="h-4 w-4 text-emerald-600 shrink-0" />
                     <span className="truncate max-w-xs">{selectedFileName}</span>
-                    <span className="text-[10px] text-emerald-600 font-bold ml-1">Change File</span>
+                    <span className="text-[10px] text-emerald-600 font-bold ml-1">{t('worker.verification.changeFile')}</span>
                   </div>
                 ) : (
                   <>
                     <Upload className="h-6 w-6 text-slate-400" />
-                    <p className="text-xs font-semibold text-slate-700">Click to choose a file or drag & drop</p>
-                    <p className="text-[11px] text-slate-500">Supported formats: PDF, PNG, JPG (Max 5MB)</p>
+                    <p className="text-xs font-semibold text-slate-700">{t('worker.verification.clickToChoose')}</p>
+                    <p className="text-[11px] text-slate-500">{t('worker.verification.supportedFormats')}</p>
                   </>
                 )}
               </div>
@@ -372,11 +376,11 @@ export function WorkerVerificationSection() {
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : editingDocId ? (
                   <>
-                    <Edit className="h-3.5 w-3.5" /> Save Changes
+                    <Edit className="h-3.5 w-3.5" /> {t('worker.verification.saveChangesBtn')}
                   </>
                 ) : (
                   <>
-                    <Plus className="h-3.5 w-3.5" /> Add Document
+                    <Plus className="h-3.5 w-3.5" /> {t('worker.verification.addDocBtn')}
                   </>
                 )}
               </button>
@@ -388,7 +392,7 @@ export function WorkerVerificationSection() {
                   disabled={isSubmittingDoc}
                   className="px-3 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition"
                 >
-                  Cancel
+                  {t('worker.verification.cancelBtn')}
                 </button>
               )}
             </div>
@@ -402,16 +406,19 @@ export function WorkerVerificationSection() {
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-emerald-600" />
-              <h3 className="text-sm font-bold text-slate-900">Submitted Documents</h3>
+              <h3 className="text-sm font-bold text-slate-900">{t('worker.verification.submittedDocsCount')}</h3>
             </div>
             <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
-              {documents.length} attached
+              {t('worker.verification.attachedBadge', { count: documents.length })}
             </span>
           </div>
 
           <div className="space-y-3">
             {documents.map((doc) => {
               const safeDisplayName = doc.fileReference ? doc.fileReference.replace(/^.*[\\/]/, '') : 'Document';
+              const localizedDocType = t(`admin.verification.docType.${doc.documentType}`, {
+                defaultValue: DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType,
+              });
               return (
                 <div
                   key={doc.id}
@@ -420,20 +427,20 @@ export function WorkerVerificationSection() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-slate-900">
-                        {DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType}
+                        {localizedDocType}
                       </span>
                       <DocumentStatusBadge status={doc.status} />
                     </div>
                     <p className="text-xs font-mono text-slate-600 truncate max-w-xs sm:max-w-md">
-                      File: {safeDisplayName}
+                      {t('documentViewer.fileName')}: {safeDisplayName}
                     </p>
                     {doc.reviewNote && (
                       <div className="text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md mt-1">
-                        Reviewer note: "{doc.reviewNote}"
+                        {t('worker.verification.reviewerNote')} "{doc.reviewNote}"
                       </div>
                     )}
                     <p className="text-[11px] text-slate-400">
-                      Uploaded: {new Date(doc.uploadedAt).toLocaleString()}
+                      {t('worker.verification.uploadedAt', { time: new Date(doc.uploadedAt).toLocaleString() })}
                     </p>
                   </div>
 
@@ -442,18 +449,18 @@ export function WorkerVerificationSection() {
                       type="button"
                       onClick={() => handlePreviewDocument(doc.id)}
                       disabled={isPreviewLoading}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 transition shadow-2xs"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 transition shadow-2xs cursor-pointer"
                     >
-                      <Eye className="h-3.5 w-3.5 text-slate-500" /> Preview
+                      <Eye className="h-3.5 w-3.5 text-slate-500" /> {t('worker.verification.previewBtn')}
                     </button>
 
                     {canEditDocuments && (
                       <button
                         type="button"
                         onClick={() => handleEditClick(doc)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition cursor-pointer"
                       >
-                        <Edit className="h-3.5 w-3.5" /> Replace
+                        <Edit className="h-3.5 w-3.5" /> {t('worker.verification.replaceBtn')}
                       </button>
                     )}
                   </div>
@@ -466,21 +473,21 @@ export function WorkerVerificationSection() {
           {canSubmit && (
             <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
               <p className="text-xs text-slate-600">
-                Ready to submit your attached verification documents for admin review?
+                {t('worker.verification.readyToSubmitDesc')}
               </p>
               <button
                 type="button"
                 onClick={() => setShowResubmitConfirm(true)}
                 disabled={isResubmitting}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition shadow-sm"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition shadow-sm cursor-pointer"
               >
                 {isResubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Submitting...
+                    <Loader2 className="h-4 w-4 animate-spin" /> {t('worker.verification.submittingReviewBtn')}
                   </>
                 ) : (
                   <>
-                    Submit for Admin Review <ArrowRight className="h-4 w-4" />
+                    {t('worker.verification.submitAdminReviewBtn')} <ArrowRight className="h-4 w-4" />
                   </>
                 )}
               </button>
@@ -492,12 +499,12 @@ export function WorkerVerificationSection() {
       {/* 4. GUIDELINES INFO CARD */}
       <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 space-y-2">
         <div className="flex items-center gap-2 text-blue-900 font-bold text-xs">
-          <Info className="h-4 w-4 text-blue-600" /> Verification Guidelines
+          <Info className="h-4 w-4 text-blue-600" /> {t('worker.verification.guidelinesTitle')}
         </div>
         <ul className="text-xs text-blue-800 space-y-1.5 list-disc pl-4">
-          <li>Upload legibly formatted ID documents for rapid approval.</li>
-          <li>Admin reviews typically take 24–48 hours.</li>
-          <li>Once verified, your profile displays an official verification badge to customers.</li>
+          <li>{t('worker.verification.guideline1')}</li>
+          <li>{t('worker.verification.guideline2')}</li>
+          <li>{t('worker.verification.guideline3')}</li>
         </ul>
       </div>
 
@@ -507,11 +514,10 @@ export function WorkerVerificationSection() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center gap-3 text-amber-600">
               <AlertCircle className="h-6 w-6" />
-              <h3 className="text-base font-bold text-slate-900">Confirm Verification Submission</h3>
+              <h3 className="text-base font-bold text-slate-900">{t('worker.verification.confirmModalTitle')}</h3>
             </div>
             <p className="text-xs text-slate-600">
-              Are you sure you want to submit your attached verification documents for admin review? Editing
-              will be locked while under review.
+              {t('worker.verification.confirmModalDesc')}
             </p>
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
@@ -519,14 +525,14 @@ export function WorkerVerificationSection() {
                 onClick={() => setShowResubmitConfirm(false)}
                 className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleResubmit}
                 className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition shadow-xs"
               >
-                Confirm Submission
+                {t('worker.verification.confirmSubmitBtn')}
               </button>
             </div>
           </div>

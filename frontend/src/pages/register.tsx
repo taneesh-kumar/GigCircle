@@ -4,8 +4,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { BrandMark } from '@/components/platform-shell';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { useTranslation } from 'react-i18next';
 
 export default function Register() {
+  const { t } = useTranslation();
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -26,12 +28,12 @@ export default function Register() {
     setError(null);
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('auth.register.passwordMismatch'));
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+      setError(t('auth.register.passwordTooShort'));
       return;
     }
 
@@ -49,7 +51,7 @@ export default function Register() {
       const targetPath = registeredUser.role === 'CUSTOMER' ? '/customer/dashboard' : '/worker/dashboard';
       navigate(targetPath, { replace: true });
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Registration failed. Please try again.';
+      const msg = err.response?.data?.message || err.message || t('auth.register.defaultError');
       setError(msg);
     } finally {
       setIsSubmitting(false);
@@ -66,7 +68,7 @@ export default function Register() {
             to="/"
             className="focus-ring rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-primary transition-colors hover:border-primary/40 hover:bg-secondary"
           >
-            Back to Home
+            {t('navigation.backToHome')}
           </Link>
         </div>
       </header>
@@ -74,16 +76,20 @@ export default function Register() {
       <section className="mx-auto w-full max-w-lg px-6 py-10">
         <div className="animate-rise-in rounded-3xl border border-border bg-card/90 p-8 shadow-xl shadow-primary/5">
           <div className="text-center">
-            <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-accent">Create Account</span>
-            <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-primary">Join GigCircle</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Select your platform role and enter your details.</p>
+            <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-accent">
+              {t('auth.register.badge')}
+            </span>
+            <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-primary">
+              {t('auth.register.title')}
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">{t('auth.register.subtitle')}</p>
           </div>
 
           {error && (
             <div className="mt-6 flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
               <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold">Registration Issue</p>
+                <p className="font-semibold">{t('auth.register.errorTitle')}</p>
                 <p className="mt-0.5 text-xs opacity-90">{error}</p>
               </div>
             </div>
@@ -93,7 +99,7 @@ export default function Register() {
             {/* Role Selector */}
             <div>
               <label className="block font-mono text-xs font-semibold uppercase tracking-wider text-primary mb-2">
-                I am joining as a
+                {t('auth.register.roleLabel')}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -106,8 +112,8 @@ export default function Register() {
                   }`}
                 >
                   <House className={`h-6 w-6 mb-1.5 ${role === 'CUSTOMER' ? 'text-accent' : ''}`} />
-                  <span className="text-xs font-bold uppercase tracking-wider">Customer</span>
-                  <span className="text-[10px] text-muted-foreground mt-0.5">Request Services</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">{t('auth.register.roleCustomer')}</span>
+                  <span className="text-[10px] text-muted-foreground mt-0.5">{t('auth.register.roleCustomerDesc')}</span>
                 </button>
 
                 <button
@@ -120,8 +126,8 @@ export default function Register() {
                   }`}
                 >
                   <HandHeart className={`h-6 w-6 mb-1.5 ${role === 'WORKER' ? 'text-accent' : ''}`} />
-                  <span className="text-xs font-bold uppercase tracking-wider">Worker</span>
-                  <span className="text-[10px] text-muted-foreground mt-0.5">Provide Services</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">{t('auth.register.roleWorker')}</span>
+                  <span className="text-[10px] text-muted-foreground mt-0.5">{t('auth.register.roleWorkerDesc')}</span>
                 </button>
               </div>
             </div>
@@ -129,7 +135,7 @@ export default function Register() {
             {/* Full Name */}
             <div>
               <label className="block font-mono text-xs font-semibold uppercase tracking-wider text-primary mb-2">
-                Full Name
+                {t('auth.register.nameLabel')}
               </label>
               <div className="relative">
                 <UserIcon className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
@@ -138,7 +144,7 @@ export default function Register() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="John Doe"
+                  placeholder={t('auth.register.namePlaceholder')}
                   className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-4 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
                 />
               </div>
@@ -147,7 +153,7 @@ export default function Register() {
             {/* Email Address */}
             <div>
               <label className="block font-mono text-xs font-semibold uppercase tracking-wider text-primary mb-2">
-                Email Address
+                {t('auth.register.emailLabel')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
@@ -156,7 +162,7 @@ export default function Register() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="john@example.com"
+                  placeholder={t('auth.register.emailPlaceholder')}
                   className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-4 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
                 />
               </div>
@@ -165,7 +171,7 @@ export default function Register() {
             {/* Phone Number */}
             <div>
               <label className="block font-mono text-xs font-semibold uppercase tracking-wider text-primary mb-2">
-                Phone Number
+                {t('auth.register.phoneLabel')}
               </label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
@@ -174,7 +180,7 @@ export default function Register() {
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="9876543210"
+                  placeholder={t('auth.register.phonePlaceholder')}
                   className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-4 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
                 />
               </div>
@@ -184,7 +190,7 @@ export default function Register() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="block font-mono text-xs font-semibold uppercase tracking-wider text-primary mb-2">
-                  Password
+                  {t('auth.register.passwordLabel')}
                 </label>
                 <div className="relative">
                   <KeyRound className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
@@ -194,14 +200,14 @@ export default function Register() {
                     minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder={t('auth.register.passwordPlaceholder')}
                     className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-10 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-3.5 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? t('auth.register.hidePassword') : t('auth.register.showPassword')}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -210,7 +216,7 @@ export default function Register() {
 
               <div>
                 <label className="block font-mono text-xs font-semibold uppercase tracking-wider text-primary mb-2">
-                  Confirm Password
+                  {t('auth.register.confirmPasswordLabel')}
                 </label>
                 <div className="relative">
                   <KeyRound className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
@@ -219,14 +225,14 @@ export default function Register() {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder={t('auth.register.confirmPasswordPlaceholder')}
                     className="focus-ring w-full rounded-xl border border-border bg-background py-3 pl-10 pr-10 text-sm text-primary placeholder:text-muted-foreground focus:border-primary"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-3.5 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
-                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showConfirmPassword ? t('auth.register.hidePassword') : t('auth.register.showPassword')}
                   >
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -241,29 +247,30 @@ export default function Register() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Registering...
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t('auth.register.registeringBtn')}
                 </>
               ) : (
                 <>
-                  Create Account <ArrowRight className="h-4 w-4" />
+                  {t('auth.register.submitBtn')} <ArrowRight className="h-4 w-4" />
                 </>
               )}
             </button>
           </form>
 
           <div className="mt-8 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-            Already have an account?{' '}
+            {t('auth.register.hasAccount')}{' '}
             <Link to="/login" className="font-semibold text-primary underline underline-offset-4 hover:text-accent">
-              Log in here
+              {t('auth.register.loginLink')}
             </Link>
           </div>
         </div>
       </section>
 
       <footer className="mx-auto flex w-full max-w-[1320px] items-center justify-between px-6 py-6 text-xs text-muted-foreground md:px-10">
-        <span>GigCircle Cooperative Gig Services Platform</span>
-        <span className="font-mono text-[10px]">Segment 1 MVP</span>
+        <span>{t('welcome.footer.copyright')}</span>
+        <span className="font-mono text-[10px]">{t('welcome.footer.versionBadge')}</span>
       </footer>
     </main>
   );
 }
+

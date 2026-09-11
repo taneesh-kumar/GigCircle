@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin, Navigation, Loader2, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export interface LocationPickerValue {
   latitude: number | null;
@@ -64,9 +65,10 @@ export function LocationPicker({
   initialCity = '',
   onChange,
   readOnly = false,
-  label = 'Service Location Map',
+  label,
   searchRadiusKm,
 }: LocationPickerProps) {
+  const { t } = useTranslation();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerInstanceRef = useRef<L.Marker | null>(null);
@@ -244,7 +246,7 @@ export function LocationPicker({
   // Request Current Location via Browser Geolocation API
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setGeoError('Geolocation is not supported by your browser. Please click on the map to select your location.');
+      setGeoError(t('locationPicker.geoNotSupported'));
       return;
     }
 
@@ -268,16 +270,16 @@ export function LocationPicker({
         setIsLocating(false);
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setGeoError('Location permission denied. Please select your location manually on the map.');
+            setGeoError(t('locationPicker.geoPermissionDenied'));
             break;
           case error.POSITION_UNAVAILABLE:
-            setGeoError('Current location unavailable. Please select your location manually on the map.');
+            setGeoError(t('locationPicker.geoUnavailable'));
             break;
           case error.TIMEOUT:
-            setGeoError('Location request timed out. Please select your location manually on the map.');
+            setGeoError(t('locationPicker.geoTimeout'));
             break;
           default:
-            setGeoError('Unable to retrieve your location. Please select manually on the map.');
+            setGeoError(t('locationPicker.geoDefaultError'));
             break;
         }
       },
@@ -289,12 +291,14 @@ export function LocationPicker({
     );
   };
 
+  const displayLabel = label || t('locationPicker.label');
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
           <MapPin className="h-4 w-4 text-emerald-600" />
-          {label}
+          {displayLabel}
         </label>
         {!readOnly && (
           <button
@@ -308,7 +312,7 @@ export function LocationPicker({
             ) : (
               <Navigation className="h-3.5 w-3.5 text-emerald-600" />
             )}
-            Use My Location
+            {t('locationPicker.useMyLocation')}
           </button>
         )}
       </div>
@@ -331,14 +335,14 @@ export function LocationPicker({
         {!mapLoaded && (
           <div className="absolute inset-0 bg-slate-100/90 backdrop-blur-xs flex items-center justify-center gap-2 text-xs font-semibold text-slate-600">
             <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
-            Loading interactive map...
+            {t('locationPicker.loadingMap')}
           </div>
         )}
 
         {isGeocoding && (
           <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-md border border-slate-200 px-3 py-1.5 rounded-xl text-[10px] font-bold text-slate-700 shadow-sm flex items-center gap-1.5 z-[400]">
             <Loader2 className="h-3 w-3 animate-spin text-emerald-600" />
-            Resolving address...
+            {t('locationPicker.resolvingAddress')}
           </div>
         )}
       </div>
@@ -349,7 +353,7 @@ export function LocationPicker({
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-              Selected Coordinates
+              {t('locationPicker.selectedCoordinates')}
             </span>
           </div>
           {lat != null && lng != null ? (
@@ -358,14 +362,14 @@ export function LocationPicker({
             </span>
           ) : (
             <span className="text-[11px] italic text-slate-400">
-              Click on the map to set location pin
+              {t('locationPicker.clickToSetPin')}
             </span>
           )}
         </div>
 
         {address && (
           <div className="text-[11px] text-slate-600">
-            <strong className="text-slate-800 font-bold">Detected Address:</strong> {address}
+            <strong className="text-slate-800 font-bold">{t('locationPicker.detectedAddress')}</strong> {address}
             {city && <span className="ml-1 text-slate-500">({city})</span>}
           </div>
         )}

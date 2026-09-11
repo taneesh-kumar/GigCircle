@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Lock, ShieldCheck, CheckCircle2, Clock3, XCircle, Check } from 'lucide-react';
+import { Lock, ShieldCheck, CheckCircle2, Clock3, XCircle } from 'lucide-react';
 import type { VerificationDocumentResponse } from '@/types/worker-verification';
 import { DOCUMENT_TYPE_LABELS } from '@/types/worker-verification';
+import { useTranslation } from 'react-i18next';
 
 declare global {
   interface Window {
@@ -31,6 +32,7 @@ export interface DocumentViewerModalProps {
 }
 
 export function DocumentViewerModal({ doc, blobUrl, onClose }: DocumentViewerModalProps) {
+  const { t } = useTranslation();
   const [zoomLevel, setZoomLevel] = useState<number>(100);
 
   const safeDisplayName = doc.fileReference ? doc.fileReference.replace(/^.*[\\/]/, '') : 'document.png';
@@ -55,6 +57,10 @@ export function DocumentViewerModal({ doc, blobUrl, onClose }: DocumentViewerMod
       ? doc.fileReference
       : null);
 
+  const localizedDocType = t(`admin.verification.docType.${doc.documentType}`, {
+    defaultValue: DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType,
+  });
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-3 sm:p-6 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-4xl rounded-3xl bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-slate-800 animate-in zoom-in-95 duration-200">
@@ -67,7 +73,7 @@ export function DocumentViewerModal({ doc, blobUrl, onClose }: DocumentViewerMod
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-white tracking-tight">
-                  {DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType}
+                  {localizedDocType}
                 </h3>
                 <DocumentStatusBadge status={doc.status} />
               </div>
@@ -84,7 +90,8 @@ export function DocumentViewerModal({ doc, blobUrl, onClose }: DocumentViewerMod
                 type="button"
                 onClick={() => setZoomLevel((z) => Math.max(50, z - 25))}
                 className="px-2.5 py-1 text-xs font-bold hover:text-white transition"
-                title="Zoom Out"
+                title={t('documentViewer.zoomOut')}
+                aria-label={t('documentViewer.zoomOut')}
               >
                 -
               </button>
@@ -95,7 +102,8 @@ export function DocumentViewerModal({ doc, blobUrl, onClose }: DocumentViewerMod
                 type="button"
                 onClick={() => setZoomLevel((z) => Math.min(200, z + 25))}
                 className="px-2.5 py-1 text-xs font-bold hover:text-white transition"
-                title="Zoom In"
+                title={t('documentViewer.zoomIn')}
+                aria-label={t('documentViewer.zoomIn')}
               >
                 +
               </button>
@@ -105,7 +113,8 @@ export function DocumentViewerModal({ doc, blobUrl, onClose }: DocumentViewerMod
               type="button"
               onClick={onClose}
               className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition"
-              title="Close Preview"
+              title={t('documentViewer.closePreview')}
+              aria-label={t('documentViewer.closePreview')}
             >
               ✕
             </button>
@@ -143,8 +152,10 @@ export function DocumentViewerModal({ doc, blobUrl, onClose }: DocumentViewerMod
                           ID
                         </div>
                         <div>
-                          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">Identity Document Record</span>
-                          <h4 className="text-sm font-bold text-white">{DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType}</h4>
+                          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
+                            {t('documentViewer.identityRecord')}
+                          </span>
+                          <h4 className="text-sm font-bold text-white">{localizedDocType}</h4>
                         </div>
                       </div>
                       <span className="text-xs font-mono text-slate-400 font-bold">#DOC-{doc.id}</span>
@@ -153,15 +164,21 @@ export function DocumentViewerModal({ doc, blobUrl, onClose }: DocumentViewerMod
                     <div className="grid grid-cols-3 gap-4 items-center bg-slate-950/80 p-4 rounded-xl border border-slate-800">
                       <div className="col-span-1 aspect-square rounded-xl bg-slate-800 border border-slate-700 flex flex-col items-center justify-center p-2 text-center">
                         <ShieldCheck className="h-10 w-10 text-emerald-400 mb-1" />
-                        <span className="text-[9px] font-bold text-slate-300 uppercase">Verified Copy</span>
+                        <span className="text-[9px] font-bold text-slate-300 uppercase">
+                          {t('documentViewer.verifiedCopy')}
+                        </span>
                       </div>
                       <div className="col-span-2 space-y-2 font-mono text-xs">
                         <div>
-                          <span className="text-[10px] text-slate-500 block uppercase">File Name</span>
+                          <span className="text-[10px] text-slate-500 block uppercase">
+                            {t('documentViewer.fileName')}
+                          </span>
                           <span className="text-emerald-300 font-bold truncate block">{safeDisplayName}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-slate-500 block uppercase">Upload Status</span>
+                          <span className="text-[10px] text-slate-500 block uppercase">
+                            {t('documentViewer.uploadStatus')}
+                          </span>
                           <DocumentStatusBadge status={doc.status} />
                         </div>
                       </div>
@@ -169,7 +186,7 @@ export function DocumentViewerModal({ doc, blobUrl, onClose }: DocumentViewerMod
 
                     {doc.reviewNote && (
                       <div className="bg-amber-950/60 border border-amber-800/80 p-2.5 rounded-lg text-xs font-medium text-amber-200">
-                        <strong>Admin Feedback:</strong> "{doc.reviewNote}"
+                        <strong>{t('documentViewer.adminFeedback')}</strong> "{doc.reviewNote}"
                       </div>
                     )}
                   </div>
@@ -183,15 +200,15 @@ export function DocumentViewerModal({ doc, blobUrl, onClose }: DocumentViewerMod
         <div className="bg-slate-900 px-6 py-4 border-t border-slate-800 flex items-center justify-between shrink-0 text-white">
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <span>Document File Reference: <code className="text-slate-200 font-mono">{safeDisplayName}</code></span>
+            <span>{t('documentViewer.fileRef')} <code className="text-slate-200 font-mono">{safeDisplayName}</code></span>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 text-xs font-bold text-slate-900 bg-white rounded-xl hover:bg-slate-100 transition shadow-sm"
+            className="px-5 py-2 text-xs font-bold text-slate-900 bg-white rounded-xl hover:bg-slate-100 transition shadow-sm cursor-pointer"
           >
-            Close Preview
+            {t('documentViewer.closePreview')}
           </button>
         </div>
       </div>
@@ -200,25 +217,27 @@ export function DocumentViewerModal({ doc, blobUrl, onClose }: DocumentViewerMod
 }
 
 function DocumentStatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   switch (status) {
     case 'APPROVED':
       return (
         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-2 py-0.5 rounded-md">
-          <CheckCircle2 className="h-3 w-3 text-emerald-400" /> APPROVED
+          <CheckCircle2 className="h-3 w-3 text-emerald-400" /> {t('status.verification.VERIFIED')}
         </span>
       );
     case 'REJECTED':
       return (
         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-400 bg-red-950/80 border border-red-800 px-2 py-0.5 rounded-md">
-          <XCircle className="h-3 w-3 text-red-400" /> REJECTED
+          <XCircle className="h-3 w-3 text-red-400" /> {t('status.verification.REJECTED')}
         </span>
       );
     case 'PENDING':
     default:
       return (
         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-950/80 border border-amber-800 px-2 py-0.5 rounded-md">
-          <Clock3 className="h-3 w-3 text-amber-400" /> PENDING
+          <Clock3 className="h-3 w-3 text-amber-400" /> {t('status.payment.PENDING')}
         </span>
       );
   }
 }
+
