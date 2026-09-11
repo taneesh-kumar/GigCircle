@@ -56,3 +56,8 @@ frontend/dist/
 backend/storage/*
 !backend/storage/**/.gitkeep
 
+# JVM crash/replay logs
+hs_err_pid*.log
+replay_pid*.log
+backend/hs_err_pid*.log
+backend/replay_pid*.log

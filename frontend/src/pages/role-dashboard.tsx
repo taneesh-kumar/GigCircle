@@ -2726,6 +2726,21 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                   <MessageSquare className="h-3.5 w-3.5 text-emerald-400" />
                                   <span>Open Chat</span>
                                 </button>
+
+                                {isCompleted && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setInvoiceModalJobId(job.id);
+                                      setIsInvoiceModalOpen(true);
+                                    }}
+                                    className="rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-3.5 py-2 text-xs font-bold transition-all shadow-2xs inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                                    title="View Job Invoice"
+                                  >
+                                    <Receipt className="h-3.5 w-3.5 text-emerald-600" />
+                                    <span>Invoice</span>
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -2887,6 +2902,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                                 ₹{e.platformFee?.toFixed(2)} (10%)
                               </span>
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setInvoiceModalJobId(e.jobId);
+                                setIsInvoiceModalOpen(true);
+                              }}
+                              className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 p-2 text-xs font-bold text-slate-700 transition-colors shadow-2xs inline-flex items-center gap-1.5"
+                              title="View Tax Invoice"
+                            >
+                              <Receipt className="h-3.5 w-3.5 text-emerald-600" />
+                              <span className="hidden md:inline">Invoice</span>
+                            </button>
                           </div>
                         </div>
                       ))
@@ -3538,13 +3565,28 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               </span>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => setSelectedFinancialTxnId(tx.id)}
-                              className="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-700 transition-colors inline-flex items-center gap-1 shrink-0"
-                            >
-                              <Eye className="h-3 w-3 text-slate-400" /> View Audit
-                            </button>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedFinancialTxnId(tx.id)}
+                                className="rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-700 transition-colors inline-flex items-center gap-1"
+                              >
+                                <Eye className="h-3 w-3 text-slate-400" /> View Audit
+                              </button>
+                              {tx.jobId && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setInvoiceModalJobId(tx.jobId!);
+                                    setIsInvoiceModalOpen(true);
+                                  }}
+                                  className="rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800 transition-colors inline-flex items-center gap-1"
+                                  title="View Tax Invoice"
+                                >
+                                  <Receipt className="h-3 w-3 text-emerald-600" /> Invoice
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ))
                       )}
@@ -4043,6 +4085,22 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
                               {j.status}
                             </span>
                           </div>
+                          <div className="shrink-0">
+                            {j.status === 'COMPLETED' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setInvoiceModalJobId(j.id);
+                                  setIsInvoiceModalOpen(true);
+                                }}
+                                className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 p-2 text-xs font-bold text-slate-700 transition-colors shadow-2xs inline-flex items-center gap-1.5"
+                                title="View Tax Invoice"
+                              >
+                                <Receipt className="h-3.5 w-3.5 text-emerald-600" />
+                                <span>Invoice</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ))
                     )}
@@ -4334,16 +4392,6 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
               }}
             />
           )}
-          {invoiceModalJobId && (
-            <InvoiceModal
-              jobId={invoiceModalJobId}
-              isOpen={isInvoiceModalOpen}
-              onClose={() => {
-                setIsInvoiceModalOpen(false);
-                setInvoiceModalJobId(null);
-              }}
-            />
-          )}
         </>
       )}
 
@@ -4482,6 +4530,18 @@ export default function RoleDashboard({ role }: { role: RoleKey }) {
         participantName={chatModalWorkerName}
         requestTitle={chatModalTitle || undefined}
       />
+
+      {/* Global Invoice Modal for all roles (Customer, Worker, Admin) */}
+      {invoiceModalJobId && (
+        <InvoiceModal
+          jobId={invoiceModalJobId}
+          isOpen={isInvoiceModalOpen}
+          onClose={() => {
+            setIsInvoiceModalOpen(false);
+            setInvoiceModalJobId(null);
+          }}
+        />
+      )}
     </PlatformShell>
   );
 }

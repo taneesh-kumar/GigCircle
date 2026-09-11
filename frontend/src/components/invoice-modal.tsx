@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, X, CheckCircle2, Clock3, IndianRupee, User, Calendar, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { FileText, X, CheckCircle2, Clock3, IndianRupee, User, Calendar, ShieldCheck, AlertCircle, Loader2, Printer, Download } from 'lucide-react';
 import { Invoice } from '@/types/invoice';
 import { getInvoiceForJobApi, generateInvoiceApi } from '@/services/api/invoice';
 import { useToast } from '@/hooks/use-toast';
@@ -139,17 +139,17 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">Payment Status</span>
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider ${
-                    invoice.paymentStatus === 'SUCCESS'
+                    invoice.paymentStatus === 'SUCCESS' || invoice.paymentStatus === 'COMPLETED'
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                       : 'bg-amber-100 text-amber-900 border border-amber-300'
                   }`}
                 >
-                  {invoice.paymentStatus === 'SUCCESS' ? (
+                  {invoice.paymentStatus === 'SUCCESS' || invoice.paymentStatus === 'COMPLETED' ? (
                     <CheckCircle2 className="h-3 w-3 text-emerald-700" />
                   ) : (
                     <Clock3 className="h-3 w-3 text-amber-700" />
                   )}
-                  {invoice.paymentStatus === 'SUCCESS' ? 'PAID' : invoice.paymentStatus}
+                  {invoice.paymentStatus === 'SUCCESS' || invoice.paymentStatus === 'COMPLETED' ? 'PAID' : invoice.paymentStatus}
                 </span>
               </div>
             </div>
@@ -229,11 +229,21 @@ export function InvoiceModal({ jobId, isOpen, onClose }: InvoiceModalProps) {
         ) : null}
 
         {/* Modal Footer */}
-        <div className="mt-8 flex justify-end border-t border-slate-100 pt-4">
+        <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-4">
+          {invoice && (
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-colors shadow-2xs"
+            >
+              <Printer className="h-3.5 w-3.5 text-emerald-600" />
+              Print / Save Invoice
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
+            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs ml-auto"
           >
             Close
           </button>
