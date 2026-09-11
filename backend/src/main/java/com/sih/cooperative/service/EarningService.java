@@ -27,17 +27,20 @@ public class EarningService {
     private final UserRepository userRepository;
     private final EarningsConfig earningsConfig;
     private final NotificationService notificationService;
+    private final PaymentRepository paymentRepository;
 
     public EarningService(EarningRepository earningRepository,
                           JobRepository jobRepository,
                           UserRepository userRepository,
                           EarningsConfig earningsConfig,
-                          NotificationService notificationService) {
+                          NotificationService notificationService,
+                          PaymentRepository paymentRepository) {
         this.earningRepository = earningRepository;
         this.jobRepository = jobRepository;
         this.userRepository = userRepository;
         this.earningsConfig = earningsConfig;
         this.notificationService = notificationService;
+        this.paymentRepository = paymentRepository;
     }
 
     private User getAuthenticatedUser(String email, Role requiredRole) {
@@ -198,12 +201,26 @@ public class EarningService {
         workerTotal = (workerTotal != null) ? workerTotal : BigDecimal.ZERO;
         availableTotal = (availableTotal != null) ? availableTotal : BigDecimal.ZERO;
 
+        long totalSuccessful = paymentRepository.countByStatus(PaymentStatus.SUCCESS);
+        long totalPending = paymentRepository.countByStatus(PaymentStatus.PENDING);
+        long totalFailed = paymentRepository.countByStatus(PaymentStatus.FAILED);
+
+        long upiCount = paymentRepository.countByPaymentMethod("UPI");
+        long cardCount = paymentRepository.countByPaymentMethod("CARD");
+        long walletCount = paymentRepository.countByPaymentMethod("COOPERATIVE_WALLET");
+
         return new PlatformRevenueSummary(
                 gross.setScale(2, RoundingMode.HALF_UP),
                 fees.setScale(2, RoundingMode.HALF_UP),
                 workerTotal.setScale(2, RoundingMode.HALF_UP),
                 count,
-                availableTotal.setScale(2, RoundingMode.HALF_UP)
+                availableTotal.setScale(2, RoundingMode.HALF_UP),
+                totalSuccessful,
+                totalPending,
+                totalFailed,
+                upiCount,
+                cardCount,
+                walletCount
         );
     }
 

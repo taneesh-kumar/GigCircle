@@ -34,6 +34,7 @@ public class AdminOperationsService {
     private final NotificationService notificationService;
     private final WorkerVerificationRepository workerVerificationRepository;
     private final DisputeRepository disputeRepository;
+    private final PaymentRepository paymentRepository;
 
 
     public AdminOperationsService(UserRepository userRepository,
@@ -45,7 +46,8 @@ public class AdminOperationsService {
                                   AdminActivityRepository adminActivityRepository,
                                   NotificationService notificationService,
                                   WorkerVerificationRepository workerVerificationRepository,
-                                  DisputeRepository disputeRepository) {
+                                  DisputeRepository disputeRepository,
+                                  PaymentRepository paymentRepository) {
         this.userRepository = userRepository;
         this.workerProfileRepository = workerProfileRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -56,6 +58,7 @@ public class AdminOperationsService {
         this.notificationService = notificationService;
         this.workerVerificationRepository = workerVerificationRepository;
         this.disputeRepository = disputeRepository;
+        this.paymentRepository = paymentRepository;
     }
 
 
@@ -740,20 +743,55 @@ public class AdminOperationsService {
             totalWorkerEarnings = totalWorkerEarnings.add(e.getWorkerEarning() != null ? e.getWorkerEarning() : BigDecimal.ZERO);
         }
 
-        long totalTxns = earnings.size();
+        Specification<Payment> paymentSpec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            if (from != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from.atStartOfDay()));
+            }
+            if (to != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), to.atTime(23, 59, 59)));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        List<Payment> payments = paymentRepository.findAll(paymentSpec);
+
+        BigDecimal completedPaymentAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal pendingPaymentAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal failedPaymentAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+        long completedTxns = 0;
+        long pendingTxns = 0;
+        long failedTxns = 0;
+
+        for (Payment p : payments) {
+            BigDecimal amt = p.getAmount() != null ? p.getAmount() : BigDecimal.ZERO;
+            if (p.getStatus() == PaymentStatus.SUCCESS) {
+                completedPaymentAmount = completedPaymentAmount.add(amt);
+                completedTxns++;
+            } else if (p.getStatus() == PaymentStatus.PENDING) {
+                pendingPaymentAmount = pendingPaymentAmount.add(amt);
+                pendingTxns++;
+            } else if (p.getStatus() == PaymentStatus.FAILED) {
+                failedPaymentAmount = failedPaymentAmount.add(amt);
+                failedTxns++;
+            }
+        }
+
+        long totalTxns = payments.size();
 
         return new AdminFinancialSummaryResponse(
                 totalGrossVolume,
                 totalPlatformFees,
                 totalWorkerEarnings,
-                totalGrossVolume,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
+                completedPaymentAmount,
+                pendingPaymentAmount,
+                failedPaymentAmount,
                 BigDecimal.ZERO,
                 totalTxns,
-                totalTxns,
-                0,
-                0,
+                completedTxns,
+                pendingTxns,
+                failedTxns,
                 0,
                 from,
                 to

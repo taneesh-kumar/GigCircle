@@ -33,4 +33,10 @@ export interface PlatformRevenueSummary {
   totalWorkerEarnings: number;
   totalCompletedJobsWithEarnings: number;
   totalAvailableWorkerEarnings: number;
+  totalSuccessfulPayments?: number;
+  totalPendingPayments?: number;
+  totalFailedPayments?: number;
+  upiPaymentCount?: number;
+  cardPaymentCount?: number;
+  walletPaymentCount?: number;
 }

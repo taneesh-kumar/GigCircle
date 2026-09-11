@@ -704,6 +704,11 @@ public class AdminOperationsIntegrationTest {
         Job job = new Job(req, workerUser, JobStatus.COMPLETED);
         jobRepository.save(job);
 
+        Payment payment = new Payment(job, customerUser, new BigDecimal("1000.00"), PaymentStatus.SUCCESS);
+        payment.setTransactionReference("DEMO-TXN-123");
+        payment.setPaymentMethod("UPI");
+        paymentRepository.save(payment);
+
         Earning earning = new Earning(job, workerUser, customerUser, new BigDecimal("1000.00"), new BigDecimal("100.00"), new BigDecimal("900.00"), new BigDecimal("10.00"), EarningStatus.AVAILABLE);
         earningRepository.save(earning);
 
@@ -716,6 +721,47 @@ public class AdminOperationsIntegrationTest {
                 .andExpect(jsonPath("$.completedPaymentAmount").value(1000.00))
                 .andExpect(jsonPath("$.totalTransactions").value(1))
                 .andExpect(jsonPath("$.completedTransactions").value(1));
+    }
+
+    @Test
+    void test40b_FinancialSummaryDistinguishesPendingAndFailedPayments() throws Exception {
+        ServiceRequest req1 = new ServiceRequest(customerUser, ServiceCategory.PLUMBING, "Fix sink 1", "Delhi", new BigDecimal("1000.00"), LocalDateTime.now());
+        serviceRequestRepository.save(req1);
+        Job job1 = new Job(req1, workerUser, JobStatus.COMPLETED);
+        jobRepository.save(job1);
+        Payment p1 = new Payment(job1, customerUser, new BigDecimal("1000.00"), PaymentStatus.SUCCESS);
+        p1.setTransactionReference("DEMO-TXN-SUCCESS");
+        p1.setPaymentMethod("UPI");
+        paymentRepository.save(p1);
+
+        ServiceRequest req2 = new ServiceRequest(customerUser, ServiceCategory.ELECTRICAL, "Fix outlet", "Delhi", new BigDecimal("500.00"), LocalDateTime.now());
+        serviceRequestRepository.save(req2);
+        Job job2 = new Job(req2, workerUser, JobStatus.PAYMENT_REQUIRED);
+        jobRepository.save(job2);
+        Payment p2 = new Payment(job2, customerUser, new BigDecimal("500.00"), PaymentStatus.PENDING);
+        p2.setTransactionReference("DEMO-TXN-PENDING");
+        p2.setPaymentMethod("CARD");
+        paymentRepository.save(p2);
+
+        ServiceRequest req3 = new ServiceRequest(customerUser, ServiceCategory.CLEANING, "Deep clean", "Delhi", new BigDecimal("750.00"), LocalDateTime.now());
+        serviceRequestRepository.save(req3);
+        Job job3 = new Job(req3, workerUser, JobStatus.PAYMENT_REQUIRED);
+        jobRepository.save(job3);
+        Payment p3 = new Payment(job3, customerUser, new BigDecimal("750.00"), PaymentStatus.FAILED);
+        p3.setTransactionReference("DEMO-TXN-FAILED");
+        p3.setPaymentMethod("UPI");
+        paymentRepository.save(p3);
+
+        mockMvc.perform(get("/api/admin/financial/summary")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completedPaymentAmount").value(1000.00))
+                .andExpect(jsonPath("$.pendingPaymentAmount").value(500.00))
+                .andExpect(jsonPath("$.failedPaymentAmount").value(750.00))
+                .andExpect(jsonPath("$.totalTransactions").value(3))
+                .andExpect(jsonPath("$.completedTransactions").value(1))
+                .andExpect(jsonPath("$.pendingTransactions").value(1))
+                .andExpect(jsonPath("$.failedTransactions").value(1));
     }
 
     @Test
