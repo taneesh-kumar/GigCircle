@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Star, X, Loader2, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { createRatingApi } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -12,6 +13,7 @@ interface RatingModalProps {
 }
 
 export function RatingModal({ isOpen, onClose, jobId, workerName, onSuccess }: RatingModalProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [score, setScore] = useState<number>(5);
   const [hoverScore, setHoverScore] = useState<number>(0);
@@ -74,6 +76,7 @@ export function RatingModal({ isOpen, onClose, jobId, workerName, onSuccess }: R
         <button
           onClick={onClose}
           disabled={isSubmitting}
+          aria-label={t('common.close', 'Close')}
           className="absolute right-5 top-5 p-2 text-muted-foreground hover:text-primary rounded-xl transition-colors disabled:opacity-50"
         >
           <X className="h-5 w-5" />
@@ -163,7 +166,7 @@ export function RatingModal({ isOpen, onClose, jobId, workerName, onSuccess }: R
               disabled={isSubmitting}
               className="focus-ring rounded-xl border border-border px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
             >
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </button>
 
             <button

@@ -3,6 +3,7 @@ import { ArrowRight, KeyRound, Mail, Phone, User as UserIcon, AlertCircle, Loade
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { BrandMark } from '@/components/platform-shell';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 export default function Register() {
   const { register } = useAuth();
@@ -59,12 +60,15 @@ export default function Register() {
     <main className="paper-grain min-h-[100dvh] flex flex-col justify-between bg-background">
       <header className="mx-auto flex w-full max-w-[1320px] items-center justify-between px-6 py-6 md:px-10">
         <BrandMark />
-        <Link
-          to="/"
-          className="focus-ring rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-primary transition-colors hover:border-primary/40 hover:bg-secondary"
-        >
-          Back to Home
-        </Link>
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher variant="light" />
+          <Link
+            to="/"
+            className="focus-ring rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-primary transition-colors hover:border-primary/40 hover:bg-secondary"
+          >
+            Back to Home
+          </Link>
+        </div>
       </header>
 
       <section className="mx-auto w-full max-w-lg px-6 py-10">

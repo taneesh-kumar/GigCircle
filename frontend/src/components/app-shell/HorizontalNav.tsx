@@ -17,6 +17,7 @@ import {
   LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 interface NavItem {
   id: string;
@@ -63,6 +64,7 @@ const adminNav: NavItem[] = [
 
 export function HorizontalNav() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'overview';
 
@@ -83,6 +85,7 @@ export function HorizontalNav() {
           {items.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
+            const displayLabel = item.id === 'overview' ? t('navigation.dashboard', item.label) : item.label;
             return (
               <button
                 key={item.id}
@@ -96,7 +99,7 @@ export function HorizontalNav() {
                 }`}
               >
                 <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
-                <span>{item.label}</span>
+                <span>{displayLabel}</span>
               </button>
             );
           })}

@@ -19,6 +19,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { BrandMark } from '@/components/platform-shell';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 const POPULAR_SERVICES = [
   {
@@ -122,8 +123,9 @@ export default function Welcome() {
             </a>
           </nav>
 
-          {/* AUTH BUTTONS */}
-          <div className="flex items-center justify-end gap-3 justify-self-end">
+          {/* AUTH BUTTONS & LANGUAGE */}
+          <div className="flex items-center justify-end gap-2.5 sm:gap-3 justify-self-end">
+            <LanguageSwitcher variant="light" />
             {isAuthenticated && user ? (
               <Link
                 to={userDashboard}

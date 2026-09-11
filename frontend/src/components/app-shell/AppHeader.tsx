@@ -15,6 +15,8 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import {
   getCustomerNotificationsApi,
   getWorkerNotificationsApi,
@@ -34,6 +36,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ sectionTitle }: AppHeaderProps) {
   const { user, logout, isAuthenticated } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -177,10 +180,10 @@ export function AppHeader({ sectionTitle }: AppHeaderProps) {
       : currentTab === 'activity'
       ? 'Activity Audit'
       : user?.role === 'WORKER'
-      ? 'Worker Dashboard'
+      ? `Worker ${t('navigation.dashboard', 'Dashboard')}`
       : user?.role === 'ADMIN'
-      ? 'Admin Dashboard'
-      : 'Customer Dashboard');
+      ? `Admin ${t('navigation.dashboard', 'Dashboard')}`
+      : `Customer ${t('navigation.dashboard', 'Dashboard')}`);
 
   const getNotificationIcon = (noti: Notification) => {
     const type = (noti.type || '').toUpperCase();
@@ -279,8 +282,11 @@ export function AppHeader({ sectionTitle }: AppHeaderProps) {
           </div>
         </div>
 
-        {/* RIGHT: User Profile & Notifications */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        {/* RIGHT: User Profile, Notifications & Language Switcher */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Language Switcher */}
+          <LanguageSwitcher />
+
           {/* Notification Bell */}
           <div className="relative" ref={notifRef}>
             <button

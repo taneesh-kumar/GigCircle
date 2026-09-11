@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, ChevronDown, MapPin, Wrench, X, AlertCircle, Loader2, Check, Sparkles, Activity, Briefcase, Hammer, Paintbrush, Sprout, Tv, HelpCircle } from 'lucide-react';
 import { createServiceRequestApi } from '@/services/api';
+import { useTranslation } from 'react-i18next';
 import { CATEGORY_LABELS, type ServiceCategory } from '@/types/service-request';
 import { useToast } from '@/hooks/use-toast';
 import { LocationPicker, type LocationPickerValue } from '@/components/location-picker';
@@ -34,6 +35,7 @@ const getCategoryIcon = (category: string) => {
 };
 
 export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequestModalProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const [category, setCategory] = useState<ServiceCategory | ''>('');
@@ -248,7 +250,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
             onClick={onClose}
             disabled={isSubmitting}
             className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:opacity-50"
-            aria-label="Close dialog"
+            aria-label={t('common.close', 'Close')}
           >
             <X className="h-5 w-5" />
           </button>
@@ -545,7 +547,7 @@ export function CreateRequestModal({ isOpen, onClose, onSuccess }: CreateRequest
               disabled={isSubmitting}
               className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 shadow-xs"
             >
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </button>
             <button
               type="submit"

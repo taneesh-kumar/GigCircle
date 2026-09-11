@@ -3,6 +3,7 @@ import { Briefcase, Check, DollarSign, MapPin, Plus, ShieldCheck, Tag, User, X, 
 import { createWorkerProfileApi, updateWorkerProfileApi } from '@/services/api';
 import { CATEGORY_LABELS, type ServiceCategory } from '@/types/service-request';
 import type { WorkerProfile } from '@/types/worker-profile';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { LocationPicker, type LocationPickerValue } from '@/components/location-picker';
 
@@ -36,6 +37,7 @@ const getCategoryIcon = (category: string) => {
 };
 
 export function WorkerProfileModal({ isOpen, onClose, onSuccess, existingProfile }: WorkerProfileModalProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const isEditing = !!existingProfile;
 
@@ -474,7 +476,7 @@ export function WorkerProfileModal({ isOpen, onClose, onSuccess, existingProfile
               disabled={isSubmitting}
               className="focus-ring rounded-xl border border-border bg-background px-5 py-2.5 text-xs font-bold text-primary hover:bg-secondary transition-colors disabled:opacity-50"
             >
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </button>
             <button
               type="submit"
@@ -486,7 +488,7 @@ export function WorkerProfileModal({ isOpen, onClose, onSuccess, existingProfile
                   <Loader2 className="h-4 w-4 animate-spin" /> Saving...
                 </>
               ) : (
-                isEditing ? 'Save Changes' : 'Complete Profile'
+                isEditing ? `${t('common.save', 'Save')} Changes` : 'Complete Profile'
               )}
             </button>
           </div>
